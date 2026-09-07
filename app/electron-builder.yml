@@ -1,0 +1,13 @@
+appId: com.diepen.local-file-rag
+productName: Local file search
+directories:
+  output: release
+files:
+  - out/**/*
+extraResources:
+  - from: ../sidecar/dist/sidecar
+    to: sidecar
+mac:
+  target: dmg
+  category: public.app-category.productivity
+  hardenedRuntime: true
