@@ -1,0 +1,30 @@
+{"id": "g01", "query": "stripe webhook error screenshot", "expected_file": "screenshots/IMG_4821.png", "expected_page": 1, "text_free": false, "note": "Vision OCR reads 'Webhook delivery failed' off the dialog, so stage 1 can win this. Kept as the hero query because the filename carries nothing."}
+{"id": "g02", "query": "slide with the funnel chart", "expected_file": "decks/growth-metrics-review-q1-2026.pdf", "expected_page": 4, "text_free": true}
+{"id": "g03", "query": "chat thread where someone approves the pricing change", "expected_file": "screenshots/IMG_5310.png", "expected_page": 1, "text_free": true}
+{"id": "g04", "query": "dashboard with a red spike at the end of the week", "expected_file": "screenshots/Screenshot 2026-06-10 at 08.02.11.png", "expected_page": 1, "text_free": true}
+{"id": "g05", "query": "mobile lock screen with the battery about to die", "expected_file": "screenshots/CleanShot 2026-08-14.png", "expected_page": 1, "text_free": true}
+{"id": "g06", "query": "code editor with a merge conflict left unresolved", "expected_file": "screenshots/Screenshot 2026-07-03 at 14.28.55.png", "expected_page": 1, "text_free": true}
+{"id": "g07", "query": "cloud console showing a region running out of capacity", "expected_file": "screenshots/IMG_7742.png", "expected_page": 1, "text_free": true}
+{"id": "g08", "query": "chart showing signups after the landing page redesign", "expected_file": "reports/experiments/landing-page-signup-jump.pdf", "expected_page": 2, "text_free": true}
+{"id": "g09", "query": "board deck slide with a hockey stick revenue curve", "expected_file": "decks/board-narrative-q3-2026.pdf", "expected_page": 4, "text_free": true}
+{"id": "g10", "query": "mobile home screen with a ton of notification badges", "expected_file": "screenshots/IMG_9013.png", "expected_page": 1, "text_free": true}
+{"id": "g11", "query": "q2 hosting invoice data egress charge", "expected_file": "reports/invoices/hosting-q2-2026.pdf", "expected_page": 1, "text_free": false}
+{"id": "g12", "query": "database connection timeout error dialog", "expected_file": "screenshots/Screenshot 2026-02-18 at 09.14.02.png", "expected_page": 1, "text_free": false}
+{"id": "g13", "query": "terminal npm peer dependency error", "expected_file": "screenshots/CleanShot 2026-04-02.png", "expected_page": 1, "text_free": false}
+{"id": "g14", "query": "settings screen for two factor authentication", "expected_file": "screenshots/CleanShot 2026-01-22.png", "expected_page": 1, "text_free": false}
+{"id": "g15", "query": "meeting notes about grandfathering existing customers on pricing", "expected_file": "notes/meetings/2026-02-11-pricing-sync.md", "expected_page": 1, "text_free": false}
+{"id": "g16", "query": "spec for the api rate limit", "expected_file": "notes/specs/rate-limit-spec.md", "expected_page": 1, "text_free": false}
+{"id": "g17", "query": "changelog entry about exports timing out", "expected_file": "notes/changelog/CHANGELOG-beacon.md", "expected_page": 1, "text_free": false}
+{"id": "g18", "query": "todo about renewing the ssl certificate", "expected_file": "notes/todo/leander-todo.md", "expected_page": 1, "text_free": false}
+{"id": "g19", "query": "readme explaining how the ingest service retries failed jobs", "expected_file": "notes/readmes/ingest-service-README.md", "expected_page": 1, "text_free": false}
+{"id": "g20", "query": "nginx config for max upload size", "expected_file": "notes/config/nginx-snippet.conf", "expected_page": 1, "text_free": false}
+{"id": "g21", "query": "incident review root cause dns cache", "expected_file": "notes/meetings/2026-05-04-incident-review.md", "expected_page": 1, "text_free": false}
+{"id": "g22", "query": "spec requiring email verification before dashboard access", "expected_file": "notes/specs/onboarding-flow-spec.md", "expected_page": 1, "text_free": false}
+{"id": "g23", "query": "net revenue retention 116 percent quarterly review", "expected_file": "reports/quarterly/kernel-metrics-q3-2026-business-review-0.pdf", "expected_page": 1, "text_free": false}
+{"id": "g24", "query": "beacon storage cost breakdown", "expected_file": "reports/infra-cost/beacon-infrastructure-cost-breakdown-1.pdf", "expected_page": 1, "text_free": false}
+{"id": "g25", "query": "voxel health board update runway status", "expected_file": "reports/board/voxel-health-board-update-1.pdf", "expected_page": 1, "text_free": false}
+{"id": "g26", "query": "driftline retention experiment writeup", "expected_file": "reports/experiments/driftline-experiment-writeup-retention-1.pdf", "expected_page": 1, "text_free": false}
+{"id": "g27", "query": "roadmap deck deprecating the v1 api", "expected_file": "decks/product-roadmap-2026.pdf", "expected_page": 3, "text_free": false}
+{"id": "g28", "query": "deck about the hiring freeze", "expected_file": "decks/hiring-plan-2026.pdf", "expected_page": 3, "text_free": false}
+{"id": "g29", "query": "partnerships deck mentioning the northwind referral program", "expected_file": "decks/partnerships-review-2026.pdf", "expected_page": 3, "text_free": false}
+{"id": "g30", "query": "northwind analytics hosting invoice compute cost", "expected_file": "reports/invoices/compute-q1-2026.pdf", "expected_page": 1, "text_free": false}
