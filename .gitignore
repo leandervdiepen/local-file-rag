@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+
+# Node
+node_modules/
+out/
+.vite/
+release/
+
+# Local state that is never source
+spike/.venv/
+scratch/
+*.local.json
+
+# Corpus and measurements are generated, not tracked
+demo-corpus/
+bench-out/
+
+# macOS
+.DS_Store
