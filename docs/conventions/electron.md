@@ -29,7 +29,8 @@ It exposes named functions. It never exposes `ipcRenderer`, a channel name, or a
 window.bridge = {
   sidecar: { baseUrl, token },
   openPath(path), revealInFinder(path), copyPath(path),
-  pickFolder(), setAnthropicKey(key), onSidecarState(cb),
+  pickFolder(), setAnthropicKey(key), hasAnthropicKey(),
+  restartSidecar(), onSidecarState(cb),
 }
 ```
 
@@ -38,6 +39,10 @@ The renderer is the least trusted part of this app: it renders file content, and
 A renderer bug must not become a way to open an arbitrary path.
 
 The bridge type is declared once and imported by both sides, so a change to main that the renderer has not caught up with is a typecheck failure rather than a runtime `undefined`.
+
+That type is `app/src/preload/bridge-types.ts`, and the surface above is expected to match it name for name.
+The compiler checks the type and not this file, so when the two disagree this file is the one that is wrong.
+A function added to the bridge is not done until it is named here.
 
 ## Sidecar lifecycle
 
@@ -54,6 +59,7 @@ State is a small machine, and the renderer sees it, because "the engine is start
 
 A crash restarts the sidecar with backoff, at most three times.
 After the third, the app shows the sidecar-down state with a restart button rather than looping.
+That button reaches the process through `restartSidecar` on the bridge, which is why the surface carries an action the renderer cannot perform itself.
 LanceDB is the only state, so a restart loses nothing. That is why the restart is safe to make automatic.
 
 On quit main sends `SIGTERM` and waits up to five seconds for a flush, then `SIGKILL`.

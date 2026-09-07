@@ -22,14 +22,14 @@ Acceptance: the spike prints a seconds-per-page number under 3 s and picks the r
 
 ## Day 1, skeleton
 
-- [ ] Create the repo next to this folder. Move this folder to `docs/`. Link it from STATUS.md.
-- [ ] `app/`: electron-vite with React 19, TypeScript, Tailwind v4, shadcn/ui. Main spawns the sidecar, reads `READY <port>`, exposes base URL and token through preload.
-- [ ] `sidecar/`: uv project, Flask 3 app, waitress entrypoint, bearer token middleware, `/health`.
-- [ ] Layer skeleton in both packages per KICKOFF.md: domain, application with ports, infrastructure, interface. import-linter and dependency-cruiser wired into `make check` on day one, before any adapter exists.
-- [ ] `store.py`: LanceDB tables from ARCHITECTURE.md. FTS index on `files.text` and `pages.text`.
-- [ ] `crawl.py`, `gate.py`: skip list, hashing, kind detection, skip reasons.
-- [ ] `extract_pdf.py`: pypdfium2 text per page and page count.
-- [ ] `ocr_mac.py`: Apple Vision OCR for images and empty-text PDF pages.
+- [x] Create the repo next to this folder. Move this folder to `docs/`. Link it from STATUS.md.
+- [x] `app/`: electron-vite with React 19, TypeScript, Tailwind v4, shadcn/ui. Main spawns the sidecar, reads `READY <port>`, exposes base URL and token through preload.
+- [x] `sidecar/`: uv project, Flask 3 app, waitress entrypoint, bearer token middleware, `/health`.
+- [x] Layer skeleton in both packages per KICKOFF.md: domain, application with ports, infrastructure, interface. import-linter and dependency-cruiser wired into `make check` on day one, before any adapter exists.
+- [x] `store.py`: LanceDB tables from ARCHITECTURE.md. FTS index on `files.text` and `pages.text`.
+- [x] `crawl.py`, `gate.py`: skip list, hashing, kind detection, skip reasons.
+- [x] `extract_pdf.py`: pypdfium2 text per page and page count.
+- [x] `ocr_mac.py`: Apple Vision OCR for images and empty-text PDF pages.
 - [ ] `jobs.py`: background indexing thread with a progress endpoint.
 - [ ] `api_search.py`: SSE search emitting `candidates` from stage 1 only.
 - [ ] Renderer: folder picker on first run, search box, results grouped by file with thumbnails from `/pages/{id}/image?size=thumb`.

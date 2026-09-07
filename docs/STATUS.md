@@ -1,16 +1,35 @@
 # Status
 
-Updated: 2026-09-07, autonomous build session.
+Updated: 2026-09-08, autonomous build session.
 Repo: this folder. Planning docs moved to `docs/` on day 1.
 Linear: `Local file RAG v1` on team `diepen`, 57 issues, DPN-224 to DPN-280.
 
 ## Now
 
-Day 1. Sidecar skeleton and corpus are done. Waiting on the Electron scaffold, then the store, crawler and gate.
+Day 1, the interface layer. `jobs.py`: the background indexing thread and the progress endpoint it reports through.
+
+Everything under it is done and tested. The indexing domain, the ports, every adapter, and `IndexFolder` and `Search` over them, now with the application tests that were missing.
+`interface/composition.py` still registers `/health` and nothing else, so no indexing and no search is reachable over HTTP, and the renderer has nothing to call.
+That is the whole of what is left on day 1: three routes, the composition root that wires the adapters into the use cases, and the search UI.
 
 ## Next
 
-`store.py` LanceDB tables, then `crawl.py` and `gate.py` against the 280 file demo corpus.
+1. `jobs.py`: the background indexing thread and its progress endpoint. `IndexFolder` already takes a `ProgressSink` and nothing calls it.
+2. The folder routes. `FolderStore` and `LanceDBFolders` exist and no route reaches them, so onboarding has nothing behind it.
+3. The stage 1 search route. `Search.stage_one` and `encode_event` both exist, and `composition.py` registers `/health` and nothing else.
+4. Renderer: folder picker on first run, search box, results grouped by file with thumbnails, and open, reveal and copy on a result. Main already exposes all three actions across the bridge.
+5. The Day 1 acceptance run against `~/demo-corpus`, which is also where files per second crawled, OCR milliseconds per image and index size on disk get measured.
+
+## Plan swaps
+
+`KICKOFF.md` takes tasks from `PLAN.md` in order unless a dependency forces a swap, and a swap gets written down here.
+
+| Landed early | Belongs to | Why |
+| --- | --- | --- |
+| The `Answerer` port in `application/ports.py`, plus `domain/providers.py` and `domain/answers.py` | Day 4 | The owner asked for multi-provider support mid-build. The shape of the answer step had to be settled before anything was written against a single vendor, and the port is what makes the difference between vendors data rather than code. D36 to D39 record what it decided. |
+
+It landed as a port, a model registry and request types: no adapter, no route, no test.
+Day 4 still owns `anthropic_answerer`, `openai_compatible_answerer` and the unit tests `conventions/testing.md` names for citation parsing and cost math.
 
 ## Blockers
 
@@ -73,6 +92,18 @@ The spike drew three pages, saved a real PDF, rendered it back through pypdfium2
 | Hugging Face Xet backend stalls | A 4.4 GB download sat at 65 MB with no progress for minutes. Classic HTTP ran at 3.7 MB/s immediately | D27: `HF_HUB_DISABLE_XET=1`, and it has to carry into the packaged app's first run download, not just development. |
 | `transformers` silently ignores `torch_dtype` | Passing the old name loaded fp32 and doubled memory with no error | Use `dtype`. Worth an assertion in the embedder that the loaded dtype is the requested one. |
 
+## Known debt
+
+True now, and each one costs more the later it is paid.
+
+| Debt | Why it matters |
+| --- | --- |
+| `INDEXED_FOLDERS` in `app/src/main/allowed-paths.ts` is empty, so `isPathAllowed` rejects every path and the `shell.openPath` check guards nothing. | Security relevant. The guard reads as enforcement in review while nothing has ever been wired to the sidecar's indexed folders, so it has to be filled in the same change that first gives the renderer a path to open. |
+| `app/.dependency-cruiser.cjs` exempts `src/renderer/domain/format.ts` from the `no-orphans` rule. | The exemption is the only reason a module nothing imports passes `make check`. Remove it the moment the search UI formats a size or a duration, or the rule stops catching dead code for everyone. |
+| TypeScript is pinned to 5.9.3 and Vite to 7.3.6 by ecosystem compatibility, not by choice. | Nothing in the repo records which package forces which pin, so the next attempt to bump one rediscovers the break instead of reading about it. |
+| shadcn/ui is not installed. `ui/shared/Button.tsx` and `ui/shared/Screen.tsx` are hand rolled. | D01 and the Day 1 scaffold both name shadcn/ui. Every screen after the onboarding states either adopts it or D01 needs a row saying it was dropped and why. |
+| Nothing removes stale rows. A file that stops being readable keeps the pages it had, so the index screen calls it skipped while a search still returns its content. | Breaks `IndexFolder`'s stated invariant, which is the promise the index screen is built on. Measured, not inferred: see D43. It is scheduled, not forgotten. Day 5 owns it, and `content_hash_of` is the method it needs. |
+
 ## Open questions
 
 - Product name. Working name `local-file-rag` used everywhere, behind one constant.
@@ -106,3 +137,13 @@ Sidecar skeleton landed: four layers, import-linter green on three contracts, `/
 Demo corpus generator landed: 280 deterministic files, 7 skip reasons, three hero targets verified by reading the generated files back.
 
 Found and fixed a real bug in the Makefile: `uv --project` points uv at the environment but leaves the working directory at the repo root, so every relative path in the check targets missed. `--directory` is the flag that moves cwd.
+
+Electron shell landed: main owns the sidecar lifecycle with the handshake, backoff and a restart, preload exposes one typed bridge, and the renderer has all four layers behind the starting, ready, crashed and failed states.
+
+Indexing landed everywhere except the interface layer: entities, kind detection and the gate in the domain, then the ports, then `fs_crawler`, `fs_probe`, `pdfium_pages`, `image_pages`, `text_pages`, `vision_ocr` and `lancedb_store` with its schema split out, and `IndexFolder` and `Search` over them. Nothing serves any of it over HTTP yet, and neither use case has a test.
+
+Day 4 groundwork came forward: the `Answerer` port and the model registry. See `Plan swaps`.
+
+`make check` and `make check-int` both green, 2026-09-08 on this machine: 96 sidecar unit tests, 75 sidecar integration tests, 43 app tests across 6 files, import-linter 3 contracts kept over 68 files and 170 dependencies, dependency-cruiser clean over 52 modules and 85 dependencies.
+
+Day 1 debt cleared before the interface layer went on top of it. `IndexStore` gained `get_file`, `get_pages` and `content_hash_of`, and moved with the new `FolderStore` into `application/store_ports.py`, since the contracts no longer fit `ports.py` under the line budget. `IndexFolder` and `Search` got the tests they never had, and those tests found two real bugs: the OCR budget capped page numbers rather than pages sent to OCR, so a scanned appendix starting on page 200 got none of its unspent budget of 50, now fixed; and nothing removes stale rows, now D43 and scheduled for day 5. The demo corpus was refusing its own oversized and empty files at the type check, so two of the seven skip reasons were never exercised by it, and a full regeneration was doubling the manifest. Both fixed, and the corpus now stands at 282 files with every skip reason represented.
