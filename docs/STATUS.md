@@ -6,10 +6,20 @@ Linear: `Local file RAG v1` on team `diepen`, 57 issues, DPN-224 to DPN-280.
 
 ## Now
 
-Day 2, the vision path. `embed.py`: lazy ColQwen2 load on MPS, float16, pooling factor 3, unloaded after ten idle minutes.
+Day 2, the vision path. Two adapters are missing and they are the only thing standing between `main` and a working stage 2.
 
-Day 1 is accepted. Every route in the day 1 slice is served, the renderer searches a real index with thumbnails, and the numbers are in the table below.
-The evaluation research the owner asked for is running in parallel and lands in `docs/research/evaluation-2026-09.md`; see `Plan swaps`.
+The session was stopped on 2026-09-08 before they were written, so the work in flight is parked on the branch `day2-vision-wip`, pushed.
+`main` is green and does not contain it.
+
+To resume, in this order:
+
+1. Check out `day2-vision-wip`. It will not import: `interface/composition.py` names `infrastructure/colqwen_embedder.py` and `infrastructure/lancedb_vectors.py`, and neither exists.
+2. Write `colqwen_embedder.py` against `application/embedding_ports.py`. `spike/spike.py` has every call it needs already working: `MultiVectorEncoder(model_id, device="mps", model_kwargs={"dtype": torch.float16})`, `encode_document`, `encode_query`, and `HierarchicalTokenPooling(pool_factor=3).pool_one(...)`. The merged model is already in the Hugging Face cache at 4.1 GB.
+3. Write `lancedb_vectors.py` against `VectorStore` in `application/store_ports.py`. `lancedb_store.py` and `lancedb_folders.py` are the shape to copy, including `lancedb_sql` for every filter literal.
+4. `make check` and `make check-int`, then the Day 2 acceptance and `scripts/bench.py`.
+5. Finish the eval slice: three ruff failures in `domain/evaluation.py` and `interface/eval_routes.py`, `scripts/eval.py` is 216 lines against a 200 line budget, the blueprint is not registered, and none of it has run against a live sidecar.
+
+The branch commit message lists exactly what is finished and what is not.
 
 ## Next
 
