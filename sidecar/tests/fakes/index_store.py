@@ -110,11 +110,11 @@ class FakeIndexStore:
             if file.skip_reason is not None:
                 reason_counts[file.skip_reason] = reason_counts.get(file.skip_reason, 0) + 1
         return IndexStats(
-            files_scanned=sum(1 for f in files if f.state is FileState.SCANNED),
+            files_scanned=len(files),
             files_text_indexed=sum(1 for f in files if f.state is FileState.TEXT_INDEXED),
             files_skipped=sum(1 for f in files if f.state is FileState.SKIPPED),
             pages_total=len(pages),
             pages_embedded=sum(1 for p in pages if p.is_embedded),
-            bytes_on_disk=sum(f.size_bytes for f in files),
+            bytes_on_disk=sum(len(p.text.encode("utf-8")) for p in pages),
             skips_by_reason=tuple(sorted(reason_counts.items())),
         )

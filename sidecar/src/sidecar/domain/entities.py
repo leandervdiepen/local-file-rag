@@ -28,9 +28,13 @@ class FileKind(StrEnum):
 
 
 class FileState(StrEnum):
-    """How far a file got through the pipeline."""
+    """How far a file got through the pipeline.
 
-    SCANNED = "scanned"
+    A file is either in with its text or out with a reason. There is no
+    resting state between the two, because a file is read and stored in one
+    step and nothing ever observes it half done.
+    """
+
     TEXT_INDEXED = "text_indexed"
     SKIPPED = "skipped"
 

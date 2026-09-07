@@ -31,6 +31,7 @@ class LanceDBStore:
     """The one place index state lives, backed by the `files` and `pages` LanceDB tables."""
 
     def __init__(self, db_path: Path) -> None:
+        self._db_path = db_path
         self._db = lancedb.connect(str(db_path))
 
     def upsert_file(self, file: IndexedFile) -> None:
@@ -82,15 +83,13 @@ class LanceDBStore:
         return hits[:limit]
 
     def stats(self) -> IndexStats:
-        files_scanned = files_text_indexed = files_skipped = bytes_on_disk = 0
+        files_scanned = files_text_indexed = files_skipped = 0
         skips_by_reason: tuple[tuple[str, int], ...] = ()
         files_table = self._existing_table(schema.FILES_TABLE)
         if files_table is not None:
-            files_scanned = files_table.count_rows(f"state = '{FileState.SCANNED.value}'")
+            files_scanned = files_table.count_rows()
             files_text_indexed = files_table.count_rows(f"state = '{FileState.TEXT_INDEXED.value}'")
             files_skipped = files_table.count_rows(f"state = '{FileState.SKIPPED.value}'")
-            sizes = files_table.search().select(["size_bytes"]).to_list()
-            bytes_on_disk = sum(int(row["size_bytes"]) for row in sizes)
             reasons = files_table.search().select(["skip_reason"]).where("skip_reason IS NOT NULL").to_list()
             reason_counts: dict[str, int] = {}
             for row in reasons:
@@ -107,7 +106,7 @@ class LanceDBStore:
             files_skipped=files_skipped,
             pages_total=pages_total,
             pages_embedded=pages_embedded,
-            bytes_on_disk=bytes_on_disk,
+            bytes_on_disk=_directory_size(self._db_path),
             skips_by_reason=skips_by_reason,
         )
 
@@ -147,9 +146,12 @@ class LanceDBStore:
             # A search box takes whatever was typed. lancedb 0.38.0 does not raise on the
             # malformed FTS queries this was tested against, but the query parser is not
             # part of the contract, so this stays defensive rather than an exact except.
+            # `_score` is unused here and asked for anyway: lance warns on every
+            # search whose projection leaves it out, and that warning would land
+            # in the app log on every keystroke.
             candidates = (
                 files_table.search(query, query_type="fts")
-                .select(["id", "path", "kind"])
+                .select(["id", "path", "kind", "_score"])
                 .limit(_FILENAME_CANDIDATE_LIMIT)
                 .to_list()
             )
@@ -183,6 +185,12 @@ class LanceDBStore:
                 snippet = row["text"][:_SNIPPET_LENGTH]
                 hits.append(schema.row_to_hit(row, file_row, row["_score"], "content", snippet))
         return hits
+
+
+def _directory_size(root: Path) -> int:
+    if not root.exists():
+        return 0
+    return sum(entry.stat().st_size for entry in root.rglob("*") if entry.is_file())
 
 
 def _matches_name(path_str: str, target_lower: str) -> bool:

@@ -33,7 +33,14 @@ class PageHit:
 
 @dataclass(frozen=True)
 class IndexStats:
-    """The numbers the index screen shows. Every one is a count of something real."""
+    """The numbers the index screen shows. Every one is a count of something real.
+
+    `files_scanned` is every file the crawler looked at, indexed or skipped,
+    because that is what a person means by the words. `bytes_on_disk` is the
+    storage the index itself occupies, not the size of the files it describes:
+    the screen answers "what is this costing me", and a 600 MB Downloads
+    folder indexed into 6 MB costs 6.
+    """
 
     files_scanned: int = 0
     files_text_indexed: int = 0
