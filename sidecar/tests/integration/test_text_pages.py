@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from sidecar.domain.errors import UnreadableFileError
-from sidecar.infrastructure.text_pages import TextFilePageSource
+from sidecar.infrastructure.text_pages import CANONICAL_LONG_SIDE_PX, TextFilePageSource
 
 pytestmark = pytest.mark.integration
 
@@ -36,12 +38,47 @@ def test_invalid_utf8_is_replaced_not_fatal(tmp_path: Path) -> None:
     assert "after" in text
 
 
-def test_render_raises_because_there_is_nothing_to_render(tmp_path: Path) -> None:
+def test_render_draws_the_text_on_a_portrait_page_at_the_requested_size(tmp_path: Path) -> None:
     path = tmp_path / "note.txt"
-    path.write_text("hello")
+    path.write_text("hello from a note\nwith two lines")
 
-    with pytest.raises(UnreadableFileError):
-        TextFilePageSource().render(path, 1, long_side_px=512)
+    png = TextFilePageSource().render(path, 1, long_side_px=512)
+
+    with Image.open(io.BytesIO(png)) as image:
+        assert image.format == "PNG"
+        assert image.height == 512
+        assert image.width < image.height
+        darkest, _ = image.convert("L").getextrema()
+    assert darkest < 128, "the page carries ink, so the text was drawn rather than a blank sheet returned"
+
+
+def test_render_never_upscales_past_the_canonical_page(tmp_path: Path) -> None:
+    path = tmp_path / "note.txt"
+    path.write_text("short")
+
+    png = TextFilePageSource().render(path, 1, long_side_px=4000)
+
+    with Image.open(io.BytesIO(png)) as image:
+        assert image.height == CANONICAL_LONG_SIDE_PX
+
+
+def test_render_of_an_empty_file_is_a_blank_page_not_an_error(tmp_path: Path) -> None:
+    path = tmp_path / "empty.md"
+    path.write_text("")
+
+    png = TextFilePageSource().render(path, 1, long_side_px=256)
+
+    with Image.open(io.BytesIO(png)) as image:
+        assert image.height == 256
+        assert image.convert("L").getextrema() == (255, 255)
+
+
+def test_render_is_deterministic_for_the_same_text(tmp_path: Path) -> None:
+    path = tmp_path / "note.txt"
+    path.write_text("the same words")
+    source = TextFilePageSource()
+
+    assert source.render(path, 1, 300) == source.render(path, 1, 300)
 
 
 def test_missing_file_raises_unreadable(tmp_path: Path) -> None:
