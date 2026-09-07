@@ -33,7 +33,7 @@ Day 4 still owns `anthropic_answerer`, `openai_compatible_answerer` and the unit
 
 | Coming forward | Belongs to | Why |
 | --- | --- | --- |
-| Evaluation: what to measure, the golden runner, an LLM judge for answers, and a report to read results in | Day 6 | The owner asked for it on day 1, 2026-09-08, with research first. Retrieval eval can run against stage 1 now and grows with each stage; answer eval waits for Day 4 to produce answers. The research is `docs/research/evaluation-2026-09.md`. |
+| Evaluation: the golden runner behind `POST /eval/golden/run`, `scripts/eval.py` with a self-contained `report.html` and a regression diff against the previous run | Day 6 | The owner asked for it on day 1, 2026-09-08, with research first. The research (`docs/research/evaluation-2026-09.md`) settled D45 to D48. The retrieval half runs against stage 1 today and its first run is the stage 1 ceiling the Day 2 delta is measured from. The answer half, `golden_answers.jsonl` and the judge wait for Day 4 to produce answers. `bench.py` keeps speed and size; the runner owns recall and the splits. |
 
 ## Blockers
 

@@ -38,7 +38,7 @@ Streaming routes use server-sent events.
 | `POST /chat` | SSE: `retrieval`, `token`, `citation`, `done` with usage |
 | `POST /clicks` | log a result click |
 | `GET /eval/recall` | recall@1, 5, 10 over the last 100 queries |
-| `POST /eval/golden/run` | SSE progress, then per-query hits and recall |
+| `POST /eval/golden/run` | body carries the golden set and the corpus root; SSE `progress`, one `query` per row with ranks and timings, `done` with aggregates per split (D46) |
 | `GET /settings`, `PUT /settings` | model, offline mode, idle embedding, storage cap |
 | `PUT /secrets/anthropic` | key for this process lifetime only |
 
@@ -52,7 +52,6 @@ Streaming routes use server-sent events.
 | `page_vectors` | page_id, vectors as `list<list<float16, 128>>`, pool_factor |
 | `queries` | id, text, ts, stage1_ms, stage2_ms, candidates, cold_pages |
 | `clicks` | id, query_id, page_id, rank, ts |
-| `golden` | id, query, expected_file, expected_page |
 
 `page_vectors` gets a cosine index once it passes a few thousand rows.
 Multivector search in LanceDB supports cosine only.
