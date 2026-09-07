@@ -35,10 +35,13 @@ export function SearchStatus({ state, stats, resultCount }: SearchStatusProps) {
     )
   }
 
+  const reading = state.phase === 'reading' && state.reading && state.reading.pagesTotal > 0
+
   return (
     <p className="py-3 text-sm text-ink-muted" aria-live="polite">
       {resultCount} {resultCount === 1 ? 'page' : 'pages'}
       {state.tookMs === null ? '' : ` in ${formatMillis(state.tookMs)}`}
+      {reading && state.reading ? `. Reading page ${state.reading.pagesRead} of ${state.reading.pagesTotal}.` : ''}
     </p>
   )
 }

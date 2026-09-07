@@ -33,6 +33,7 @@ Day 4 still owns `anthropic_answerer`, `openai_compatible_answerer` and the unit
 
 | Coming forward | Belongs to | Why |
 | --- | --- | --- |
+| `domain/heatmap.py` and the `PageExplainer` port | Day 3 | Written on day 2 as pure functions with no adapter behind them, because the vectors domain and the `PageEmbedder` port were being settled in the same sitting and the heatmap is the second configuration of the same model (D35). Day 3 keeps the endpoint, the canvas overlay, the threshold slider and the token picker, which is where its work actually is. This adds to what day 3 starts with rather than taking from it, and day 3's cut protection is unchanged. |
 | Evaluation: the golden runner behind `POST /eval/golden/run`, `scripts/eval.py` with a self-contained `report.html` and a regression diff against the previous run | Day 6 | The owner asked for it on day 1, 2026-09-08, with research first. The research (`docs/research/evaluation-2026-09.md`) settled D45 to D48. The retrieval half runs against stage 1 today and its first run is the stage 1 ceiling the Day 2 delta is measured from. The answer half, `golden_answers.jsonl` and the judge wait for Day 4 to produce answers. `bench.py` keeps speed and size; the runner owns recall and the splits. |
 
 ## Blockers

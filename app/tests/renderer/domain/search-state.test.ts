@@ -49,13 +49,40 @@ describe('searchStateReducer', () => {
     expect(stale.phase).toBe('searching')
   })
 
-  it('reaches done with the candidates and the time they took', () => {
-    const withHits = searchStateReducer(started(), { type: 'candidates', queryId: '1', hits, tookMs: 8 })
-    const done = searchStateReducer(withHits, { type: 'finished', queryId: '1' })
+  it('enters the partial state the moment candidates land', () => {
+    const partial = searchStateReducer(started(), { type: 'candidates', queryId: '1', hits, tookMs: 8 })
+
+    expect(partial.phase).toBe('reading')
+    expect(partial.hits).toEqual(hits)
+    expect(partial.tookMs).toBe(8)
+  })
+
+  it('tracks how far the vision model has read', () => {
+    const partial = searchStateReducer(started(), { type: 'candidates', queryId: '1', hits, tookMs: 8 })
+    const reading = searchStateReducer(partial, { type: 'progress', queryId: '1', pagesRead: 3, pagesTotal: 12 })
+
+    expect(reading.reading).toEqual({ pagesRead: 3, pagesTotal: 12 })
+    expect(reading.hits).toEqual(hits)
+  })
+
+  it('replaces the candidates with the reranked results and clears the progress on done', () => {
+    const reranked: PageHit[] = [{ ...hits[0]!, pageId: 'b:2', fileId: 'b', score: 9, stage: 'visual' }]
+    const partial = searchStateReducer(started(), { type: 'candidates', queryId: '1', hits, tookMs: 8 })
+    const reading = searchStateReducer(partial, { type: 'progress', queryId: '1', pagesRead: 1, pagesTotal: 1 })
+    const results = searchStateReducer(reading, { type: 'results', queryId: '1', hits: reranked, tookMs: 900 })
+    const done = searchStateReducer(results, { type: 'finished', queryId: '1' })
 
     expect(done.phase).toBe('done')
-    expect(done.tookMs).toBe(8)
-    expect(done.hits).toEqual(hits)
+    expect(done.hits).toEqual(reranked)
+    expect(done.tookMs).toBe(900)
+    expect(done.reading).toBeNull()
+  })
+
+  it('ignores progress from a search the user has moved past', () => {
+    const current = started('invoices', '2')
+    const stale = searchStateReducer(current, { type: 'progress', queryId: '1', pagesRead: 1, pagesTotal: 5 })
+
+    expect(stale.reading).toBeNull()
   })
 
   it('drops results when a search fails, so no stale list sits under an error', () => {

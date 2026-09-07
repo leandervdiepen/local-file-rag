@@ -36,6 +36,8 @@ export function useSearch(port: SearchPort): UseSearch {
         query,
         {
           onCandidates: (hits, tookMs) => dispatch({ type: 'candidates', queryId, hits, tookMs }),
+          onProgress: (pagesRead, pagesTotal) => dispatch({ type: 'progress', queryId, pagesRead, pagesTotal }),
+          onResults: (hits, tookMs) => dispatch({ type: 'results', queryId, hits, tookMs }),
           onFinished: () => dispatch({ type: 'finished', queryId }),
         },
         controller.signal,

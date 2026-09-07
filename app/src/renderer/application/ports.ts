@@ -32,6 +32,8 @@ export interface SecretsPort {
 
 export interface SearchHandlers {
   onCandidates: (hits: PageHit[], tookMs: number) => void
+  onProgress: (pagesRead: number, pagesTotal: number) => void
+  onResults: (hits: PageHit[], tookMs: number) => void
   onFinished: () => void
 }
 

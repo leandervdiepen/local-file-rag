@@ -17,7 +17,10 @@ from sidecar.domain.search import PageHit
 from sidecar.interface.auth import register_auth
 from sidecar.interface.errors import register_error_handlers
 from sidecar.interface.search_routes import build_search_blueprint
+from tests.fakes.cold_pages import FakeColdPages
 from tests.fakes.index_store import FakeIndexStore
+from tests.fakes.page_embedder import FakePageEmbedder
+from tests.fakes.vector_store import FakeVectorStore
 
 TOKEN = "test-token-123"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
@@ -52,15 +55,21 @@ def a_store_holding(texts: list[str]) -> RecordingStore:
             page_count=len(texts),
         )
     )
-    store.upsert_pages([Page(id=f"p{n}", file_id="f1", page_no=n, text=t) for n, t in enumerate(texts, start=1)])
+    store.upsert_pages([Page(id=f"f1:{n}", file_id="f1", page_no=n, text=t) for n, t in enumerate(texts, start=1)])
     return store
 
 
-def a_client_over(store: FakeIndexStore) -> FlaskClient:
+def a_search_over(store: FakeIndexStore, looks: dict[str, list[str]] | None = None) -> Search:
+    embedder = FakePageEmbedder(looks)
+    vectors = FakeVectorStore()
+    return Search(store, vectors, embedder, FakeColdPages(embedder, vectors))
+
+
+def a_client_over(store: FakeIndexStore, looks: dict[str, list[str]] | None = None) -> FlaskClient:
     app = Flask(__name__)
     register_error_handlers(app)
     register_auth(app, TOKEN)
-    app.register_blueprint(build_search_blueprint(Search(store)))
+    app.register_blueprint(build_search_blueprint(a_search_over(store, looks)))
     return app.test_client()
 
 
@@ -88,15 +97,23 @@ def search(client: FlaskClient, **params: str) -> list[tuple[str, dict[str, Any]
     return events_in(response.get_data(as_text=True))
 
 
-def test_a_match_streams_the_hit_then_a_done_carrying_the_count() -> None:
+def names_in(stream: list[tuple[str, dict[str, Any]]]) -> list[str]:
+    return [name for name, _ in stream]
+
+
+def payload_of(stream: list[tuple[str, dict[str, Any]]], event: str) -> dict[str, Any]:
+    return next(payload for name, payload in stream if name == event)
+
+
+def test_candidates_arrive_first_and_carry_the_whole_hit() -> None:
     client = a_client_over(a_store_holding(["quarterly forecast for hosting"]))
 
     stream = search(client, q="forecast")
 
-    assert [name for name, _ in stream] == ["candidates", "done"]
-    assert stream[0][1]["hits"] == [
+    assert names_in(stream)[0] == "candidates"
+    assert payload_of(stream, "candidates")["hits"] == [
         {
-            "page_id": "p1",
+            "page_id": "f1:1",
             "file_id": "f1",
             "path": "/corpus/notes.md",
             "page_no": 1,
@@ -106,13 +123,69 @@ def test_a_match_streams_the_hit_then_a_done_carrying_the_count() -> None:
             "snippet": "quarterly forecast for hosting",
         }
     ]
-    assert stream[1][1] == {"count": 1}
+
+
+def test_the_stream_reaches_results_and_exactly_one_done() -> None:
+    client = a_client_over(a_store_holding(["quarterly forecast", "hosting spend"]))
+
+    stream = search(client, q="forecast")
+
+    assert names_in(stream)[0] == "candidates"
+    assert names_in(stream)[-2:] == ["results", "done"]
+    assert names_in(stream).count("done") == 1
+    assert payload_of(stream, "done") == {"count": 1, "stage2": "ok"}
+
+
+def test_reading_a_cold_page_is_reported_as_progress_before_the_results() -> None:
+    client = a_client_over(a_store_holding(["forecast", "forecast", "forecast"]))
+
+    stream = search(client, q="forecast")
+
+    progress = [payload for name, payload in stream if name == "progress"]
+    assert [p["pages_read"] for p in progress] == [1, 2, 3]
+    assert {p["pages_total"] for p in progress} == {3}
+    assert names_in(stream).index("progress") < names_in(stream).index("results")
+
+
+def test_results_are_reranked_by_what_the_page_looks_like() -> None:
+    # Page 1 says the word more often, so stage 1 puts it first. Page 2 is the
+    # one that actually shows a chart, which only the second stage can know.
+    store = a_store_holding(["chart chart chart", "chart"])
+    looks = {"f1:1": ["table"], "f1:2": ["chart"]}
+    client = a_client_over(store, looks)
+
+    stream = search(client, q="chart")
+
+    assert [hit["page_id"] for hit in payload_of(stream, "candidates")["hits"]] == ["f1:1", "f1:2"]
+    assert [hit["page_id"] for hit in payload_of(stream, "results")["hits"]] == ["f1:2", "f1:1"]
+    assert payload_of(stream, "results")["hits"][0]["stage"] == "visual"
+
+
+def test_a_stage_two_that_fails_still_ends_the_stream_and_keeps_the_candidates() -> None:
+    class BrokenSearch(Search):
+        def stage_two(self, *args: Any, **kwargs: Any) -> list[PageHit]:
+            raise RuntimeError("the model fell over")
+
+    store = a_store_holding(["forecast"])
+    app = Flask(__name__)
+    register_error_handlers(app)
+    register_auth(app, TOKEN)
+    embedder = FakePageEmbedder()
+    vectors = FakeVectorStore()
+    broken = BrokenSearch(store, vectors, embedder, FakeColdPages(embedder, vectors))
+    app.register_blueprint(build_search_blueprint(broken))
+
+    stream = search(app.test_client(), q="forecast")
+
+    assert names_in(stream) == ["candidates", "done"]
+    assert payload_of(stream, "done") == {"count": 1, "stage2": "failed"}
+    assert len(payload_of(stream, "candidates")["hits"]) == 1
 
 
 def test_took_ms_is_a_whole_number_of_milliseconds() -> None:
     client = a_client_over(a_store_holding(["quarterly forecast"]))
 
-    took_ms = search(client, q="forecast")[0][1]["took_ms"]
+    took_ms = payload_of(search(client, q="forecast"), "candidates")["took_ms"]
 
     assert isinstance(took_ms, int)
     assert took_ms >= 0
@@ -124,9 +197,9 @@ def test_nothing_typed_streams_no_hits_rather_than_the_whole_index(query: str) -
 
     stream = search(client, q=query)
 
-    assert [name for name, _ in stream] == ["candidates", "done"]
-    assert stream[0][1]["hits"] == []
-    assert stream[1][1] == {"count": 0}
+    assert names_in(stream) == ["candidates", "done"]
+    assert payload_of(stream, "candidates")["hits"] == []
+    assert payload_of(stream, "done") == {"count": 0, "stage2": "skipped"}
 
 
 def test_a_url_without_q_is_400_and_never_a_stream() -> None:
@@ -147,8 +220,8 @@ def test_a_limit_bounds_the_hits_and_the_count_a_terminal_only_client_reads() ->
 
     stream = search(a_client_over(store), q="forecast", limit="2")
 
-    assert len(stream[0][1]["hits"]) == 2
-    assert stream[1][1] == {"count": 2}
+    assert len(payload_of(stream, "candidates")["hits"]) == 2
+    assert payload_of(stream, "done")["count"] == 2
     assert store.limits == [2]
 
 

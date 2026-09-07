@@ -6,6 +6,7 @@ from pathlib import Path
 
 from flask import Flask
 
+from sidecar.application.embed_pages import EmbedPages
 from sidecar.application.health import ReportHealth
 from sidecar.application.index_folder import IndexFolder
 from sidecar.application.indexing_jobs import IndexingJobs
@@ -18,9 +19,11 @@ from sidecar.domain.entities import FileKind
 from sidecar.infrastructure.filesystem_health import FilesystemHealthProbe
 from sidecar.infrastructure.fs_crawler import FilesystemCrawler
 from sidecar.infrastructure.fs_probe import FilesystemProbe
+from sidecar.infrastructure.colqwen_embedder import ColQwenEmbedder
 from sidecar.infrastructure.image_pages import ImagePageSource
 from sidecar.infrastructure.lancedb_folders import LanceDBFolders
 from sidecar.infrastructure.lancedb_store import LanceDBStore
+from sidecar.infrastructure.lancedb_vectors import LanceDBVectors
 from sidecar.infrastructure.pdfium_pages import PdfiumPageSource
 from sidecar.infrastructure.system_clock import SystemClock
 from sidecar.infrastructure.text_pages import TextFilePageSource
@@ -54,7 +57,14 @@ def build_app(token: str, db_path: Path) -> Flask:
     clock = SystemClock()
     store = LanceDBStore(db_path)
     folders = LanceDBFolders(db_path, clock)
+    vectors = LanceDBVectors(db_path)
     sources = _page_sources()
+
+    # One embedder for the whole process. It owns the model, loads it on the
+    # first page anyone asks for and drops it when idle, so nothing else in
+    # here has to know that a 4 GB model is behind these calls.
+    embedder = ColQwenEmbedder()
+    embed_pages = EmbedPages(store, sources, embedder, vectors, clock)
 
     index_folder = IndexFolder(
         crawler=FilesystemCrawler(),
@@ -67,7 +77,7 @@ def build_app(token: str, db_path: Path) -> Flask:
     app.register_blueprint(build_health_blueprint(ReportHealth(clock=clock, probe=FilesystemHealthProbe(db_path))))
     app.register_blueprint(build_folder_blueprint(ManageFolders(folders)))
     app.register_blueprint(build_index_blueprint(IndexingJobs(index_folder, folders), ReadIndexStats(store)))
-    app.register_blueprint(build_search_blueprint(Search(store)))
+    app.register_blueprint(build_search_blueprint(Search(store, vectors, embedder, embed_pages)))
     app.register_blueprint(build_page_blueprint(RenderPage(store, sources)))
 
     return app
