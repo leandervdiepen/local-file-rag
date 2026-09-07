@@ -30,10 +30,10 @@ Acceptance: the spike prints a seconds-per-page number under 3 s and picks the r
 - [x] `crawl.py`, `gate.py`: skip list, hashing, kind detection, skip reasons.
 - [x] `extract_pdf.py`: pypdfium2 text per page and page count.
 - [x] `ocr_mac.py`: Apple Vision OCR for images and empty-text PDF pages.
-- [ ] `jobs.py`: background indexing thread with a progress endpoint.
-- [ ] `api_search.py`: SSE search emitting `candidates` from stage 1 only.
-- [ ] Renderer: folder picker on first run, search box, results grouped by file with thumbnails from `/pages/{id}/image?size=thumb`.
-- [ ] Renderer: open, reveal in Finder, copy path.
+- [x] `jobs.py`: background indexing thread with a progress endpoint.
+- [x] `api_search.py`: SSE search emitting `candidates` from stage 1 only.
+- [x] Renderer: folder picker on first run, search box, results grouped by file with thumbnails from `/pages/{id}/image?size=thumb`.
+- [x] Renderer: open, reveal in Finder, copy path.
 
 Acceptance: pick `~/demo-corpus`, 300 files indexed, a filename query and an OCR text query each return in under 150 ms with thumbnails.
 Measure: files per second crawled, OCR milliseconds per image, index size on disk.

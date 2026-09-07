@@ -6,19 +6,19 @@ Linear: `Local file RAG v1` on team `diepen`, 57 issues, DPN-224 to DPN-280.
 
 ## Now
 
-Day 1, the interface layer. `jobs.py`: the background indexing thread and the progress endpoint it reports through.
+Day 2, the vision path. `embed.py`: lazy ColQwen2 load on MPS, float16, pooling factor 3, unloaded after ten idle minutes.
 
-Everything under it is done and tested. The indexing domain, the ports, every adapter, and `IndexFolder` and `Search` over them, now with the application tests that were missing.
-`interface/composition.py` still registers `/health` and nothing else, so no indexing and no search is reachable over HTTP, and the renderer has nothing to call.
-That is the whole of what is left on day 1: three routes, the composition root that wires the adapters into the use cases, and the search UI.
+Day 1 is accepted. Every route in the day 1 slice is served, the renderer searches a real index with thumbnails, and the numbers are in the table below.
+The evaluation research the owner asked for is running in parallel and lands in `docs/research/evaluation-2026-09.md`; see `Plan swaps`.
 
 ## Next
 
-1. `jobs.py`: the background indexing thread and its progress endpoint. `IndexFolder` already takes a `ProgressSink` and nothing calls it.
-2. The folder routes. `FolderStore` and `LanceDBFolders` exist and no route reaches them, so onboarding has nothing behind it.
-3. The stage 1 search route. `Search.stage_one` and `encode_event` both exist, and `composition.py` registers `/health` and nothing else.
-4. Renderer: folder picker on first run, search box, results grouped by file with thumbnails, and open, reveal and copy on a result. Main already exposes all three actions across the bridge.
-5. The Day 1 acceptance run against `~/demo-corpus`, which is also where files per second crawled, OCR milliseconds per image and index size on disk get measured.
+1. Page rendering at 1024 px long side for embedding, through the `PageSource` port that already renders at any size.
+2. `page_vectors` writes and reads, and the cosine index once the row count passes 2,000. This is also where LanceDB earns or loses its 438 MB: see the risk below.
+3. `rerank.py`: MaxSim in numpy over a candidate set.
+4. The semantic fallback when stage 1 returns fewer than five pages.
+5. `scripts/bench.py`, and the Day 2 acceptance: "slide with the funnel chart" finds the right slide with no matching page text.
+6. The evaluation framework, once the research doc is in: golden runner behind `POST /eval/golden/run`, recall by query type, and the answer judge once Day 4 has answers to judge.
 
 ## Plan swaps
 
@@ -30,6 +30,10 @@ That is the whole of what is left on day 1: three routes, the composition root t
 
 It landed as a port, a model registry and request types: no adapter, no route, no test.
 Day 4 still owns `anthropic_answerer`, `openai_compatible_answerer` and the unit tests `conventions/testing.md` names for citation parsing and cost math.
+
+| Coming forward | Belongs to | Why |
+| --- | --- | --- |
+| Evaluation: what to measure, the golden runner, an LLM judge for answers, and a report to read results in | Day 6 | The owner asked for it on day 1, 2026-09-08, with research first. Retrieval eval can run against stage 1 now and grows with each stage; answer eval waits for Day 4 to produce answers. The research is `docs/research/evaluation-2026-09.md`. |
 
 ## Blockers
 
@@ -60,7 +64,24 @@ Model `vidore/colqwen2-v1.0-merged` in float16 unless noted. Three rendered A4 p
 | First run model download | 4.43 GB | 8.94 GB before D33 |
 | Corpus generation | 280 files, 5.5 s | 130 indexable, 150 skipped across 7 reasons |
 
-Still unmeasured: stage 1 search ms, rerank ms, heatmap cold and cached, first token ms, recall@5, DMG size, index size on disk.
+### Day 1, indexing and stage 1
+
+M1 Max, 64 GB, macOS 26.5.1, Python 3.13.5, lancedb 0.38, 2026-09-08. `~/demo-corpus` at 283 files, driven over HTTP against the real sidecar.
+
+| Metric | Value | Note |
+| --- | --- | --- |
+| Files crawled | 275 of 283 | The 8 under `.git` and `node_modules` are never walked, which is the point of excluding them |
+| Files indexed, skipped | 130, 145 | Agrees with the manifest on every file, zero mismatches, all seven skip reasons exercised |
+| Pages indexed | 218 | |
+| Crawl time | 14.6 s, 18.8 files/s | OCR bound: 40 screenshots and every blank PDF page go through Vision |
+| OCR per image | median 106 ms, p90 129 ms, max 398 ms | 40 screenshots rendered at 1600 px long side, through the real adapter |
+| Render for OCR | median 73 ms | pypdfium2 and Pillow, same 40 images |
+| Stage 1 search, server | 28 to 44 ms | 4 queries: two content, one filename, one OCR text |
+| Stage 1 search, wall | 29 to 46 ms | Over loopback HTTP including the SSE frame |
+| Thumbnail, first render | 30 to 83 ms | 320 px, then immutable and cached by the renderer |
+| Index on disk | 6.1 MB | Text and BM25 only. `page_vectors` arrives on day 2 |
+
+Still unmeasured: rerank ms, heatmap cold and cached, first token ms, recall@5, DMG size.
 
 ### dtype and build sweep
 
@@ -84,6 +105,26 @@ PASS, both criteria.
 
 The spike drew three pages, saved a real PDF, rendered it back through pypdfium2 at the resolution the indexer will use, and queried with "the screenshot of the red error dialog" against a page whose only clue is a red dialog. Page 1 carries the word "error" as a decoy and still loses.
 
+## Day 1 gate
+
+PASS.
+
+- Both query kinds return under 150 ms with thumbnails: 28 to 44 ms measured on the server, under 50 ms wall.
+- The OCR query "Webhook delivery failed" finds `IMG_4821.png` by text that exists only inside the pixels.
+- The filename query returns the file's pages first, marked `filename`, ahead of content matches.
+- The corpus is indexed end to end and reconciles against its manifest with zero mismatches.
+
+The plan's "300 files indexed" was written before the corpus existed. The corpus has 283 files, of which 130 are indexable by design; the rest exist to exercise the seven skip reasons.
+
+Verified over HTTP against the real sidecar and through the unit suites on both sides. The Electron window itself has not been driven against a live index yet; the Day 2 gate verifier does that first, before the vision path is judged.
+
+Four defects the acceptance run found, all fixed before the gate was called:
+
+- Eight `.conf` notes the corpus labelled indexable that the gate correctly refused. The fixture had widened D19. Now `.md`, and D44 records it.
+- `bytes_on_disk` summed source file sizes, so the index screen would have shown 663 MB for a 6 MB index. It now measures the database directory.
+- `files_scanned` counted a `SCANNED` state nothing ever wrote, so it was always zero. The state is gone and the count is every file the crawler saw.
+- Text files raised on render, so a note had no thumbnail and, worse, could never be embedded or heatmapped on day 2 and 3. They now lay out as a typeset page at 1600 px and scale down.
+
 ## Risks found today
 
 | Risk | Evidence | Response |
@@ -98,8 +139,7 @@ True now, and each one costs more the later it is paid.
 
 | Debt | Why it matters |
 | --- | --- |
-| `INDEXED_FOLDERS` in `app/src/main/allowed-paths.ts` is empty, so `isPathAllowed` rejects every path and the `shell.openPath` check guards nothing. | Security relevant. The guard reads as enforcement in review while nothing has ever been wired to the sidecar's indexed folders, so it has to be filled in the same change that first gives the renderer a path to open. |
-| `app/.dependency-cruiser.cjs` exempts `src/renderer/domain/format.ts` from the `no-orphans` rule. | The exemption is the only reason a module nothing imports passes `make check`. Remove it the moment the search UI formats a size or a duration, or the rule stops catching dead code for everyone. |
+| `isPathAllowed` compares resolved paths only, so a symlink inside an indexed folder that points outside it still opens. | Closing it needs the real path of the target, a filesystem call per click. Cheap, and worth doing before the index screen makes opening files routine. Main now reads the allowed roots from the sidecar's `GET /folders` on every check, so the list itself is no longer the gap. |
 | TypeScript is pinned to 5.9.3 and Vite to 7.3.6 by ecosystem compatibility, not by choice. | Nothing in the repo records which package forces which pin, so the next attempt to bump one rediscovers the break instead of reading about it. |
 | shadcn/ui is not installed. `ui/shared/Button.tsx` and `ui/shared/Screen.tsx` are hand rolled. | D01 and the Day 1 scaffold both name shadcn/ui. Every screen after the onboarding states either adopts it or D01 needs a row saying it was dropped and why. |
 | Nothing removes stale rows. A file that stops being readable keeps the pages it had, so the index screen calls it skipped while a search still returns its content. | Breaks `IndexFolder`'s stated invariant, which is the promise the index screen is built on. Measured, not inferred: see D43. It is scheduled, not forgotten. Day 5 owns it, and `content_hash_of` is the method it needs. |
@@ -147,3 +187,13 @@ Day 4 groundwork came forward: the `Answerer` port and the model registry. See `
 `make check` and `make check-int` both green, 2026-09-08 on this machine: 96 sidecar unit tests, 75 sidecar integration tests, 43 app tests across 6 files, import-linter 3 contracts kept over 68 files and 170 dependencies, dependency-cruiser clean over 52 modules and 85 dependencies.
 
 Day 1 debt cleared before the interface layer went on top of it. `IndexStore` gained `get_file`, `get_pages` and `content_hash_of`, and moved with the new `FolderStore` into `application/store_ports.py`, since the contracts no longer fit `ports.py` under the line budget. `IndexFolder` and `Search` got the tests they never had, and those tests found two real bugs: the OCR budget capped page numbers rather than pages sent to OCR, so a scanned appendix starting on page 200 got none of its unspent budget of 50, now fixed; and nothing removes stale rows, now D43 and scheduled for day 5. The demo corpus was refusing its own oversized and empty files at the type check, so two of the seven skip reasons were never exercised by it, and a full regeneration was doubling the manifest. Both fixed, and the corpus now stands at 282 files with every skip reason represented.
+
+### 2026-09-08, day 1 closed
+
+Day 1 debt cleared, then the interface layer: `IndexingJobs` on a daemon thread with per-subscriber queues, folder, index, search and page image routes, and the composition root that wires nine adapters into six use cases.
+Renderer search landed: four domain modules, three hooks, five adapters including a hand-rolled SSE parser and a bounded object URL cache, and the search screen with keyboard-driven selection, grouped results and lazy thumbnails.
+The allowlist in main now asks the sidecar which folders are indexed, on every check, so a renderer bug cannot open an arbitrary path.
+
+The acceptance run against the real corpus found four defects the unit suites had passed over, listed under `Day 1 gate`. Two were in the fixture and two in the stats. One, text files refusing to render, would have blocked the vision path on day 2.
+
+Suites at close: 174 sidecar unit, 78 sidecar integration, 86 app, import-linter 3 contracts kept, dependency-cruiser clean over 76 modules.
