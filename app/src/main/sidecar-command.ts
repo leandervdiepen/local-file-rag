@@ -14,10 +14,9 @@ export interface SidecarCommandInput {
 }
 
 /**
- * The one function that decides how to launch the sidecar.
- * Dev runs the Python source through uv from the sidecar package.
- * Production runs the PyInstaller onedir bundle electron-builder copies
- * into resourcesPath via extraResources.
+ * The one function that knows there are two ways to start the sidecar.
+ * The packaged branch points at where electron-builder's `extraResources`
+ * drops the PyInstaller bundle, so the two move together or the launch breaks.
  */
 export function resolveSidecarCommand(input: SidecarCommandInput): SidecarCommand {
   const handshakeArgs = ['--port', String(input.port), '--token', input.token]

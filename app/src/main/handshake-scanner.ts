@@ -5,10 +5,7 @@ export interface HandshakeScannerCallbacks {
   onProtocolViolation: (line: string) => void
 }
 
-/**
- * Scans stdout for the single `READY <port>` handshake line.
- * Anything else on stdout, before or after it, is a protocol violation.
- */
+/** `READY <port>` arrives once. Anything else on stdout, before or after it, is a protocol violation. */
 export function createHandshakeScanner({ onReady, onProtocolViolation }: HandshakeScannerCallbacks) {
   let buffer = ''
   let readyReceived = false

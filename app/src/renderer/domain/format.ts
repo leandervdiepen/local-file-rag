@@ -1,5 +1,3 @@
-// Pure formatters. No imports: numbers in, strings out.
-
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const
 
 function trailingDigits(value: number): number {

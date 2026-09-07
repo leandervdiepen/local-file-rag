@@ -12,7 +12,6 @@ function readArg(name) {
 const requestedPort = Number(readArg('--port') ?? '0')
 const token = readArg('--token') ?? ''
 
-// Fails once, then behaves normally on the next launch against the same marker.
 const crashOnceMarker = process.env.FAKE_SIDECAR_CRASH_ONCE_MARKER
 if (crashOnceMarker && !existsSync(crashOnceMarker)) {
   writeFileSync(crashOnceMarker, '1')
@@ -20,7 +19,6 @@ if (crashOnceMarker && !existsSync(crashOnceMarker)) {
   process.exit(1)
 }
 
-// Fails every time it is launched.
 if (process.env.FAKE_SIDECAR_FAIL === '1') {
   process.stderr.write('fake sidecar: simulated startup failure\n')
   process.exit(1)

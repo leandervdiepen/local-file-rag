@@ -22,10 +22,9 @@ function defaultBackoff(attempt: number): number {
 }
 
 /**
- * Owns the sidecar child process and its state machine:
+ * Owns the sidecar child process and the state machine the renderer renders:
  * starting -> ready | crashed | failed, ready -> crashed | failed,
- * crashed -> starting | failed. A crash retries with backoff up to
- * maxRestarts times, then settles in the terminal failed state.
+ * crashed -> starting | failed. failed is terminal until restart() is called.
  */
 export class SidecarProcess {
   private readonly handshakeTimeoutMs: number
@@ -65,7 +64,6 @@ export class SidecarProcess {
     this.spawnAndHandshake()
   }
 
-  /** Manual restart: cancels any pending backoff and gives a fresh attempt budget. */
   restart(): void {
     this.clearBackoffTimer()
     this.clearHandshakeTimer()
@@ -126,7 +124,6 @@ export class SidecarProcess {
       }),
     )
 
-    // stderr is the sidecar's log. It is piped to main's log, never parsed.
     child.stderr.on('data', (chunk: Buffer) => {
       this.options.onLog?.(chunk.toString('utf8').trimEnd())
     })

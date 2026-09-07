@@ -103,7 +103,7 @@ describe('sidecar-process', () => {
     const failed = await waitForStatus(sidecar, 'failed')
     expect(failed.status).toBe('failed')
 
-    // No further attempts after the terminal state.
+    // An event that must not happen cannot be awaited, so this one waits on a duration.
     await new Promise((resolve) => setTimeout(resolve, 100))
     expect(sidecar.getState().status).toBe('failed')
   })

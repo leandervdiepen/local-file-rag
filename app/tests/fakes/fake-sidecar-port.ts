@@ -6,7 +6,6 @@ export interface FakeSidecarPort extends SidecarPort {
   readonly restartCalls: number
 }
 
-/** A real, working in-memory SidecarPort, not a mock with call expectations. */
 export function createFakeSidecarPort(): FakeSidecarPort {
   const listeners = new Set<(state: SidecarState) => void>()
   let restartCalls = 0

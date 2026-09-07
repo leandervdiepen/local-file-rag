@@ -1,12 +1,12 @@
 import path from 'node:path'
 
-// TODO: populate from the sidecar's indexed folders (GET /folders) once that
-// exists. Until then the allowlist is empty and every path is rejected, so
-// shell.openPath has nothing to act on. The check exists now on purpose:
-// adding it later, after there is something to index, is how it gets forgotten.
+// Filled from the sidecar's indexed folders once GET /folders exists. Empty
+// until then, so every path is rejected. The check ships ahead of the data it
+// guards on purpose: a boundary added after the feature works is one that gets
+// skipped.
 const INDEXED_FOLDERS: readonly string[] = []
 
-/** True when targetPath is inside one of the allowed roots, symlink tricks aside. */
+/** Compares resolved paths only: a symlink pointing out of an allowed root still passes. */
 export function isPathAllowed(targetPath: string, allowedRoots: readonly string[] = INDEXED_FOLDERS): boolean {
   const resolvedTarget = path.resolve(targetPath)
   return allowedRoots.some((root) => {

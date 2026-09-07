@@ -11,7 +11,6 @@ interface SidecarStateViewProps {
   nativeActions: NativeActionsPort
 }
 
-/** Renders whichever sidecar state is current. Nothing here decides; it displays. */
 export function SidecarStateView({ state, onRestart, nativeActions }: SidecarStateViewProps) {
   switch (state.status) {
     case 'starting':

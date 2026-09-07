@@ -7,7 +7,7 @@ export interface UseSidecarState {
   restart: () => Promise<void>
 }
 
-/** The use case: know what the sidecar is doing, and offer a way to restart it. */
+/** Tracks what the sidecar is doing. A stale or illegal event never moves the UI backwards. */
 export function useSidecarState(port: SidecarPort): UseSidecarState {
   const [state, dispatch] = useReducer(sidecarStateReducer, initialSidecarState)
 

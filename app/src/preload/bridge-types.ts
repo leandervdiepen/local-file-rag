@@ -44,9 +44,5 @@ export interface Bridge {
   setAnthropicKey: (key: string) => Promise<void>
   hasAnthropicKey: () => Promise<boolean>
   onSidecarState: (listener: (state: SidecarStateEvent) => void) => () => void
-  // Not in the bridge spec's literal list: the design calls for a working
-  // restart button on the crashed and failed states, and contextIsolation
-  // leaves no other path from renderer to main for that action. Flagged in
-  // the delivery report as a deliberate, minimal deviation.
   restartSidecar: () => Promise<void>
 }

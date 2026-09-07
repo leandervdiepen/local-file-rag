@@ -61,8 +61,7 @@ module.exports = {
           '^src/main/main\\.ts$',
           '^src/preload/bridge\\.ts$',
           '^src/renderer/main\\.tsx$',
-          // Required now per the scaffold spec and fully unit tested; the
-          // search and index screens are what will call it, once they exist.
+          // Nothing imports it yet. The search and index screens will.
           '^src/renderer/domain/format\\.ts$',
         ],
       },
