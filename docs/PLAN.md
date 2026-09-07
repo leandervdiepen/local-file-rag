@@ -11,11 +11,11 @@ Record every measured number in STATUS.md.
 Two hours.
 Purpose: kill the day 2 risk before day 1 starts.
 
-- [ ] Install uv, Node 22, pnpm. Confirm Xcode command line tools.
-- [ ] Spike: `uv init spike && uv add sentence-transformers torch pypdfium2 pillow`. Load `vidore/colqwen2-v1.0` with `MultiVectorEncoder`, device `mps`. Embed one rendered PDF page. Record load time, seconds per page, vectors per page, peak memory, torch version that worked.
-- [ ] Spike: encode a query, compute MaxSim against three pages, confirm the right page wins.
-- [ ] Build the demo corpus with `scripts/make_demo_corpus.py`: synthetic but realistic, about 300 files. Real files from Desktop or Downloads may be added read only and are never committed. Target mix: 40 screenshots, 30 PDFs with charts and tables, 10 slide decks exported to PDF, 50 markdown and text files, plus 150 junk files that should be gated or ranked low. Put it in `~/demo-corpus`.
-- [ ] Write 30 golden queries against the corpus in `scripts/golden.jsonl`: query, expected file, expected page. Ten with no matching words on the page.
+- [x] Install uv, Node 22, pnpm. Confirm Xcode command line tools.
+- [x] Spike: `uv init spike && uv add sentence-transformers torch pypdfium2 pillow`. Load `vidore/colqwen2-v1.0` with `MultiVectorEncoder`, device `mps`. Embed one rendered PDF page. Record load time, seconds per page, vectors per page, peak memory, torch version that worked.
+- [x] Spike: encode a query, compute MaxSim against three pages, confirm the right page wins.
+- [x] Build the demo corpus with `scripts/make_demo_corpus.py`: synthetic but realistic, about 300 files. Real files from Desktop or Downloads may be added read only and are never committed. Target mix: 40 screenshots, 30 PDFs with charts and tables, 10 slide decks exported to PDF, 50 markdown and text files, plus 150 junk files that should be gated or ranked low. Put it in `~/demo-corpus`.
+- [x] Write 30 golden queries against the corpus in `scripts/golden.jsonl`: query, expected file, expected page. Ten with no matching words on the page.
 - [ ] Check whether an Apple Developer account exists. Write the answer in STATUS.md.
 
 Acceptance: the spike prints a seconds-per-page number under 3 s and picks the right page.
