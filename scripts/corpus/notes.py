@@ -31,13 +31,15 @@ FIXED: list[tuple[str, str, str]] = [
      "# Ingest service\n\n",
      "This service polls the queue every 30 seconds and retries failed "
      "jobs three times before moving them to the dead-letter queue.\n"),
-    ("config/nginx-snippet.conf",
-     "",
+    ("config/nginx-snippet.md",
+     "# nginx snippet for the upload endpoint\n\n",
+     "```nginx\n"
      "server {\n"
      "    listen 443 ssl;\n"
      "    client_max_body_size 25m;\n"
      "    proxy_read_timeout 60s;\n"
-     "}\n"),
+     "}\n"
+     "```\n"),
     ("meetings/2026-05-04-incident-review.md",
      "# Incident review - 2026-05-04\n\n",
      "Summary: checkout errors spiked for twenty minutes.\n\n"
@@ -68,10 +70,12 @@ def _filler_body(rng, category: str, long: bool) -> str:
     if category == "config":
         product = pick(rng, PRODUCTS).lower()
         return (
+            "```ini\n"
             f"[{product}]\n"
             f"timeout = {rng.randint(5, 60)}\n"
             f"retries = {rng.randint(1, 5)}\n"
             f"region = us-west-2\n"
+            "```\n"
         )
     if category == "changelog":
         n = rng.randint(1, 4)
@@ -86,10 +90,11 @@ def _filler_note(seed: int, index: int) -> tuple[str, str]:
     category = CATEGORIES[index % len(CATEGORIES)]
     person = pick(rng, PEOPLE).split()[0].lower()
     topic = pick(rng, BIZ_WORDS).replace(" ", "-")
-    ext = "conf" if category == "config" else "md"
-    rel = f"{category}/{person}-{topic}-{index}.{ext}"
+    # Every note is markdown. D19 scopes v1 text to .txt and .md, so a .conf
+    # here would be a file the manifest calls indexable and the gate refuses.
+    rel = f"{category}/{person}-{topic}-{index}.md"
     long = rng.random() < 0.4
-    heading = f"# {FILLER_TITLES[category]}: {topic}\n\n" if ext == "md" else ""
+    heading = f"# {FILLER_TITLES[category]}: {topic}\n\n"
     body = _filler_body(rng, category, long)
     return rel, heading + body
 

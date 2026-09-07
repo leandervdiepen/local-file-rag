@@ -60,7 +60,23 @@ class Manifest:
         return stats
 
     def write(self) -> Path:
+        """Write MANIFEST.json, listing itself as the one file it knows the crawler will refuse.
+
+        The manifest sits inside the corpus, so a crawl sees it like any other
+        .json and skips it as unsupported. Leaving it out would make every
+        reconciliation report one unexplained file. Its own size is only known
+        after writing, so the entry is written twice: once to learn the size,
+        once with it.
+        """
         out = self.root / "MANIFEST.json"
+        own = Entry(out.name, "corpus", "skipped", "unsupported_type", 0)
+        others = [e for e in self.entries if e.path != out.name]
+        self.entries = [*others, own]
+        self._write_payload(out)
+        own.size = out.stat().st_size
+        return self._write_payload(out)
+
+    def _write_payload(self, out: Path) -> Path:
         payload = {
             "seed": self.seed,
             "file_count": len(self.entries),
