@@ -8,13 +8,24 @@ from typing import Any
 from flask import Flask, Response, jsonify
 from werkzeug.exceptions import HTTPException
 
-from sidecar.domain.errors import DomainError, NotFoundError, ValidationError
+from sidecar.domain.errors import (
+    DomainError,
+    IndexBusyError,
+    NotFoundError,
+    UnreadableFileError,
+    ValidationError,
+)
 
 logger = logging.getLogger(__name__)
 
 _STATUS_BY_ERROR: dict[type[DomainError], int] = {
     NotFoundError: 404,
     ValidationError: 400,
+    IndexBusyError: 409,
+    # A stored page whose file will not open now was readable when it was
+    # indexed, so the file has changed or gone since. To the caller that is a
+    # page that is not there, not a server fault.
+    UnreadableFileError: 404,
 }
 
 

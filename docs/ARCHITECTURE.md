@@ -31,6 +31,7 @@ Streaming routes use server-sent events.
 | `GET /index/stats` | counts and storage for the index screen |
 | `GET /index/files?state=&cursor=` | files by state, with skip reasons |
 | `POST /index/rescan`, `POST /index/forget` | manual control |
+| `GET /index/progress` | SSE: `progress` per file crawled, one terminal `done`. Ends immediately when no job is running |
 | `GET /search?q=` | SSE: `candidates` right after stage 1, `progress` while embedding, `results` when reranked |
 | `GET /pages/{id}/image?size=thumb|full` | rendered page PNG |
 | `GET /pages/{id}/heatmap?q=` | JSON grid: rows, cols, tokens, per-token maps, combined map |

@@ -7,11 +7,41 @@ from pathlib import Path
 from flask import Flask
 
 from sidecar.application.health import ReportHealth
+from sidecar.application.index_folder import IndexFolder
+from sidecar.application.indexing_jobs import IndexingJobs
+from sidecar.application.manage_folders import ManageFolders
+from sidecar.application.ports import PageSource
+from sidecar.application.read_index_stats import ReadIndexStats
+from sidecar.application.render_page import RenderPage
+from sidecar.application.search import Search
+from sidecar.domain.entities import FileKind
 from sidecar.infrastructure.filesystem_health import FilesystemHealthProbe
+from sidecar.infrastructure.fs_crawler import FilesystemCrawler
+from sidecar.infrastructure.fs_probe import FilesystemProbe
+from sidecar.infrastructure.image_pages import ImagePageSource
+from sidecar.infrastructure.lancedb_folders import LanceDBFolders
+from sidecar.infrastructure.lancedb_store import LanceDBStore
+from sidecar.infrastructure.pdfium_pages import PdfiumPageSource
 from sidecar.infrastructure.system_clock import SystemClock
+from sidecar.infrastructure.text_pages import TextFilePageSource
+from sidecar.infrastructure.vision_ocr import AppleVisionTextReader
 from sidecar.interface.auth import register_auth
 from sidecar.interface.errors import register_error_handlers
+from sidecar.interface.folder_routes import build_folder_blueprint
 from sidecar.interface.health_routes import build_health_blueprint
+from sidecar.interface.index_routes import build_index_blueprint
+from sidecar.interface.page_routes import build_page_blueprint
+from sidecar.interface.search_routes import build_search_blueprint
+
+
+def _page_sources() -> dict[FileKind, PageSource]:
+    """One reader per file kind. `IndexFolder` and `RenderPage` share it, so a
+    page is rendered by whatever read it."""
+    return {
+        FileKind.PDF: PdfiumPageSource(),
+        FileKind.IMAGE: ImagePageSource(),
+        FileKind.TEXT: TextFilePageSource(),
+    }
 
 
 def build_app(token: str, db_path: Path) -> Flask:
@@ -21,7 +51,23 @@ def build_app(token: str, db_path: Path) -> Flask:
     register_error_handlers(app)
     register_auth(app, token)
 
-    report_health = ReportHealth(clock=SystemClock(), probe=FilesystemHealthProbe(db_path))
-    app.register_blueprint(build_health_blueprint(report_health))
+    clock = SystemClock()
+    store = LanceDBStore(db_path)
+    folders = LanceDBFolders(db_path, clock)
+    sources = _page_sources()
+
+    index_folder = IndexFolder(
+        crawler=FilesystemCrawler(),
+        probe=FilesystemProbe(),
+        sources=sources,
+        ocr=AppleVisionTextReader(),
+        store=store,
+    )
+
+    app.register_blueprint(build_health_blueprint(ReportHealth(clock=clock, probe=FilesystemHealthProbe(db_path))))
+    app.register_blueprint(build_folder_blueprint(ManageFolders(folders)))
+    app.register_blueprint(build_index_blueprint(IndexingJobs(index_folder, folders), ReadIndexStats(store)))
+    app.register_blueprint(build_search_blueprint(Search(store)))
+    app.register_blueprint(build_page_blueprint(RenderPage(store, sources)))
 
     return app

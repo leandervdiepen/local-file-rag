@@ -1,0 +1,162 @@
+"""Running an index crawl as a background job.
+
+A crawl of a real folder takes minutes, so nothing here is called from a
+request thread except `start`, which returns as soon as the thread exists.
+Everything a caller can read afterwards is a snapshot, never a wait.
+"""
+
+from __future__ import annotations
+
+import logging
+import threading
+from collections.abc import Iterator
+from dataclasses import replace
+from queue import Queue
+from uuid import uuid4
+
+from sidecar.application.index_folder import IndexFolder
+from sidecar.application.store_ports import FolderStore
+from sidecar.domain.entities import Folder
+from sidecar.domain.errors import IndexBusyError
+from sidecar.domain.progress import IndexProgress
+
+logger = logging.getLogger(__name__)
+
+
+class IndexingJobs:
+    """Crawls the enabled folders on one background thread.
+
+    Invariant: one job runs at a time, and every job that starts publishes a
+    snapshot carrying `done`, whatever any folder does to it. A subscriber
+    always reaches an end, so the index screen never sits on a spinner for a
+    job that is no longer running.
+
+    Counters accumulate across folders, so a snapshot is the running total
+    for the whole job rather than for the folder in front of it, and its
+    `folder_id` is the folder being crawled at that moment.
+    """
+
+    def __init__(self, index_folder: IndexFolder, folders: FolderStore) -> None:
+        self._index_folder = index_folder
+        self._folders = folders
+        self._lock = threading.Lock()
+        self._running = False
+        self._latest: IndexProgress | None = None
+        self._subscribers: list[Queue[IndexProgress]] = []
+
+    def start(self) -> str:
+        """Start a crawl of every enabled folder, in path order, and return the job id.
+
+        Raises `IndexBusyError` when a job is already running, because two
+        crawls writing the index at once is the one thing the store cannot
+        take. Returns normally when no folder is enabled: that job finishes
+        at once with a done snapshot, which is an answer, not a failure.
+        """
+        with self._lock:
+            if self._running:
+                raise IndexBusyError("A rescan is already running. Wait for it to finish before starting another.")
+            self._running = True
+            self._latest = IndexProgress(folder_id="")
+        job_id = uuid4().hex
+        threading.Thread(target=self._run_job, name=f"indexing-{job_id}", daemon=True).start()
+        return job_id
+
+    def is_running(self) -> bool:
+        """True from the moment a job starts until its done snapshot is published."""
+        with self._lock:
+            return self._running
+
+    def progress(self) -> IndexProgress | None:
+        """The latest snapshot, `None` before the first job of this process."""
+        with self._lock:
+            return self._latest
+
+    def subscribe(self) -> Iterator[IndexProgress]:
+        """Yield each new snapshot as it happens, ending on the one that carries `done`.
+
+        Yields nothing and ends at once when no job is running, so a caller
+        never waits on work that is not happening. The subscription is taken
+        here rather than on the first `next`, so a snapshot published between
+        this call and that one is still delivered.
+
+        Every subscriber gets its own queue and sees every snapshot. Nothing
+        the job publishes blocks on a subscriber, so a client that stops
+        reading costs the crawl nothing.
+        """
+        with self._lock:
+            if not self._running:
+                return iter(())
+            subscriber: Queue[IndexProgress] = Queue()
+            self._subscribers.append(subscriber)
+        return self._drain(subscriber)
+
+    def _drain(self, subscriber: Queue[IndexProgress]) -> Iterator[IndexProgress]:
+        try:
+            while True:
+                snapshot = subscriber.get()
+                yield snapshot
+                if snapshot.done:
+                    return
+        finally:
+            self._forget(subscriber)
+
+    def _forget(self, subscriber: Queue[IndexProgress]) -> None:
+        with self._lock:
+            if subscriber in self._subscribers:
+                self._subscribers.remove(subscriber)
+
+    def _run_job(self) -> None:
+        totals = IndexProgress(folder_id="")
+        try:
+            for folder in self._folders.list():
+                if folder.enabled:
+                    totals = self._crawl(folder, totals)
+        finally:
+            self._finish(replace(totals, current_path="", done=True))
+
+    def _crawl(self, folder: Folder, base: IndexProgress) -> IndexProgress:
+        """Crawl one folder and return the totals it leaves for the next one.
+
+        A folder that raises is logged and left behind: one unreadable folder
+        must not cost the user the folders queued after it, and the counts it
+        did reach stay in the total.
+        """
+        totals = replace(base, folder_id=folder.id)
+
+        def on_progress(step: IndexProgress) -> None:
+            nonlocal totals
+            totals = _accumulate(base, folder.id, step)
+            if not step.done:
+                self._publish(totals)
+
+        try:
+            self._index_folder.run(folder.id, folder.path, on_progress)
+        except Exception:
+            logger.exception("indexing %s failed", folder.path)
+        return replace(totals, current_path="")
+
+    def _publish(self, snapshot: IndexProgress) -> None:
+        with self._lock:
+            self._latest = snapshot
+            for subscriber in self._subscribers:
+                subscriber.put_nowait(snapshot)
+
+    def _finish(self, final: IndexProgress) -> None:
+        with self._lock:
+            self._latest = final
+            for subscriber in self._subscribers:
+                subscriber.put_nowait(final)
+            self._subscribers.clear()
+            self._running = False
+
+
+def _accumulate(base: IndexProgress, folder_id: str, step: IndexProgress) -> IndexProgress:
+    """Fold one folder's step into the totals of the folders already crawled."""
+    return IndexProgress(
+        folder_id=folder_id,
+        files_seen=base.files_seen + step.files_seen,
+        files_indexed=base.files_indexed + step.files_indexed,
+        files_skipped=base.files_skipped + step.files_skipped,
+        pages_indexed=base.pages_indexed + step.pages_indexed,
+        current_path=step.current_path,
+    )
