@@ -6,6 +6,7 @@ gate is exercised in realistic locations, not one quarantine folder.
 
 from __future__ import annotations
 
+import random
 from pathlib import Path
 
 from PIL import Image
@@ -17,7 +18,6 @@ from corpus.manifest import Manifest
 from corpus.rng import make_rng
 
 TINY_IMAGES = 60
-ZERO_BYTE = 25
 BAD_PDF = 12
 ENCRYPTED_PDF = 5
 BINARY_BLOBS = 36
@@ -26,6 +26,21 @@ OVERSIZE_BYTES = 210 * 1024 * 1024
 SCATTER_DIRS = ["notes", "screenshots", "reports", "decks", "junk"]
 BLOB_EXTENSIONS = [".bin", ".dylib", ".zip", ".sqlite"]
 
+# screen_path settles type before it ever looks at size, so a file has to carry
+# a supported extension to reach the empty or the oversized rule at all. An
+# unsupported one is refused as unsupported_type whatever its size, which is
+# why each of these lists is paired with the reason the gate will actually give.
+EMPTY_SUPPORTED = [".txt", ".md", ".pdf", ".png"]
+EMPTY_UNSUPPORTED = [".log", ".json"]
+ZERO_BYTE_SUPPORTED = 15
+ZERO_BYTE_UNSUPPORTED = 10
+
+OVERSIZE_FILES = [
+    ("reports", "scan-archive-2019.pdf", "oversized"),
+    ("junk", "camera-roll-export.bin", "unsupported_type"),
+    ("screenshots", "timelapse-raw.zip", "unsupported_type"),
+]
+
 
 def _scatter_dir(root: Path, index: int) -> Path:
     d = root / SCATTER_DIRS[index % len(SCATTER_DIRS)]
@@ -33,7 +48,7 @@ def _scatter_dir(root: Path, index: int) -> Path:
     return d
 
 
-def _tiny_images(root: Path, manifest: Manifest, rng) -> int:
+def _tiny_images(root: Path, manifest: Manifest, rng: random.Random) -> int:
     sizes = [(1, 1), (16, 16), (32, 32), (48, 48), (64, 64), (120, 90), (180, 40)]
     for i in range(TINY_IMAGES):
         w, h = sizes[i % len(sizes)]
@@ -46,13 +61,19 @@ def _tiny_images(root: Path, manifest: Manifest, rng) -> int:
 
 
 def _zero_byte(root: Path, manifest: Manifest) -> int:
-    exts = [".txt", ".md", ".pdf", ".png", ".log", ".json"]
-    for i in range(ZERO_BYTE):
+    plan = [
+        (EMPTY_SUPPORTED[i % len(EMPTY_SUPPORTED)], "empty") for i in range(ZERO_BYTE_SUPPORTED)
+    ]
+    plan += [
+        (EMPTY_UNSUPPORTED[i % len(EMPTY_UNSUPPORTED)], "unsupported_type")
+        for i in range(ZERO_BYTE_UNSUPPORTED)
+    ]
+    for i, (ext, reason) in enumerate(plan):
         d = _scatter_dir(root, i + 3)
-        path = d / f"empty-{i}{exts[i % len(exts)]}"
+        path = d / f"empty-{i}{ext}"
         path.touch()
-        manifest.add_skipped(path, "junk", "empty")
-    return ZERO_BYTE
+        manifest.add_skipped(path, "junk", reason)
+    return len(plan)
 
 
 def _bad_pdf(root: Path, manifest: Manifest) -> int:
@@ -77,7 +98,7 @@ def _encrypted_pdf(root: Path, manifest: Manifest) -> int:
     return ENCRYPTED_PDF
 
 
-def _binary_blobs(root: Path, manifest: Manifest, rng) -> int:
+def _binary_blobs(root: Path, manifest: Manifest, rng: random.Random) -> int:
     for i in range(BINARY_BLOBS):
         ext = BLOB_EXTENSIONS[i % len(BLOB_EXTENSIONS)]
         d = _scatter_dir(root, i + 2)
@@ -93,7 +114,10 @@ def _ignored_paths(root: Path, manifest: Manifest) -> int:
         path = root / d / ".DS_Store"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"\x00\x00\x00\x01Bud1" + b"\x00" * 28)
-        manifest.add_skipped(path, "junk", "excluded_path")
+        # Not excluded_path. The gate excludes hidden directories, not hidden
+        # files, so that a user's own .notes.md stays findable. A .DS_Store is
+        # refused for having no indexable type, like any other binary blob.
+        manifest.add_skipped(path, "junk", "unsupported_type")
         count += 1
 
     nm = root / "junk" / "node_modules"
@@ -129,14 +153,18 @@ def _ignored_paths(root: Path, manifest: Manifest) -> int:
 
 
 def _oversized(root: Path, manifest: Manifest) -> int:
-    path = root / "junk" / "camera-roll-export.bin"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("wb") as f:
-        f.seek(OVERSIZE_BYTES - 1)
-        f.write(b"\0")
-    assert path.stat().st_size == OVERSIZE_BYTES
-    manifest.add_skipped(path, "junk", "oversized")
-    return 1
+    for dirname, name, reason in OVERSIZE_FILES:
+        d = root / dirname
+        d.mkdir(parents=True, exist_ok=True)
+        path = d / name
+        # Sparse. Seeking past the end and writing one byte makes stat report
+        # the full size while the filesystem allocates a single block.
+        with path.open("wb") as f:
+            f.seek(OVERSIZE_BYTES - 1)
+            f.write(b"\0")
+        assert path.stat().st_size == OVERSIZE_BYTES
+        manifest.add_skipped(path, "junk", reason)
+    return len(OVERSIZE_FILES)
 
 
 def generate(seed: int, root: Path, manifest: Manifest) -> int:

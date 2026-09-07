@@ -33,11 +33,16 @@ GROUPS = ["screenshots", "reports", "decks", "notes", "junk"]
 DEFAULT_SEED = 20260907
 
 
-def _load_existing(manifest: Manifest, path: Path, only: str | None) -> None:
-    """Carry over entries from a prior run, dropping the group being redone."""
+def _reconcile_previous_run(manifest: Manifest, path: Path, only: str | None) -> None:
+    """Leave the corpus holding exactly what the next manifest will list.
+
+    Every file a group being regenerated left behind is deleted first, so a
+    renamed or dropped file never survives as an orphan the manifest does not
+    claim, and its entry is never counted twice.
+    """
     data = json.loads(path.read_text())
     for f in data["files"]:
-        if only is not None and f["group"] == only:
+        if only is None or f["group"] == only:
             target = manifest.root / f["path"]
             if target.exists():
                 target.unlink()
@@ -92,7 +97,7 @@ def main() -> None:
     manifest = Manifest(seed=args.seed, root=out)
     manifest_path = out / "MANIFEST.json"
     if manifest_path.exists():
-        _load_existing(manifest, manifest_path, args.only)
+        _reconcile_previous_run(manifest, manifest_path, args.only)
 
     groups = GROUPS if args.only is None else [args.only]
     # A fixed path, not tempfile.mkdtemp()'s random suffix: reportlab embeds
