@@ -61,8 +61,6 @@ module.exports = {
           '^src/main/main\\.ts$',
           '^src/preload/bridge\\.ts$',
           '^src/renderer/main\\.tsx$',
-          // Nothing imports it yet. The search and index screens will.
-          '^src/renderer/domain/format\\.ts$',
         ],
       },
       to: {},

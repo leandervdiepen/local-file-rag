@@ -19,3 +19,14 @@ export function formatMillis(ms: number): string {
   const seconds = ms / 1000
   return `${seconds.toFixed(trailingDigits(seconds))} s`
 }
+
+/**
+ * Writes a path the way the user's shell does.
+ *
+ * A result list is read by its file names, and an absolute path repeating
+ * `/Users/someone` on every row pushes the part that identifies the file off
+ * the right edge.
+ */
+export function shortenHomePath(path: string): string {
+  return path.replace(/^\/Users\/[^/]+\//, '~/')
+}

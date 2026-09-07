@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { createMainWindow } from './window'
 import { resolveSidecarCommand } from './sidecar-command'
 import { createSidecarProcess, SidecarProcess } from './sidecar-process'
-import { openPath, revealInFinder, copyPath, pickFolder } from './native-actions'
+import { createNativeActions, pickFolder } from './native-actions'
+import { createIndexedFolders } from './indexed-folders'
 import { setAnthropicKey, hasAnthropicKey } from './secrets'
 import { IPC_CHANNELS } from '../preload/ipc-channels'
 import type { SidecarStateEvent } from '../preload/bridge-types'
@@ -39,10 +40,17 @@ function startSidecar(token: string): SidecarProcess {
   return process_
 }
 
-function registerIpcHandlers(getWindow: () => BrowserWindow | null): void {
-  ipcMain.handle(IPC_CHANNELS.openPath, (_event, targetPath: string) => openPath(targetPath))
-  ipcMain.handle(IPC_CHANNELS.revealInFinder, (_event, targetPath: string) => revealInFinder(targetPath))
-  ipcMain.handle(IPC_CHANNELS.copyPath, (_event, targetPath: string) => copyPath(targetPath))
+function readyBaseUrl(): string | null {
+  const state = sidecarProcess?.getState()
+  return state?.status === 'ready' ? state.baseUrl : null
+}
+
+function registerIpcHandlers(getWindow: () => BrowserWindow | null, token: string): void {
+  const native = createNativeActions(createIndexedFolders(token, readyBaseUrl))
+
+  ipcMain.handle(IPC_CHANNELS.openPath, (_event, targetPath: string) => native.openPath(targetPath))
+  ipcMain.handle(IPC_CHANNELS.revealInFinder, (_event, targetPath: string) => native.revealInFinder(targetPath))
+  ipcMain.handle(IPC_CHANNELS.copyPath, (_event, targetPath: string) => native.copyPath(targetPath))
   ipcMain.handle(IPC_CHANNELS.pickFolder, () => {
     const window = getWindow()
     return window ? pickFolder(window) : null
@@ -57,7 +65,7 @@ app.whenReady().then(() => {
   const token = randomBytes(32).toString('hex')
   sidecarProcess = startSidecar(token)
   mainWindow = createMainWindow({ preloadPath, sidecarToken: token })
-  registerIpcHandlers(() => mainWindow)
+  registerIpcHandlers(() => mainWindow, token)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

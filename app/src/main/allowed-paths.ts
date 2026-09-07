@@ -1,13 +1,16 @@
 import path from 'node:path'
 
-// Filled from the sidecar's indexed folders once GET /folders exists. Empty
-// until then, so every path is rejected. The check ships ahead of the data it
-// guards on purpose: a boundary added after the feature works is one that gets
-// skipped.
-const INDEXED_FOLDERS: readonly string[] = []
-
-/** Compares resolved paths only: a symlink pointing out of an allowed root still passes. */
-export function isPathAllowed(targetPath: string, allowedRoots: readonly string[] = INDEXED_FOLDERS): boolean {
+/**
+ * True when `targetPath` sits inside one of `allowedRoots`.
+ *
+ * Compares resolved paths only, so a symlink inside an allowed root that
+ * points outside it still passes. Closing that needs the real path of the
+ * target, which costs a filesystem call on a check that runs per click.
+ *
+ * An empty root list allows nothing, which is what makes it safe to call
+ * before the sidecar can say what is indexed.
+ */
+export function isPathAllowed(targetPath: string, allowedRoots: readonly string[]): boolean {
   const resolvedTarget = path.resolve(targetPath)
   return allowedRoots.some((root) => {
     const resolvedRoot = path.resolve(root)
