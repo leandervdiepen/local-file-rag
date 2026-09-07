@@ -9,7 +9,7 @@ Minimal and spartan: monochrome, generous air, real typography, no decorative mo
 Color carries meaning or it does not appear.
 
 | Scale | Where it is allowed | Never |
-|---|---|---|
+| --- | --- | --- |
 | ink | text, borders, surfaces, icons, everything structural | - |
 | accent | focus ring, selection, the active item, links | headings, buttons at rest, decoration |
 | heat | the heatmap overlay | anything that is not a match explanation |
@@ -30,7 +30,7 @@ Never give a color its only definition inside a media query.
 Two families, both bundled with the app.
 
 | Family | Use |
-|---|---|
+| --- | --- |
 | Inter Variable | every piece of interface text |
 | JetBrains Mono | file paths, file names, page numbers, measured values, code |
 
@@ -78,7 +78,7 @@ The product is a search box.
 A hand that leaves the keyboard has lost.
 
 | Key | Does |
-|---|---|
+| --- | --- |
 | global shortcut | opens the window with the search box focused and selected |
 | typing | always goes to the search box unless a text input has focus |
 | up, down | move through results across file group boundaries |
@@ -95,7 +95,7 @@ Never remove an outline without putting a better one back.
 A screen is not done until all of these have been drawn and built.
 
 | State | The question it answers |
-|---|---|
+| --- | --- |
 | first run | what is this and what do you want from me |
 | empty | there is nothing here yet, and here is the one thing to do |
 | typing | something is happening, results are coming |

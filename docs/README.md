@@ -11,7 +11,7 @@ Everything about the project lives in this folder until the code repo exists.
 ## Files
 
 | File | What it holds |
-|---|---|
+| --- | --- |
 | [PRD.md](PRD.md) | Problem, positioning, scope, requirements, quality bar, risks |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Stack, process model, HTTP contract, LanceDB schema, pipelines, packaging |
 | [PLAN.md](PLAN.md) | The seven days, task checkboxes, acceptance criteria, cut order |

@@ -25,7 +25,7 @@ A fake is a real, working, in-memory implementation of the `Protocol`. A `FakePa
 Specific things that must have unit tests, because each one has burned someone:
 
 | Subject | Test |
-|---|---|
+| --- | --- |
 | gate rules | every skip reason, including the boundary case that just passes |
 | MaxSim | scored against a naive nested-loop reference on random matrices |
 | heatmap grid | portrait, landscape and square pages map to the right rows and cols |

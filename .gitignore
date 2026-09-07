@@ -18,6 +18,7 @@ release/
 
 # Local state that is never source
 spike/.venv/
+spike/out/
 scratch/
 *.local.json
 

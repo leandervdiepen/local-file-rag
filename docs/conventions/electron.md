@@ -8,7 +8,7 @@ Anything else that ends up in main is renderer code in the wrong process.
 Non negotiable, set once in the `BrowserWindow` and never loosened for convenience:
 
 | Setting | Value |
-|---|---|
+| --- | --- |
 | `contextIsolation` | `true` |
 | `nodeIntegration` | `false` |
 | `sandbox` | `true` |

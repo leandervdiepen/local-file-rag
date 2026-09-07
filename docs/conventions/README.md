@@ -4,7 +4,7 @@ One file per domain. Read the one you are about to work in.
 The root `AGENTS.md` holds the layer map, the `make` targets and the two how-tos. These go deeper.
 
 | File | Read it before |
-|---|---|
+| --- | --- |
 | `product.md` | deciding what is in, what is cut, or what a number in a doc may say |
 | `design.md` | any UI work: color, type, space, motion, keyboard, the state checklist |
 | `copy.md` | writing any user-visible word, in the app or outside it |

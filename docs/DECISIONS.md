@@ -4,7 +4,7 @@ Locked on 2026-09-07 unless a later date is noted.
 Change one only with new evidence, and write the evidence here.
 
 | ID | Decision | Why |
-|---|---|---|
+| --- | --- | --- |
 | D01 | Electron shell, electron-vite, React 19, TypeScript, Tailwind v4, shadcn/ui, electron-builder | Leander's stack. A week leaves no room to learn Tauri and Rust packaging. |
 | D02 | Flask 3 served by waitress as the sidecar HTTP layer | Requested. Server-sent events work through generator responses. waitress is a threaded production server with no async ceremony. |
 | D03 | Python sidecar owns indexing, inference, retrieval and answering | Sentence Transformers, torch and the ColQwen weights exist in Python first. One process owns the index. |
@@ -36,7 +36,7 @@ Change one only with new evidence, and write the evidence here.
 Locked on 2026-09-07 during the day 0 session unless a later date is noted.
 
 | ID | Decision | Why |
-|---|---|---|
+| --- | --- | --- |
 | D26 | The planning folder became the repo root and its files moved to `docs/`, rather than a new repo being created beside it | Same result as the plan intended, one less path to keep in sync, and the working directory never moves out from under a running session. |
 | D27 | Hugging Face downloads run with `HF_HUB_DISABLE_XET=1` | The Xet backend stalled at 65 MB of a 4.4 GB download and stayed there. The classic HTTP path ran at about 3.7 MB/s immediately. Measured 2026-09-07 on M1 Max. This has to carry into the packaged app's first-run download, not just into development. |
 | D28 | Conventions live one file per domain in `docs/conventions/`, and `AGENTS.md` stays a map | A single 900 line agent file gets skimmed. A reader opening `react.md` before renderer work reads all of it. |
@@ -44,3 +44,6 @@ Locked on 2026-09-07 during the day 0 session unless a later date is noted.
 | D30 | Typefaces ship as files in the bundle. No font CDN, in any environment | A request to a font CDN on app launch would contradict the README's privacy claim. The claim is a specification, so the build cannot have a development-only exception. |
 | D31 | `peft` is a sidecar runtime dependency | `vidore/colqwen2-v1.0` is a LoRA adapter over `vidore/colqwen2-base`, and Sentence Transformers refuses to load it without `peft`. Found by the day 0 spike failing on it. |
 | D32 | The Anthropic base URL is a setting, so the end-to-end chat test points at a local stub that speaks the streaming wire format | Keeps the third money path runnable offline, for free, on every gate, which is the only way that test survives the week. |
+| D33 | Ship `vidore/colqwen2-v1.0-merged` rather than the adapter plus `vidore/colqwen2-base` | Same weights pre-merged, so retrieval is unchanged: MaxSim scores match the adapter build to two decimals. Halves the first run download from 8.94 GB to 4.43 GB, drops load peak RSS from 12.8 GB to 8.7 GB, loads in 8.5 s instead of 12.8 s, and removes `peft` from the runtime. Measured 2026-09-07, M1 Max, torch 2.14.0. This does not reopen D05: it is the same model, packaged differently. |
+| D34 | Load in float16, not bfloat16 and not float32 | float16 is the fastest of the three on MPS at 1.19 s per page, against 1.49 for float32 and 1.81 for bfloat16, and holds the lowest resident memory. Retrieval is unaffected: the winning page scores 12.92 in float16 against 12.95 in float32. Measured 2026-09-07, M1 Max. |
+| D35 | The embedder holds two configurations, pooled for storage and unpooled for heatmaps | Sentence Transformers v6 applies pooling as a pipeline module, not an encode argument, so a single encoder cannot serve both. Confirms the re-encode-on-demand design D09 already assumed. |

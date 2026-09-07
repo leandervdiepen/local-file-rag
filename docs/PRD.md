@@ -37,7 +37,7 @@ The product is the proof.
 ## Positioning
 
 | | Spotlight (macOS 26) | Fenn | omni-macos | This app |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Runs locally | yes | yes | yes | yes |
 | Open source | no | no | code Apache 2.0, weights CC-BY-NC | yes, permissive code and weights |
 | Retrieval on page images | no, OCR text | not stated | one vector per chunk | multi-vector per page, late interaction |
@@ -79,7 +79,7 @@ Functional requirements.
 Each one is testable.
 
 | ID | Requirement |
-|---|---|
+| --- | --- |
 | FR-1 | Onboarding offers Desktop, Documents and Downloads and lets the user add any folder. |
 | FR-2 | The crawler walks enabled folders, applies the skip list, hashes contents for dedupe, records size, mtime, Spotlight last-used date and content type. |
 | FR-3 | Stage 1 text comes from the PDF text layer via pypdfium2, from Apple Vision OCR for images and scanned pages, and raw for TXT and MD. It lands in a LanceDB full-text index. |
@@ -116,7 +116,7 @@ No analytics of any kind.
 Latency targets on an M-series Mac, to be replaced by measured numbers on day 2:
 
 | Path | Target |
-|---|---|
+| --- | --- |
 | Stage 1 search | under 150 ms |
 | Rerank of 300 cached pages | under 500 ms |
 | Cold page embedding | 3 s per page or better |
@@ -145,7 +145,7 @@ Time to first result on a fresh disk with about 40,000 files.
 ## Risks
 
 | Risk | Fallback |
-|---|---|
+| --- | --- |
 | ColQwen2 on MPS is slower than 3 s per page | Lazy cap absorbs it. Lower render resolution. Switch to ColSmol-500M without heatmaps as a last resort. |
 | Heatmap grid mapping is wrong for some page aspect ratios | Use the processor grid metadata rather than inferring. Test portrait, landscape and square pages on day 3. |
 | PyInstaller plus torch produces a broken or huge bundle | Ship a DMG that requires uv on the machine and say so in the README. Fix in v1.1. |

@@ -25,7 +25,7 @@ All routes require `Authorization: Bearer <token>`.
 Streaming routes use server-sent events.
 
 | Route | Purpose |
-|---|---|
+| --- | --- |
 | `GET /health` | status, version, model loaded, db path |
 | `GET /folders`, `POST /folders`, `DELETE /folders/{id}` | manage indexed folders |
 | `GET /index/stats` | counts and storage for the index screen |
@@ -44,7 +44,7 @@ Streaming routes use server-sent events.
 ## LanceDB tables
 
 | Table | Columns |
-|---|---|
+| --- | --- |
 | `folders` | id, path, enabled, added_at |
 | `files` | id, path, folder_id, content_hash, size, mtime, last_used, kind, state, skip_reason, page_count, text (FTS), updated_at |
 | `pages` | id, file_id, page_no, text (FTS), embedded_at, last_hit_at, hit_count |
