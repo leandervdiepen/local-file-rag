@@ -86,3 +86,20 @@ class Page:
     @property
     def is_embedded(self) -> bool:
         return self.embedded_at is not None
+
+
+@dataclass(frozen=True)
+class FileCandidate:
+    """One filesystem entry the crawler found, before anything has been opened.
+
+    Carries only what `os.scandir` already returned, because the crawler
+    builds one of these per file across tens of thousands of them.
+    """
+
+    path: Path
+    size_bytes: int
+    mtime: datetime
+
+    @property
+    def name(self) -> str:
+        return self.path.name

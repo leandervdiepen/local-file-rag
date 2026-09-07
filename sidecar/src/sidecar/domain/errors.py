@@ -32,3 +32,31 @@ class ValidationError(DomainError):
     """The caller's input fails a domain invariant."""
 
     code = "invalid_request"
+
+
+class FolderUnreadableError(DomainError):
+    """A folder exists but this process may not read it.
+
+    Separate from a missing folder because the user can fix this one, and the
+    message tells them exactly where in System Settings.
+    """
+
+    code = "folder_unreadable"
+
+
+class UnreadableFileError(DomainError):
+    """The bytes will not open as the thing they claim to be."""
+
+    code = "file_unreadable"
+
+
+class EncryptedFileError(DomainError):
+    """The file needs a password this app will never ask for."""
+
+    code = "file_encrypted"
+
+
+class IndexBusyError(DomainError):
+    """An indexing job is already running and a second would conflict with it."""
+
+    code = "index_busy"
