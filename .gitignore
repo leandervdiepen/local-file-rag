@@ -16,6 +16,11 @@ out/
 .vite/
 release/
 
+# Secrets. Never tracked, never bundled.
+.env
+.env.*
+!.env.example
+
 # Local state that is never source
 spike/.venv/
 spike/out/
