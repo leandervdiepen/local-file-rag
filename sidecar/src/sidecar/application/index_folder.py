@@ -10,9 +10,9 @@ from sidecar.application.ports import (
     FileProbe,
     FolderCrawler,
     ImageTextReader,
-    IndexStore,
     PageSource,
 )
+from sidecar.application.store_ports import IndexStore
 from sidecar.domain.entities import FileCandidate, FileKind, FileState, IndexedFile, Page
 from sidecar.domain.errors import EncryptedFileError, UnreadableFileError
 from sidecar.domain.gate import GateDecision, SkipReason, pages_to_index, screen_image, screen_path
@@ -126,7 +126,7 @@ class IndexFolder:
 
         wanted, truncated = pages_to_index(page_count)
         owner = file_id(candidate.path)
-        pages = [self._read_page(source, candidate.path, kind, owner, n) for n in range(1, wanted + 1)]
+        pages = self._read_pages(source, candidate.path, kind, owner, wanted)
 
         self._store.upsert_file(
             IndexedFile(
@@ -145,16 +145,23 @@ class IndexFolder:
         self._store.upsert_pages(pages)
         return len(pages)
 
-    def _read_page(self, source: PageSource, path: Path, kind: FileKind, owner: str, page_no: int) -> Page:
-        """Read one page's text, falling back to OCR when the page carries none.
+    def _read_pages(self, source: PageSource, path: Path, kind: FileKind, owner: str, wanted: int) -> list[Page]:
+        """Read every page's text, falling back to OCR for the pages that carry none.
 
         An empty text layer is the normal state of a screenshot and of a
         scanned PDF, so it routes to OCR rather than counting as a failure.
+        The budget counts the pages actually sent to OCR, so a long report
+        whose scanned appendix starts on page 200 still gets it read.
         """
-        text = source.page_text(path, page_no)
-        if not text.strip() and kind is not FileKind.TEXT and page_no <= MAX_OCR_PAGES_PER_FILE:
-            text = self._ocr.read_text(source.render(path, page_no, OCR_RENDER_LONG_SIDE_PX))
-        return Page(id=page_id(owner, page_no), file_id=owner, page_no=page_no, text=text)
+        pages: list[Page] = []
+        ocr_used = 0
+        for page_no in range(1, wanted + 1):
+            text = source.page_text(path, page_no)
+            if not text.strip() and kind is not FileKind.TEXT and ocr_used < MAX_OCR_PAGES_PER_FILE:
+                text = self._ocr.read_text(source.render(path, page_no, OCR_RENDER_LONG_SIDE_PX))
+                ocr_used += 1
+            pages.append(Page(id=page_id(owner, page_no), file_id=owner, page_no=page_no, text=text))
+        return pages
 
     def _store_skip(self, candidate: FileCandidate, folder_id: str, decision: GateDecision) -> None:
         """Record a skipped file. It stays in the index so the index screen can explain it.

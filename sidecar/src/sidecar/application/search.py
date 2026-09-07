@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sidecar.application.ports import IndexStore
+from sidecar.application.store_ports import IndexStore
 from sidecar.domain.search import PageHit
 
 STAGE_ONE_CANDIDATE_LIMIT = 300
