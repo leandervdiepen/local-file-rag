@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
+from sidecar.domain.answers import AnswerChunk, AnswerRequest
 from sidecar.domain.entities import FileCandidate, IndexedFile, Page
 from sidecar.domain.search import IndexStats, PageHit
 
@@ -146,4 +147,29 @@ class IndexStore(Protocol):
 
     def stats(self) -> IndexStats:
         """Counts for the index screen, computed from rows rather than kept as counters."""
+        ...
+
+
+class Answerer(Protocol):
+    """Streams an answer grounded in the page images it is given.
+
+    Implementations translate wire format and nothing else. They do not build
+    prompts, parse citations, price the exchange or decide which pages to
+    send, because those are the same for every provider and live in the
+    domain.
+    """
+
+    def stream(self, request: AnswerRequest) -> Iterator[AnswerChunk]:
+        """Yield chunks until the answer ends, then stop.
+
+        Yields text as it arrives and usage when the provider reports it,
+        which is usually once at the end and sometimes never.
+
+        Raises `AnswerUnavailableError` when the provider refuses, is out of
+        quota, or is unreachable. That error carries a message a person can
+        act on, because it is shown in the chat panel.
+
+        Abandons the request if the consumer stops iterating, so a user who
+        closes the panel does not pay for the rest of an answer.
+        """
         ...

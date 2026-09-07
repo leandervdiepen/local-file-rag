@@ -60,3 +60,13 @@ class IndexBusyError(DomainError):
     """An indexing job is already running and a second would conflict with it."""
 
     code = "index_busy"
+
+
+class AnswerUnavailableError(DomainError):
+    """The answer provider refused, ran out of quota, or could not be reached.
+
+    Its message reaches the chat panel, so it says what happened and the one
+    thing the user can do about it.
+    """
+
+    code = "answer_unavailable"
