@@ -1,0 +1,3 @@
+# import-linter's own cache. The root .gitignore covers the rest of the Python
+# build and tool caches for the whole repo.
+.import_linter_cache/

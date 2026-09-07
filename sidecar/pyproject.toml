@@ -1,0 +1,93 @@
+[project]
+name = "sidecar"
+version = "0.1.0"
+description = "Local file search sidecar: indexing, retrieval and answering behind a loopback HTTP API"
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=3.1",
+    "waitress>=3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "import-linter",
+]
+
+[project.scripts]
+sidecar = "sidecar.interface.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sidecar"]
+
+[tool.ruff]
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM", "N", "A", "PTH", "RUF", "T20"]
+
+[tool.ruff.lint.per-file-ignores]
+# The one line the handshake contract requires.
+"src/sidecar/interface/serve.py" = ["T201"]
+"tests/*" = ["T20"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[[tool.mypy.overrides]]
+# waitress ships no inline types or stubs.
+module = "waitress.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: loads a model or otherwise runs long; day gates only, not make check",
+    "integration: exercises a real adapter or process; make check-int, not make check",
+]
+
+[tool.importlinter]
+root_package = "sidecar"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layered architecture"
+type = "layers"
+layers = [
+    "sidecar.interface",
+    "sidecar.infrastructure",
+    "sidecar.application",
+    "sidecar.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain has no dependency beyond stdlib and numpy"
+type = "forbidden"
+source_modules = ["sidecar.domain"]
+# flask and waitress are the only non-stdlib, non-numpy packages this project has,
+# so forbidding them plus the other layers proves the stdlib-and-numpy-only rule.
+forbidden_modules = [
+    "flask",
+    "waitress",
+    "sidecar.application",
+    "sidecar.infrastructure",
+    "sidecar.interface",
+]
+
+[[tool.importlinter.contracts]]
+name = "Application never reaches into infrastructure or Flask"
+type = "forbidden"
+source_modules = ["sidecar.application"]
+forbidden_modules = ["sidecar.infrastructure", "flask"]

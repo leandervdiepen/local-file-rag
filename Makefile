@@ -4,7 +4,9 @@
 
 SIDECAR := sidecar
 APP     := app
-UV      := uv --project $(SIDECAR)
+# --directory, not --project: --project points uv at the environment but leaves
+# the working directory at the repo root, so every relative path below breaks.
+UV      := uv --directory $(SIDECAR)
 PNPM    := pnpm --dir $(APP)
 
 help: ## List targets
@@ -44,11 +46,13 @@ build: ## Package the sidecar and produce the arm64 DMG
 	$(UV) run pyinstaller --clean --noconfirm $(SIDECAR)/sidecar.spec
 	$(PNPM) run build
 
+# The corpus generator carries its own dependencies inline, so it runs outside
+# both projects. bench needs the sidecar, so it runs inside it and reaches back out.
 corpus: ## Generate the demo corpus into ~/demo-corpus
-	$(UV) run python scripts/make_demo_corpus.py --out ~/demo-corpus
+	uv run scripts/make_demo_corpus.py --out ~/demo-corpus
 
 bench: ## Measure retrieval and print the numbers
-	$(UV) run python scripts/bench.py --corpus ~/demo-corpus --golden scripts/golden.jsonl
+	$(UV) run python ../scripts/bench.py --corpus ~/demo-corpus --golden ../scripts/golden.jsonl
 
 clean: ## Remove build output, keep the index and the corpus
 	rm -rf $(APP)/out $(APP)/release $(SIDECAR)/dist $(SIDECAR)/build
