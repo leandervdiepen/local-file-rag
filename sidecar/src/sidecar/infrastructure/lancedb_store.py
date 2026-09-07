@@ -1,0 +1,198 @@
+"""Adapter for the `IndexStore` port, backed by a LanceDB database directory.
+
+Tables are created lazily, on first write, so an untouched directory is a
+valid database. Each table gets its BM25 index at creation time, before any
+row exists: lancedb 0.38.0 raises `ValueError` from a search against a table
+that has never had `create_index` called on it, so waiting for the first row
+would leave a window where `search_pages` breaks.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Any
+
+import lancedb
+from lancedb import Table
+from lancedb.index import FTS
+
+from sidecar.domain.entities import FileKind, FileState, IndexedFile, Page
+from sidecar.domain.search import IndexStats, PageHit
+from sidecar.infrastructure import lancedb_schema as schema
+
+_FILENAME_CANDIDATE_LIMIT = 200
+_FILENAME_SCORE = 1.0
+_SNIPPET_LENGTH = 200
+
+
+class LanceDBStore:
+    """The one place index state lives, backed by the `files` and `pages` LanceDB tables."""
+
+    def __init__(self, db_path: Path) -> None:
+        self._db = lancedb.connect(str(db_path))
+
+    def upsert_file(self, file: IndexedFile) -> None:
+        table = self._table_for_write(schema.FILES_TABLE, schema.FILES_SCHEMA)
+        table.merge_insert("id").when_matched_update_all().when_not_matched_insert_all().execute(
+            [schema.file_to_row(file)]
+        )
+
+    def upsert_pages(self, pages: Sequence[Page]) -> None:
+        if not pages:
+            return
+        table = self._table_for_write(schema.PAGES_TABLE, schema.PAGES_SCHEMA)
+        rows = [schema.page_to_row(page) for page in pages]
+        table.merge_insert("id").when_matched_update_all().when_not_matched_insert_all().execute(rows)
+
+    def forget_file(self, file_id: str) -> None:
+        escaped = _escape(file_id)
+        files_table = self._existing_table(schema.FILES_TABLE)
+        if files_table is not None:
+            files_table.delete(f"id = '{escaped}'")
+        pages_table = self._existing_table(schema.PAGES_TABLE)
+        if pages_table is not None:
+            pages_table.delete(f"file_id = '{escaped}'")
+
+    def search_pages(self, query: str, limit: int) -> list[PageHit]:
+        stripped = query.strip()
+        if not stripped:
+            return []
+        pages_table = self._existing_table(schema.PAGES_TABLE)
+        if pages_table is None:
+            return []
+        hits: list[PageHit] = []
+        seen: set[str] = set()
+        for hit in self._filename_hits(stripped, pages_table) + self._content_hits(stripped, pages_table, limit):
+            if hit.page_id not in seen:
+                seen.add(hit.page_id)
+                hits.append(hit)
+        return hits[:limit]
+
+    def stats(self) -> IndexStats:
+        files_scanned = files_text_indexed = files_skipped = bytes_on_disk = 0
+        skips_by_reason: tuple[tuple[str, int], ...] = ()
+        files_table = self._existing_table(schema.FILES_TABLE)
+        if files_table is not None:
+            files_scanned = files_table.count_rows(f"state = '{FileState.SCANNED.value}'")
+            files_text_indexed = files_table.count_rows(f"state = '{FileState.TEXT_INDEXED.value}'")
+            files_skipped = files_table.count_rows(f"state = '{FileState.SKIPPED.value}'")
+            sizes = files_table.search().select(["size_bytes"]).to_list()
+            bytes_on_disk = sum(int(row["size_bytes"]) for row in sizes)
+            reasons = files_table.search().select(["skip_reason"]).where("skip_reason IS NOT NULL").to_list()
+            reason_counts: dict[str, int] = {}
+            for row in reasons:
+                reason_counts[row["skip_reason"]] = reason_counts.get(row["skip_reason"], 0) + 1
+            skips_by_reason = tuple(sorted(reason_counts.items()))
+        pages_total = pages_embedded = 0
+        pages_table = self._existing_table(schema.PAGES_TABLE)
+        if pages_table is not None:
+            pages_total = pages_table.count_rows()
+            pages_embedded = pages_table.count_rows("embedded_at IS NOT NULL")
+        return IndexStats(
+            files_scanned=files_scanned,
+            files_text_indexed=files_text_indexed,
+            files_skipped=files_skipped,
+            pages_total=pages_total,
+            pages_embedded=pages_embedded,
+            bytes_on_disk=bytes_on_disk,
+            skips_by_reason=skips_by_reason,
+        )
+
+    def _table_for_write(self, name: str, table_schema: Any) -> Table:
+        existing = self._existing_table(name)
+        if existing is not None:
+            return existing
+        table = self._db.create_table(name, schema=table_schema)
+        table.create_index("text", config=FTS())
+        return table
+
+    def _existing_table(self, name: str) -> Table | None:
+        if name not in self._db.list_tables().tables:
+            return None
+        return self._db.open_table(name)
+
+    def _filename_hits(self, query: str, pages_table: Table) -> list[PageHit]:
+        """A query equal to a file's name, with or without extension, ranks that file's pages first.
+
+        Explicit rather than left to BM25: the `files` FTS index only narrows candidates,
+        an exact case-insensitive comparison against each candidate's name decides the boost.
+        """
+        files_table = self._existing_table(schema.FILES_TABLE)
+        if files_table is None:
+            return []
+        try:
+            # A search box takes whatever was typed. lancedb 0.38.0 does not raise on the
+            # malformed FTS queries this was tested against, but the query parser is not
+            # part of the contract, so this stays defensive rather than an exact except.
+            candidates = (
+                files_table.search(query, query_type="fts")
+                .select(["id", "path", "kind"])
+                .limit(_FILENAME_CANDIDATE_LIMIT)
+                .to_list()
+            )
+        except Exception:
+            return []
+        target = query.lower()
+        matched = {row["id"]: row for row in candidates if _matches_name(row["path"], target)}
+        if not matched:
+            return []
+        rows = pages_table.search().where(f"file_id in ({_in_clause(matched.keys())})").to_list()
+        rows.sort(key=lambda row: (row["file_id"], row["page_no"]))
+        return [
+            PageHit(
+                page_id=row["id"],
+                file_id=row["file_id"],
+                path=Path(matched[row["file_id"]]["path"]),
+                page_no=row["page_no"],
+                kind=FileKind(matched[row["file_id"]]["kind"]),
+                score=_FILENAME_SCORE,
+                stage="filename",
+            )
+            for row in rows
+        ]
+
+    def _content_hits(self, query: str, pages_table: Table, limit: int) -> list[PageHit]:
+        try:
+            rows = pages_table.search(query, query_type="fts").limit(limit).to_list()
+        except Exception:  # see the comment in `_filename_hits`
+            return []
+        if not rows:
+            return []
+        file_ids = {row["file_id"] for row in rows}
+        files_table = self._existing_table(schema.FILES_TABLE)
+        file_by_id: dict[str, Any] = {}
+        if files_table is not None:
+            found = files_table.search().select(["id", "path", "kind"]).where(f"id in ({_in_clause(file_ids)})")
+            file_by_id = {row["id"]: row for row in found.to_list()}
+        hits = []
+        for row in rows:
+            file_row = file_by_id.get(row["file_id"])
+            if file_row is None:
+                continue
+            hits.append(
+                PageHit(
+                    page_id=row["id"],
+                    file_id=row["file_id"],
+                    path=Path(file_row["path"]),
+                    page_no=row["page_no"],
+                    kind=FileKind(file_row["kind"]),
+                    score=row["_score"],
+                    stage="content",
+                    snippet=row["text"][:_SNIPPET_LENGTH],
+                )
+            )
+        return hits
+
+
+def _matches_name(path_str: str, target_lower: str) -> bool:
+    path = Path(path_str)
+    return path.name.lower() == target_lower or path.stem.lower() == target_lower
+
+
+def _escape(value: str) -> str:
+    return value.replace("'", "''")
+
+
+def _in_clause(ids: Any) -> str:
+    return ", ".join(f"'{_escape(str(i))}'" for i in ids)

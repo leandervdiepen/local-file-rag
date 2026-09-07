@@ -20,6 +20,10 @@ class FileKind(StrEnum):
     PDF = "pdf"
     IMAGE = "image"
     TEXT = "text"
+    # A file the gate refused before anything could establish what it was.
+    # Recording it as text would put a guess in a table the index screen
+    # presents as fact.
+    UNKNOWN = "unknown"
 
 
 class FileState(StrEnum):

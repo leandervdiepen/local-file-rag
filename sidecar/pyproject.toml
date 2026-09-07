@@ -4,7 +4,14 @@ version = "0.1.0"
 description = "Local file search sidecar: indexing, retrieval and answering behind a loopback HTTP API"
 requires-python = ">=3.12"
 dependencies = [
+    "blake3>=1.0",
     "flask>=3.1",
+    "lancedb>=0.38.0",
+    "pillow>=11.0",
+    "pyobjc-framework-Quartz>=10.3",
+    "pyobjc-framework-Vision>=10.3",
+    "pylance>=11.0.0",
+    "pypdfium2>=4.30",
     "waitress>=3.0",
 ]
 
@@ -49,6 +56,21 @@ strict = true
 [[tool.mypy.overrides]]
 # waitress ships no inline types or stubs.
 module = "waitress.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# pyobjc ships no inline types or stubs for its Cocoa/Vision/Quartz bridges.
+module = ["Vision.*", "Quartz.*", "Foundation.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# pypdfium2 5.13 ships no py.typed marker.
+module = "pypdfium2.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# pyarrow 25.0 ships no py.typed marker.
+module = "pyarrow.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
