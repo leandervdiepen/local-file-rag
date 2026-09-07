@@ -31,12 +31,7 @@ def _manifest_files() -> list[dict[str, Any]]:
 def test_crawler_and_gate_agree_with_the_manifest_on_excluded_paths() -> None:
     all_paths = [entry["path"] for entry in _manifest_files()]
 
-    # MANIFEST.json describes the corpus; it is not one of the files it describes.
-    crawled = {
-        str(candidate.path.relative_to(CORPUS_ROOT))
-        for candidate in FilesystemCrawler().crawl(CORPUS_ROOT)
-        if candidate.path.name != "MANIFEST.json"
-    }
+    crawled = {str(candidate.path.relative_to(CORPUS_ROOT)) for candidate in FilesystemCrawler().crawl(CORPUS_ROOT)}
 
     # `is_excluded_path` is the exact rule the crawler is supposed to honor
     # when deciding what not to descend into, so it defines the truth here.
