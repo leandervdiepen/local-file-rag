@@ -17,9 +17,10 @@ import lancedb
 from lancedb import Table
 from lancedb.index import FTS
 
-from sidecar.domain.entities import FileKind, FileState, IndexedFile, Page
+from sidecar.domain.entities import FileState, IndexedFile, Page
 from sidecar.domain.search import IndexStats, PageHit
 from sidecar.infrastructure import lancedb_schema as schema
+from sidecar.infrastructure import lancedb_sql as sql
 
 _FILENAME_CANDIDATE_LIMIT = 200
 _FILENAME_SCORE = 1.0
@@ -46,13 +47,24 @@ class LanceDBStore:
         table.merge_insert("id").when_matched_update_all().when_not_matched_insert_all().execute(rows)
 
     def forget_file(self, file_id: str) -> None:
-        escaped = _escape(file_id)
         files_table = self._existing_table(schema.FILES_TABLE)
         if files_table is not None:
-            files_table.delete(f"id = '{escaped}'")
+            files_table.delete(f"id = {sql.literal(file_id)}")
         pages_table = self._existing_table(schema.PAGES_TABLE)
         if pages_table is not None:
-            pages_table.delete(f"file_id = '{escaped}'")
+            pages_table.delete(f"file_id = {sql.literal(file_id)}")
+
+    def get_file(self, file_id: str) -> IndexedFile | None:
+        rows = self._rows_where(schema.FILES_TABLE, f"id = {sql.literal(file_id)}")
+        return schema.row_to_file(rows[0]) if rows else None
+
+    def get_pages(self, file_id: str) -> list[Page]:
+        rows = self._rows_where(schema.PAGES_TABLE, f"file_id = {sql.literal(file_id)}")
+        return sorted((schema.row_to_page(row) for row in rows), key=lambda page: page.page_no)
+
+    def content_hash_of(self, file_id: str) -> str | None:
+        rows = self._rows_where(schema.FILES_TABLE, f"id = {sql.literal(file_id)}", columns=["content_hash"])
+        return str(rows[0]["content_hash"]) if rows else None
 
     def search_pages(self, query: str, limit: int) -> list[PageHit]:
         stripped = query.strip()
@@ -99,6 +111,16 @@ class LanceDBStore:
             skips_by_reason=skips_by_reason,
         )
 
+    def _rows_where(self, name: str, predicate: str, columns: list[str] | None = None) -> list[dict[str, Any]]:
+        table = self._existing_table(name)
+        if table is None:
+            return []
+        search = table.search()
+        if columns is not None:
+            search = search.select(columns)
+        rows: list[dict[str, Any]] = search.where(predicate).to_list()
+        return rows
+
     def _table_for_write(self, name: str, table_schema: Any) -> Table:
         existing = self._existing_table(name)
         if existing is not None:
@@ -137,20 +159,9 @@ class LanceDBStore:
         matched = {row["id"]: row for row in candidates if _matches_name(row["path"], target)}
         if not matched:
             return []
-        rows = pages_table.search().where(f"file_id in ({_in_clause(matched.keys())})").to_list()
+        rows = pages_table.search().where(f"file_id in ({sql.in_list(matched.keys())})").to_list()
         rows.sort(key=lambda row: (row["file_id"], row["page_no"]))
-        return [
-            PageHit(
-                page_id=row["id"],
-                file_id=row["file_id"],
-                path=Path(matched[row["file_id"]]["path"]),
-                page_no=row["page_no"],
-                kind=FileKind(matched[row["file_id"]]["kind"]),
-                score=_FILENAME_SCORE,
-                stage="filename",
-            )
-            for row in rows
-        ]
+        return [schema.row_to_hit(row, matched[row["file_id"]], _FILENAME_SCORE, "filename") for row in rows]
 
     def _content_hits(self, query: str, pages_table: Table, limit: int) -> list[PageHit]:
         try:
@@ -163,36 +174,17 @@ class LanceDBStore:
         files_table = self._existing_table(schema.FILES_TABLE)
         file_by_id: dict[str, Any] = {}
         if files_table is not None:
-            found = files_table.search().select(["id", "path", "kind"]).where(f"id in ({_in_clause(file_ids)})")
+            found = files_table.search().select(["id", "path", "kind"]).where(f"id in ({sql.in_list(file_ids)})")
             file_by_id = {row["id"]: row for row in found.to_list()}
         hits = []
         for row in rows:
             file_row = file_by_id.get(row["file_id"])
-            if file_row is None:
-                continue
-            hits.append(
-                PageHit(
-                    page_id=row["id"],
-                    file_id=row["file_id"],
-                    path=Path(file_row["path"]),
-                    page_no=row["page_no"],
-                    kind=FileKind(file_row["kind"]),
-                    score=row["_score"],
-                    stage="content",
-                    snippet=row["text"][:_SNIPPET_LENGTH],
-                )
-            )
+            if file_row is not None:
+                snippet = row["text"][:_SNIPPET_LENGTH]
+                hits.append(schema.row_to_hit(row, file_row, row["_score"], "content", snippet))
         return hits
 
 
 def _matches_name(path_str: str, target_lower: str) -> bool:
     path = Path(path_str)
     return path.name.lower() == target_lower or path.stem.lower() == target_lower
-
-
-def _escape(value: str) -> str:
-    return value.replace("'", "''")
-
-
-def _in_clause(ids: Any) -> str:
-    return ", ".join(f"'{_escape(str(i))}'" for i in ids)

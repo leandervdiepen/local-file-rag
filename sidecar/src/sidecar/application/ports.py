@@ -2,18 +2,19 @@
 
 Each `Protocol` plus its docstrings is the entire contract: an agent
 implementing an adapter reads this file and nothing else.
+
+The ports that hold state are in `store_ports.py`.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
 from sidecar.domain.answers import AnswerChunk, AnswerRequest
-from sidecar.domain.entities import FileCandidate, IndexedFile, Page
-from sidecar.domain.search import IndexStats, PageHit
+from sidecar.domain.entities import FileCandidate
 
 
 class Clock(Protocol):
@@ -118,35 +119,6 @@ class ImageTextReader(Protocol):
 
         Never raises for an image with no text. That is the common case, not an error.
         """
-        ...
-
-
-class IndexStore(Protocol):
-    """The one place index state lives. A crash loses nothing that got here."""
-
-    def upsert_file(self, file: IndexedFile) -> None:
-        """Insert or replace by `file.id`. Idempotent: the same file twice is one row."""
-        ...
-
-    def upsert_pages(self, pages: Sequence[Page]) -> None:
-        """Insert or replace by `page.id`, as one batch. Idempotent."""
-        ...
-
-    def forget_file(self, file_id: str) -> None:
-        """Remove a file and its pages. Silent when the file is already gone."""
-        ...
-
-    def search_pages(self, query: str, limit: int) -> list[PageHit]:
-        """Full-text search over page and file text, best first.
-
-        Returns an empty list for a query that matches nothing, and for an
-        empty query. Never raises on punctuation or an unbalanced quote: a
-        search box takes whatever the user typed.
-        """
-        ...
-
-    def stats(self) -> IndexStats:
-        """Counts for the index screen, computed from rows rather than kept as counters."""
         ...
 
 

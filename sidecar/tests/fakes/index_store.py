@@ -35,6 +35,16 @@ class FakeIndexStore:
         for page_id in [pid for pid, page in self._pages.items() if page.file_id == file_id]:
             del self._pages[page_id]
 
+    def get_file(self, file_id: str) -> IndexedFile | None:
+        return self._files.get(file_id)
+
+    def get_pages(self, file_id: str) -> list[Page]:
+        return sorted((p for p in self._pages.values() if p.file_id == file_id), key=lambda page: page.page_no)
+
+    def content_hash_of(self, file_id: str) -> str | None:
+        file = self._files.get(file_id)
+        return file.content_hash if file is not None else None
+
     def search_pages(self, query: str, limit: int) -> list[PageHit]:
         target = query.strip().lower()
         if not target:

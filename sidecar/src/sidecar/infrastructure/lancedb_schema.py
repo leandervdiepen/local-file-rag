@@ -1,4 +1,4 @@
-"""pyarrow schemas and row conversions for the LanceDB tables `LanceDBStore` uses.
+"""pyarrow schemas and row conversions for the LanceDB tables the adapters use.
 
 Split out from `lancedb_store.py` so neither file grows past the line budget.
 Every function here is a pure conversion between a domain type and a plain
@@ -13,10 +13,12 @@ from typing import Any
 
 import pyarrow as pa
 
-from sidecar.domain.entities import FileKind, FileState, IndexedFile, Page
+from sidecar.domain.entities import FileKind, FileState, Folder, IndexedFile, Page
+from sidecar.domain.search import PageHit
 
 FILES_TABLE = "files"
 PAGES_TABLE = "pages"
+FOLDERS_TABLE = "folders"
 
 # `text` on `files` carries the filename, not file content: `IndexedFile` never
 # carries raw text, so the filename is the only thing there is to index for a
@@ -36,6 +38,15 @@ FILES_SCHEMA = pa.schema(
         pa.field("last_used", pa.string()),
         pa.field("truncated_pages", pa.bool_()),
         pa.field("text", pa.string()),
+    ]
+)
+
+FOLDERS_SCHEMA = pa.schema(
+    [
+        pa.field("id", pa.string()),
+        pa.field("path", pa.string()),
+        pa.field("enabled", pa.bool_()),
+        pa.field("added_at", pa.string()),
     ]
 )
 
@@ -118,4 +129,42 @@ def row_to_page(row: dict[str, Any]) -> Page:
         embedded_at=_from_iso(row["embedded_at"]),
         last_hit_at=_from_iso(row["last_hit_at"]),
         hit_count=row["hit_count"],
+    )
+
+
+def folder_to_row(folder: Folder) -> dict[str, Any]:
+    return {
+        "id": folder.id,
+        "path": str(folder.path),
+        "enabled": folder.enabled,
+        "added_at": folder.added_at.isoformat(),
+    }
+
+
+def row_to_folder(row: dict[str, Any]) -> Folder:
+    return Folder(
+        id=row["id"],
+        path=Path(row["path"]),
+        enabled=row["enabled"],
+        added_at=datetime.fromisoformat(row["added_at"]),
+    )
+
+
+def row_to_hit(
+    page_row: dict[str, Any],
+    file_row: dict[str, Any],
+    score: float,
+    stage: str,
+    snippet: str = "",
+) -> PageHit:
+    """One hit from a `pages` row and the `files` row that owns it, which carries the path and kind."""
+    return PageHit(
+        page_id=page_row["id"],
+        file_id=page_row["file_id"],
+        path=Path(file_row["path"]),
+        page_no=page_row["page_no"],
+        kind=FileKind(file_row["kind"]),
+        score=score,
+        stage=stage,
+        snippet=snippet,
     )

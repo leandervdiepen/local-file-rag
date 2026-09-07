@@ -12,6 +12,7 @@ from enum import StrEnum
 from pathlib import Path
 
 from sidecar.domain.errors import ValidationError
+from sidecar.domain.identity import file_id
 
 
 class FileKind(StrEnum):
@@ -90,6 +91,32 @@ class Page:
     @property
     def is_embedded(self) -> bool:
         return self.embedded_at is not None
+
+
+@dataclass(frozen=True)
+class Folder:
+    """One folder the user chose to index.
+
+    The id is derived from the path, so adding the same folder twice is one
+    row rather than two rows pointing at one tree. `at` builds a new one;
+    the constructor is for rebuilding one that was already stored.
+    """
+
+    id: str
+    path: Path
+    enabled: bool
+    added_at: datetime
+
+    def __post_init__(self) -> None:
+        if not self.path.is_absolute():
+            raise ValidationError(f"A folder path is absolute, got {self.path}.")
+        if self.id != file_id(self.path):
+            raise ValidationError(f"A folder's id is derived from its path, got {self.id}.")
+
+    @classmethod
+    def at(cls, path: Path, added_at: datetime, enabled: bool = True) -> Folder:
+        """A folder for this path, carrying the id that path always gets."""
+        return cls(id=file_id(path), path=path, enabled=enabled, added_at=added_at)
 
 
 @dataclass(frozen=True)
