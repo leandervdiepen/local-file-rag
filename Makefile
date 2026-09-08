@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 .PHONY: help setup check check-int e2e dev build corpus bench \
-        check-sidecar check-app int-sidecar clean
+        check-sidecar check-app int-sidecar slow clean
 
 SIDECAR := sidecar
 APP     := app
@@ -34,7 +34,10 @@ check-app:
 check-int: int-sidecar ## Integration tests, adapters against real dependencies
 
 int-sidecar:
-	$(UV) run pytest -m integration -q
+	$(UV) run pytest -m "integration and not slow" -q
+
+slow: ## The tests that load the real retrieval model. Minutes, not seconds
+	$(UV) run pytest -m slow -q -s
 
 e2e: ## Playwright over Electron, the three money paths
 	$(PNPM) run e2e

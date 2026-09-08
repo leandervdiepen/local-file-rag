@@ -11,14 +11,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pyarrow as pa
 
 from sidecar.domain.entities import FileKind, FileState, Folder, IndexedFile, Page
 from sidecar.domain.search import PageHit
+from sidecar.domain.vectors import STORED_DTYPE, VECTOR_DIM, PageVectors
 
 FILES_TABLE = "files"
 PAGES_TABLE = "pages"
 FOLDERS_TABLE = "folders"
+PAGE_VECTORS_TABLE = "page_vectors"
 
 # `text` on `files` carries the filename, not file content: `IndexedFile` never
 # carries raw text, so the filename is the only thing there is to index for a
@@ -47,6 +50,17 @@ FOLDERS_SCHEMA = pa.schema(
         pa.field("path", pa.string()),
         pa.field("enabled", pa.bool_()),
         pa.field("added_at", pa.string()),
+    ]
+)
+
+# A multivector column: one page is a list of patch vectors, each a fixed width
+# row of float16. LanceDB scores this natively with MaxSim, and the width has
+# to be fixed for it to index the column at all.
+PAGE_VECTORS_SCHEMA = pa.schema(
+    [
+        pa.field("page_id", pa.string()),
+        pa.field("vectors", pa.list_(pa.list_(pa.float16(), VECTOR_DIM))),
+        pa.field("pool_factor", pa.int64()),
     ]
 )
 
@@ -167,4 +181,20 @@ def row_to_hit(
         score=score,
         stage=stage,
         snippet=snippet,
+    )
+
+
+def page_vectors_to_row(vectors: PageVectors) -> dict[str, Any]:
+    return {
+        "page_id": vectors.page_id,
+        "vectors": vectors.vectors.astype(STORED_DTYPE).tolist(),
+        "pool_factor": vectors.pool_factor,
+    }
+
+
+def row_to_page_vectors(row: dict[str, Any]) -> PageVectors:
+    return PageVectors(
+        page_id=row["page_id"],
+        vectors=np.asarray(row["vectors"], dtype=STORED_DTYPE),
+        pool_factor=int(row["pool_factor"]),
     )
