@@ -59,7 +59,7 @@ Nothing else gets pulled forward into it.
 - [x] `heatmap.py`: unpooled re-encode, per-token and combined maps from the processor grid, in-memory LRU of 500 pages (D50).
 - [x] `GET /pages/{id}/heatmap?q=` returning the JSON grid.
 - [x] Renderer page preview: canvas overlay, combined versus per-token toggle, threshold slider defaulting to the 90th percentile, one patch blur.
-- [ ] Test portrait, landscape and square pages. The overlay must sit on the right pixels in all three.
+- [x] Test portrait, landscape and square pages. The overlay must sit on the right pixels in all three. Covered by the grid test in `test_colqwen_embedder.py` and by drawing a marked half page and asserting the peak lands on it.
 
 Acceptance: "stripe webhook error screenshot" returns the PNG and the red dialog glows. Cold heatmap under 2 s, cached under 100 ms.
 Measure: cold and cached heatmap times.

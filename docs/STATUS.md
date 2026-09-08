@@ -114,6 +114,33 @@ Across the nine text-free golden queries, none of which stage 1 can answer at al
 Every one of those hits is a page BM25 could not have returned, which is the number that justifies the vision path.
 The two levers on the remaining gap are the pooling factor and the candidate mix, and the golden runner is how to pull them with evidence.
 
+### Day 3, the heatmap
+
+M1 Max, 2026-09-09, on `IMG_4821.png` from the demo corpus with the query "stripe webhook error screenshot".
+
+| Metric | Value | Note |
+| --- | --- | --- |
+| Cold heatmap | 1441 ms | Under the 2 s the plan asks for. It is one unpooled re-encode |
+| Cached heatmap | 44 ms | Under 100 ms. Moving the slider or switching tokens costs nothing |
+| Patch grid | 21 by 35 | 735 patches, from `image_grid_thw` halved by the spatial merge |
+| Patches above the default cutoff | 74 of 735 | The 90th percentile, as designed |
+
+### Day 3 gate
+
+PASS on the acceptance as written, with a measured limitation worth naming.
+
+- "stripe webhook error screenshot" returns `IMG_4821.png` first, and it is the Stripe webhook error screenshot.
+- Cold 1441 ms and cached 44 ms both beat their budgets.
+- The overlay was drawn and looked at, not just asserted on. The token "stripe" lands exactly on the word "stripe" inside the dialog.
+
+The limitation: the combined map is diffuse. The dialog covers 13 percent of that page and the lit patches land on it 12 percent of the time at the default cutoff, 16 at the 95th and 25 at the 99th, so the combined view is close to chance and a tighter cutoff is not reliably better on eight patches.
+
+Two things follow, both measured rather than assumed.
+Per-token maps localize where the combined map does not: specific nouns like "stripe" and "webhook" point at real content, while "error" and "screenshot" are noise, so the token picker is not a nicety, it is how the heatmap becomes readable.
+Subtracting the padding-token response, which is what a patch answers when it answers nothing, raises per-token precision (`error` 4 to 14 percent, `screenshot` 0 to 14) and lowers the combined map (12 to 7), so it was not shipped: a transform that improves the detail view and degrades the headline is not a win.
+
+This corpus is the hardest case for patch localization, because a synthetic screenshot is mostly flat grey and gives the model nothing to distinguish in the background. The published number on real documents is a mean IoU of 0.569 (`docs/research/evaluation-2026-09.md`). Re-measure on real files before drawing a conclusion about the model.
+
 ### dtype and build sweep
 
 Each row is its own process, so the memory numbers are not contaminated by a previous load.
