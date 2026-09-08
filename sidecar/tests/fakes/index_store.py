@@ -114,7 +114,9 @@ class FakeIndexStore:
             files_text_indexed=sum(1 for f in files if f.state is FileState.TEXT_INDEXED),
             files_skipped=sum(1 for f in files if f.state is FileState.SKIPPED),
             pages_total=len(pages),
-            pages_embedded=sum(1 for p in pages if p.is_embedded),
+            # The vector store is the authority. `ReadIndexStats` replaces this
+            # with its count, so a fake that guessed here would hide that.
+            pages_embedded=0,
             bytes_on_disk=sum(len(p.text.encode("utf-8")) for p in pages),
             skips_by_reason=tuple(sorted(reason_counts.items())),
         )

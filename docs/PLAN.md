@@ -45,7 +45,7 @@ Measure: files per second crawled, OCR milliseconds per image, index size on dis
 - [ ] `page_vectors` writes and reads. Create the cosine index once row count passes 2,000.
 - [ ] `rerank.py`: MaxSim in numpy over a candidate set.
 - [ ] Semantic fallback: LanceDB multivector search when stage 1 returns fewer than five pages.
-- [ ] `scripts/bench.py`: pages per second, KB per page, rerank time for 300 pages, recall@5 on the golden set with stage 1 only versus stage 1 plus 2.
+- [ ] `scripts/bench.py`: pages per second, KB per page, rerank time for 300 pages. Recall moved to the golden set runner by D46, which reports it per query split rather than as one number.
 
 Acceptance: "slide with the funnel chart" returns the right slide although no page text matches.
 Measure: everything the bench script prints. Put it in STATUS.md with machine and date.
@@ -55,7 +55,7 @@ Measure: everything the bench script prints. Put it in STATUS.md with machine an
 Protect this day.
 Nothing else gets pulled forward into it.
 
-- [ ] Candidate embedding with the 30 page cap, ordered by stage 1 score, `progress` events with "reading 12 of 24 pages".
+- [x] Candidate embedding with the 30 page cap, ordered by stage 1 score, `progress` events with "reading 12 of 24 pages". Built on day 2, because stage 2 cannot rank a page it has not read. See `Plan swaps` in STATUS.md.
 - [ ] `heatmap.py`: unpooled re-encode, per-token and combined maps from the processor grid, disk LRU of 500 pages.
 - [ ] `GET /pages/{id}/heatmap?q=` returning the JSON grid.
 - [ ] Renderer page preview: canvas overlay, combined versus per-token toggle, threshold slider defaulting to the 90th percentile, one patch blur.

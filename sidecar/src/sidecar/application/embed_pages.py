@@ -10,12 +10,12 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from itertools import batched
 from pathlib import Path
 
 from sidecar.application.embedding_ports import PageEmbedder
-from sidecar.application.ports import Clock, PageSource
+from sidecar.application.ports import PageSource
 from sidecar.application.store_ports import IndexStore, VectorStore
 from sidecar.domain.entities import FileKind
 from sidecar.domain.errors import UnreadableFileError
@@ -64,6 +64,13 @@ class EmbedPages:
     render, or whose image will not decode is skipped and logged rather than
     raised. The search that asked for it still ranks that page by stage 1,
     which beats failing the whole search over one bad file.
+
+    Nothing here writes the index. Whether a page has vectors is a fact about
+    the vector store, and this used to also stamp it onto the page row so the
+    index screen could count without opening the store. That made the `pages`
+    table something two threads write, a search and a crawl, which
+    `conventions/python.md` forbids for good reason. `ReadIndexStats` asks the
+    vector store instead.
     """
 
     def __init__(
@@ -72,13 +79,11 @@ class EmbedPages:
         sources: dict[FileKind, PageSource],
         embedder: PageEmbedder,
         vectors: VectorStore,
-        clock: Clock,
     ) -> None:
         self._store = store
         self._sources = sources
         self._embedder = embedder
         self._vectors = vectors
-        self._clock = clock
 
     def run(self, page_ids: Sequence[str], on_progress: ProgressSink | None = None) -> int:
         """Embed what still needs it and return how many pages were newly embedded.
@@ -131,14 +136,12 @@ class EmbedPages:
         return _PendingPage(page_id=page_id, file_id=owner, path=file.path, page_no=page_no, source=source)
 
     def _embed_batch(self, batch: Sequence[_PendingPage]) -> list[_PendingPage]:
-        """Render, embed, store and mark one batch. Returns the pages that got vectors, in order."""
+        """Render, embed and store one batch. Returns the pages that got vectors, in order."""
         rendered = self._render(batch)
         vectors = self._embed(rendered)
         self._vectors.put_vectors(vectors)
         embedded_ids = {item.page_id for item in vectors}
-        landed = [page for page, _ in rendered if page.page_id in embedded_ids]
-        self._mark_embedded(landed)
-        return landed
+        return [page for page, _ in rendered if page.page_id in embedded_ids]
 
     def _render(self, batch: Sequence[_PendingPage]) -> list[tuple[_PendingPage, bytes]]:
         rendered: list[tuple[_PendingPage, bytes]] = []
@@ -169,15 +172,3 @@ class EmbedPages:
             except UnreadableFileError:
                 logger.warning("skipping page %s: its image would not decode", page.page_id)
         return vectors
-
-    def _mark_embedded(self, pages: Sequence[_PendingPage]) -> None:
-        """Record in the index that these pages have vectors, so the index screen can count them.
-
-        The vector store stays the authority on which pages have vectors.
-        This is the copy the stats read without opening it.
-        """
-        now = self._clock.now()
-        embedded_ids = {page.page_id for page in pages}
-        for owner in dict.fromkeys(page.file_id for page in pages):
-            stored = self._store.get_pages(owner)
-            self._store.upsert_pages([replace(page, embedded_at=now) for page in stored if page.id in embedded_ids])

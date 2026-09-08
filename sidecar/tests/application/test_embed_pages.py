@@ -20,7 +20,6 @@ from sidecar.domain.errors import ValidationError
 from sidecar.domain.identity import file_id, page_id
 from sidecar.domain.progress import EmbedProgress
 from sidecar.domain.vectors import PageVectors
-from tests.fakes.clock import FakeClock
 from tests.fakes.index_store import FakeIndexStore
 from tests.fakes.page_embedder import FakePageEmbedder
 from tests.fakes.page_source import FakePageSource
@@ -64,7 +63,7 @@ class World:
         self.embedder = RecordingEmbedder()
         self.vectors = FakeVectorStore()
         sources: dict[FileKind, PageSource] = dict.fromkeys(served_kinds, self.source)
-        self.use_case = EmbedPages(self.store, sources, self.embedder, self.vectors, FakeClock(NOW))
+        self.use_case = EmbedPages(self.store, sources, self.embedder, self.vectors)
         self.seen: list[EmbedProgress] = []
 
     def add(self, name: str, pages: int, kind: FileKind = FileKind.PDF, decodable: bool = True) -> list[str]:
@@ -136,13 +135,16 @@ def test_a_kind_this_build_cannot_render_is_skipped_rather_than_a_key_error() ->
     assert world.vectors.embedded_ids([*shot, *report]) == set(report)
 
 
-def test_pages_embedded_get_embedded_at_from_the_clock_and_the_others_keep_none() -> None:
+def test_embedding_pages_never_writes_the_index() -> None:
+    """A crawl owns the pages table. A search embedding a page must not also write it."""
     world = World()
     ids = world.add("report.pdf", 3)
+    before = world.store.get_pages(file_id(ROOT / "report.pdf"))
 
     world.run(ids[:2])
 
-    assert [page.embedded_at for page in world.store.get_pages(file_id(ROOT / "report.pdf"))] == [NOW, NOW, None]
+    assert world.store.get_pages(file_id(ROOT / "report.pdf")) == before
+    assert world.vectors.embedded_ids(ids) == set(ids[:2])
 
 
 def test_batches_send_at_most_the_batch_size_per_embedder_call_and_report_per_page() -> None:
@@ -164,7 +166,7 @@ def test_a_page_whose_image_will_not_decode_is_skipped_and_the_rest_of_its_batch
     assert world.run([good[0], *bad, good[1]]) == 2
     assert world.vectors.embedded_ids([*good, *bad]) == set(good)
     assert world.counts() == [(1, 2), (2, 2)]
-    assert [page.embedded_at for page in world.store.get_pages(file_id(ROOT / "blank.pdf"))] == [None]
+    assert world.vectors.embedded_ids(bad) == set()
 
 
 def test_an_id_asked_for_twice_is_one_page_embedded_once() -> None:

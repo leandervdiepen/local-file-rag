@@ -23,7 +23,7 @@ import numpy as np
 
 from sidecar.application.search import COLD_PAGE_CAP, STAGE_ONE_CANDIDATE_LIMIT
 from sidecar.domain.rerank import rank_by_maxsim
-from sidecar.domain.vectors import VECTOR_DIM, PageVectors
+from sidecar.domain.vectors import VECTOR_DIM, PageVectors, QueryVectors
 from sidecar.infrastructure.colqwen_embedder import ColQwenEmbedder
 from sidecar.infrastructure.image_pages import ImagePageSource
 from sidecar.infrastructure.lancedb_vectors import LanceDBVectors
@@ -82,8 +82,6 @@ def _corpus_pages(root: Path, wanted: int) -> list[bytes]:
 def _rerank_cost(query_rows: int, pages: int, rows_per_page: int) -> float:
     """Milliseconds to score a full candidate set, on synthetic vectors of the measured shape."""
     rng = np.random.default_rng(0)
-    from sidecar.domain.vectors import QueryVectors
-
     query = QueryVectors(rng.standard_normal((query_rows, VECTOR_DIM)).astype(np.float32))
     corpus = [
         PageVectors(f"p{i}", rng.standard_normal((rows_per_page, VECTOR_DIM)).astype(np.float16), pool_factor=3)

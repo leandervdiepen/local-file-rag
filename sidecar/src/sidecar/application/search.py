@@ -95,6 +95,11 @@ class Search:
         if not query.strip():
             return []
         cancelled = is_cancelled or (lambda: False)
+        # Checked before the encode, not only around the pages: a query costs a
+        # quarter of a second of model time, and the caller typing another
+        # letter has already made this result unwanted.
+        if cancelled():
+            return []
         query_vectors = self._embedder.embed_query(query)
 
         ordered = list(candidates)

@@ -22,6 +22,7 @@ export interface SearchState {
   queryId: string
   query: string
   hits: PageHit[]
+  /** Time to the first results the user saw, which is stage 1. Reranking does not change it. */
   tookMs: number | null
   reading: ReadingProgress | null
   error: SearchError | null
@@ -71,7 +72,11 @@ export function searchStateReducer(state: SearchState, event: SearchEvent): Sear
     case 'progress':
       return { ...state, reading: { pagesRead: event.pagesRead, pagesTotal: event.pagesTotal } }
     case 'results':
-      return { ...state, hits: event.hits, tookMs: event.tookMs }
+      // The reranked list replaces the candidates, but the headline time stays
+      // stage 1's. Results were on screen in thirty milliseconds; overwriting
+      // that with the seconds the model spent improving them would report the
+      // app as slow for having done more work.
+      return { ...state, hits: event.hits }
     case 'finished':
       return { ...state, phase: 'done', reading: null }
     case 'failed':

@@ -2,7 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { SearchHandlers, SearchPort } from '../../../src/renderer/application/ports'
-import { useSearch } from '../../../src/renderer/application/useSearch'
+import { SEARCH_SETTLE_MS, useSearch } from '../../../src/renderer/application/useSearch'
 import type { PageHit } from '../../../src/renderer/domain/search-results'
 
 function hitFor(query: string): PageHit {
@@ -21,10 +21,12 @@ function hitFor(query: string): PageHit {
 /** A real search port whose streams are finished by hand, one query at a time. */
 function createControllablePort() {
   const pending = new Map<string, { handlers: SearchHandlers; finish: () => void }>()
+  const started: string[] = []
   const aborted: string[] = []
 
   const port: SearchPort = {
     search(query, handlers, signal) {
+      started.push(query)
       return new Promise<void>((resolve, reject) => {
         pending.set(query, { handlers, finish: resolve })
         signal.addEventListener('abort', () => {
@@ -35,7 +37,7 @@ function createControllablePort() {
     },
   }
 
-  return { port, pending, aborted }
+  return { port, pending, started, aborted }
 }
 
 describe('useSearch', () => {
@@ -72,6 +74,20 @@ describe('useSearch', () => {
     act(() => result.current.setQuery('invoice'))
 
     await waitFor(() => expect(aborted).toContain('inv'))
+  })
+
+  it('spends nothing on the letters of a word still being typed', async () => {
+    const { port, started } = createControllablePort()
+    const { result } = renderHook(() => useSearch(port))
+
+    for (const prefix of ['i', 'in', 'inv', 'invo', 'invoi', 'invoic', 'invoice']) {
+      act(() => result.current.setQuery(prefix))
+    }
+
+    await waitFor(() => expect(started).toEqual(['invoice']))
+    // Long enough after the settle window that a queued prefix would have fired.
+    await new Promise((resolve) => setTimeout(resolve, SEARCH_SETTLE_MS * 3))
+    expect(started).toEqual(['invoice'])
   })
 
   it('ignores a slow response from a search the user has moved past', async () => {

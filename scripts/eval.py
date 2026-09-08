@@ -14,8 +14,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import platform
-import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -27,7 +25,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from eval_report import render_report  # noqa: E402
-from eval_runs import RunDir, latest_run, mark_latest, regressions, run_id_for  # noqa: E402
+from eval_runs import RunDir, git_identity, latest_run, mark_latest, regressions, run_id_for, run_record  # noqa: E402
 
 GOLDEN_FIELDS = ("id", "query", "expected_file", "expected_page", "text_free", "match_channel")
 # The same derivation as sidecar/src/sidecar/domain/identity.py: blake2b over the absolute path, 16 bytes.
@@ -84,40 +82,6 @@ def page_id_of(corpus_root: Path, relative_file: str, page_no: int) -> str:
     return f"{file_id}:{page_no}"
 
 
-def sha256_of(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def git_identity() -> tuple[str, bool]:
-    sha = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
-    status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, check=True).stdout
-    return sha, bool(status.strip())
-
-
-def machine() -> str:
-    chip = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True)
-    return f"{platform.platform()} {chip.stdout.strip()}".strip()
-
-
-def corpus_identity(corpus_root: Path) -> tuple[int | None, str | None]:
-    manifest = corpus_root / "MANIFEST.json"
-    if not manifest.exists():
-        return None, None
-    return json.loads(manifest.read_text()).get("seed"), sha256_of(manifest)
-
-
-def retrieval_block(health: dict[str, Any]) -> dict[str, Any]:
-    """What /health says about retrieval today. The nulls are fields the sidecar does not expose yet."""
-    return {
-        "sidecar_version": health.get("version"),
-        "model_loaded_before_run": health.get("model_loaded"),
-        "model_id": None,
-        "dtype": None,
-        "pool_factor": None,
-        "cold_page_cap": None,
-    }
-
-
 def attach_thumbnails(sidecar: Sidecar, run_dir: RunDir, row: dict[str, Any], corpus_root: Path) -> None:
     """On a miss, keep the expected page and the rank 1 page as pictures, because that pair explains most misses."""
     wanted = {"expected": page_id_of(corpus_root, row["expected"]["file"], row["expected"]["page"])}
@@ -153,9 +117,7 @@ def main() -> int:
     run_dir.create()
 
     health = sidecar.get_json("/health")
-    seed, manifest_hash = corpus_identity(corpus_root)
-    golden = read_golden(args.golden)
-    body = {"corpus_root": str(corpus_root), "queries": golden}
+    body = {"corpus_root": str(corpus_root), "queries": read_golden(args.golden)}
 
     queries: list[dict[str, Any]] = []
     aggregates: dict[str, Any] | None = None
@@ -180,28 +142,18 @@ def main() -> int:
         return 2
 
     regressed = regressions(previous.read_queries(), queries) if previous else []
-    run = {
-        "run_id": run_dir.run_id,
-        "started_at": started_at.isoformat(),
-        "finished_at": datetime.now(UTC).isoformat(),
-        "machine": machine(),
-        "git_sha": git_sha,
-        "dirty": dirty,
-        # The runner never clears page_vectors yet, so no run is a cold one on purpose.
-        "cold": False,
-        "corpus_root": str(corpus_root),
-        "corpus_seed": seed,
-        "corpus_manifest_hash": manifest_hash,
-        "golden_sha": sha256_of(args.golden),
-        "retrieval": retrieval_block(health),
-        "answer_model": None,
-        "judge_model": None,
-        "judge_prompt_sha": None,
-        "prices_read_on": None,
-        "previous_run_id": previous.run_id if previous else None,
-        "aggregates": aggregates,
-        "regressions": regressed,
-    }
+    run = run_record(
+        run_dir.run_id,
+        started_at,
+        git_sha,
+        dirty,
+        corpus_root,
+        args.golden,
+        health,
+        previous.run_id if previous else None,
+        aggregates,
+        regressed,
+    )
     run_dir.write_run(run)
     run_dir.report_html.write_text(render_report(run, queries, previous.read_run() if previous else None, run_dir.root))
     mark_latest(out, run_dir.run_id)

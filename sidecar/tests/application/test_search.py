@@ -184,12 +184,24 @@ def test_stage_two_widens_a_thin_candidate_list_from_the_whole_vector_store() ->
     assert results[0].stage == "visual"
 
 
+def test_a_search_abandoned_before_it_starts_never_touches_the_model() -> None:
+    store = a_store_holding(["forecast"] * 3)
+    search, embedder, _, _ = a_search(store)
+
+    results = search.stage_two("forecast", search.stage_one("forecast"), is_cancelled=lambda: True)
+
+    assert results == []
+    assert embedder.query_texts == [], "the query was encoded for a stream nobody is reading"
+    assert embedder.embedded_page_ids == []
+
+
 def test_stage_two_stops_when_the_caller_has_hung_up() -> None:
     store = a_store_holding(["forecast"] * 12)
     search, embedder, _, _ = a_search(store)
-    calls = iter([False, True])
+    # Live for the encode and the first chunk of pages, gone by the second.
+    answers = iter([False, False, True])
 
-    results = search.stage_two("forecast", search.stage_one("forecast"), is_cancelled=lambda: next(calls, True))
+    results = search.stage_two("forecast", search.stage_one("forecast"), is_cancelled=lambda: next(answers, True))
 
     assert results == []
-    assert 0 < len(embedder.embedded_page_ids) < 12
+    assert 0 < len(embedder.embedded_page_ids) < 12, "it stopped part way, not before starting and not at the end"

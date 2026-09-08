@@ -69,13 +69,20 @@ describe('searchStateReducer', () => {
     const reranked: PageHit[] = [{ ...hits[0]!, pageId: 'b:2', fileId: 'b', score: 9, stage: 'visual' }]
     const partial = searchStateReducer(started(), { type: 'candidates', queryId: '1', hits, tookMs: 8 })
     const reading = searchStateReducer(partial, { type: 'progress', queryId: '1', pagesRead: 1, pagesTotal: 1 })
-    const results = searchStateReducer(reading, { type: 'results', queryId: '1', hits: reranked, tookMs: 900 })
+    const results = searchStateReducer(reading, { type: 'results', queryId: '1', hits: reranked, tookMs: 4200 })
     const done = searchStateReducer(results, { type: 'finished', queryId: '1' })
 
     expect(done.phase).toBe('done')
     expect(done.hits).toEqual(reranked)
-    expect(done.tookMs).toBe(900)
     expect(done.reading).toBeNull()
+  })
+
+  it('keeps reporting the time the user waited for results, not the time reranking took', () => {
+    const reranked: PageHit[] = [{ ...hits[0]!, pageId: 'b:2', stage: 'visual' }]
+    const partial = searchStateReducer(started(), { type: 'candidates', queryId: '1', hits, tookMs: 31 })
+    const results = searchStateReducer(partial, { type: 'results', queryId: '1', hits: reranked, tookMs: 4200 })
+
+    expect(results.tookMs).toBe(31)
   })
 
   it('ignores progress from a search the user has moved past', () => {

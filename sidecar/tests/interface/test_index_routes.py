@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+import numpy as np
 from flask import Flask
 from flask.testing import FlaskClient
 
@@ -21,10 +22,12 @@ from sidecar.application.read_index_stats import ReadIndexStats
 from sidecar.domain.entities import FileKind, FileState, IndexedFile, Page
 from sidecar.domain.errors import IndexBusyError
 from sidecar.domain.progress import IndexProgress
+from sidecar.domain.vectors import VECTOR_DIM, PageVectors
 from sidecar.interface.auth import register_auth
 from sidecar.interface.errors import register_error_handlers
 from sidecar.interface.index_routes import build_index_blueprint
 from tests.fakes.index_store import FakeIndexStore
+from tests.fakes.vector_store import FakeVectorStore
 
 TOKEN = "test-token-123"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
@@ -63,11 +66,13 @@ class FakeIndexingJobs:
         return iter(self.snapshots) if self.running else iter(())
 
 
-def _client(jobs: FakeIndexingJobs, store: FakeIndexStore | None = None) -> FlaskClient:
+def _client(
+    jobs: FakeIndexingJobs, store: FakeIndexStore | None = None, vectors: FakeVectorStore | None = None
+) -> FlaskClient:
     app = Flask(__name__)
     register_error_handlers(app)
     register_auth(app, TOKEN)
-    read_stats = ReadIndexStats(store if store is not None else FakeIndexStore())
+    read_stats = ReadIndexStats(store if store is not None else FakeIndexStore(), vectors or FakeVectorStore())
     app.register_blueprint(build_index_blueprint(cast(IndexingJobs, jobs), read_stats))
     return app.test_client()
 
@@ -96,13 +101,20 @@ def _a_file(file_id: str, size_bytes: int, state: FileState, skip_reason: str | 
 
 
 def _a_stocked_store() -> FakeIndexStore:
-    """One indexed file with two pages, one of them embedded, and one file the gate refused."""
+    """One indexed file with two pages and one file the gate refused."""
     store = FakeIndexStore()
     store.upsert_file(_a_file("file-1", 1000, FileState.TEXT_INDEXED))
-    embedded = Page(id="page-1", file_id="file-1", page_no=1, embedded_at=NOW)
-    store.upsert_pages([embedded, Page(id="page-2", file_id="file-1", page_no=2)])
+    store.upsert_pages([Page(id="page-1", file_id="file-1", page_no=1), Page(id="page-2", file_id="file-1", page_no=2)])
     store.upsert_file(_a_file("file-2", 200, FileState.SKIPPED, skip_reason="too_large"))
     return store
+
+
+def _vectors_for(page_ids: list[str]) -> FakeVectorStore:
+    """A vector store holding vectors for these pages, which is what `pages_embedded` counts."""
+    vectors = FakeVectorStore()
+    rows = np.ones((4, VECTOR_DIM), dtype=np.float16)
+    vectors.put_vectors([PageVectors(page_id=page_id, vectors=rows, pool_factor=3) for page_id in page_ids])
+    return vectors
 
 
 def test_rescan_returns_202_with_the_job_id() -> None:
@@ -126,7 +138,9 @@ def test_rescan_returns_409_index_busy_while_a_job_runs() -> None:
 
 
 def test_stats_returns_the_counts_with_skips_as_an_object_and_is_never_cached() -> None:
-    response = _client(FakeIndexingJobs(), _a_stocked_store()).get("/index/stats", headers=AUTH)
+    client = _client(FakeIndexingJobs(), _a_stocked_store(), _vectors_for(["page-1"]))
+
+    response = client.get("/index/stats", headers=AUTH)
 
     assert response.status_code == 200
     assert response.get_json() == {
