@@ -7,7 +7,6 @@ or PIL image ever leaves it.
 
 from __future__ import annotations
 
-import io
 import logging
 import os
 from collections.abc import Sequence
@@ -15,10 +14,12 @@ from typing import Any
 
 import numpy as np
 import torch
-from PIL import Image, UnidentifiedImageError
+from PIL import Image
 
-from sidecar.domain.errors import UnreadableFileError, ValidationError
-from sidecar.domain.vectors import STORED_DTYPE, VECTOR_DIM, PageVectors, QueryVectors
+from sidecar.domain.errors import ValidationError
+from sidecar.domain.heatmap import PatchGrid
+from sidecar.domain.vectors import STORED_DTYPE, PageVectors, QueryVectors
+from sidecar.infrastructure.colqwen_tensors import assert_float16, decode, grid_of, to_numpy
 from sidecar.infrastructure.lazy_model import LazyModel
 
 # The Xet download backend stalled at 65 MB of a 4.4 GB file and stayed there,
@@ -62,7 +63,7 @@ class ColQwenEmbedder:
         if not page_ids:
             return []
 
-        images = [_decode(page_id, png) for page_id, png in zip(page_ids, images_png, strict=True)]
+        images = [decode(page_id, png) for page_id, png in zip(page_ids, images_png, strict=True)]
         pooled: list[np.ndarray] = []
         for start in range(0, len(images), EMBED_BATCH_IMAGES):
             pooled.extend(self._encode_batch(images[start : start + EMBED_BATCH_IMAGES]))
@@ -82,9 +83,34 @@ class ColQwenEmbedder:
         if not text.strip():
             raise ValidationError("A query has words in it.")
         rows = self._model.use(
-            lambda model: _to_numpy(model.encode_query([text], show_progress_bar=False)[0], np.float32)
+            lambda model: to_numpy(model.encode_query([text], show_progress_bar=False)[0], np.float32)
         )
         return QueryVectors(rows)
+
+    def explain_page(self, image_png: bytes) -> tuple[PageVectors, PatchGrid]:
+        """The page's patch vectors with no pooling, and where each one sits on the page.
+
+        Pooling merges neighbouring patches, so a stored page has no position
+        left to point at and the heatmap has to re-encode. The rows that are
+        image patches are picked out by the image token id rather than by a
+        fixed offset: the document prompt wraps them in four tokens before and
+        seven after, and either could change with the model.
+        """
+        image = decode("explain", image_png)
+        return self._model.use(lambda model: self._explain(model, image))
+
+    def query_tokens(self, text: str) -> tuple[QueryVectors, tuple[str, ...]]:
+        """The rows for the words the user typed, with a readable label for each.
+
+        ColQwen2 wraps a query in a "Query:" prefix and pads it with ten more
+        tokens, and all sixteen rows go into the ranking. None of them is a
+        word anyone typed, so the token picker would offer a list mostly made
+        of things the user cannot recognise. Rows and labels are trimmed
+        together, so they stay aligned with each other.
+        """
+        if not text.strip():
+            raise ValidationError("A query has words in it.")
+        return self._model.use(lambda model: self._query_tokens(model, text))
 
     def is_loaded(self) -> bool:
         return self._model.is_loaded()
@@ -102,7 +128,33 @@ class ColQwenEmbedder:
         # No progress bar: stderr is the sidecar's log, and a bar per page
         # would drown the lines a person is actually meant to read.
         encoded = model.encode_document(images, show_progress_bar=False)
-        return [_to_numpy(pooling.pool_one(_as_tensor(page)), STORED_DTYPE) for page in encoded]
+        return [to_numpy(pooling.pool_one(torch.as_tensor(page)), STORED_DTYPE) for page in encoded]
+
+    def _explain(self, model: Any, image: Image.Image) -> tuple[PageVectors, PatchGrid]:
+        transformer = model[0]
+        features = transformer.preprocess([{"image": image}])
+        grid = grid_of(transformer, features)
+        rows = to_numpy(model.encode_document([image], show_progress_bar=False)[0], STORED_DTYPE)
+
+        image_token_id = transformer.processor.image_token_id
+        is_patch = [token == image_token_id for token in features["input_ids"][0].tolist()]
+        patches = rows[np.asarray(is_patch)]
+        if patches.shape[0] != grid.patch_count:
+            raise RuntimeError(f"{patches.shape[0]} image rows for a {grid.rows}x{grid.cols} grid.")
+        return PageVectors(page_id="", vectors=patches, pool_factor=1), grid
+
+    def _query_tokens(self, model: Any, text: str) -> tuple[QueryVectors, tuple[str, ...]]:
+        transformer = model[0]
+        tokenizer = transformer.processor.tokenizer
+        scored_ids = transformer.preprocess([{"text": text}], task="query")["input_ids"][0].tolist()
+
+        rows = to_numpy(model.encode_query([text], show_progress_bar=False)[0], np.float32)
+        if len(scored_ids) != rows.shape[0]:
+            raise RuntimeError(f"{len(scored_ids)} query tokens for {rows.shape[0]} rows.")
+
+        keep = _typed_positions(tokenizer, scored_ids, text)
+        labels = tuple(_readable(tokenizer.convert_ids_to_tokens([scored_ids[i] for i in keep])))
+        return QueryVectors(rows[np.asarray(keep)]), labels
 
     def _load(self) -> Any:
         from sentence_transformers import MultiVectorEncoder
@@ -112,7 +164,7 @@ class ColQwenEmbedder:
         # ignores the old name, which loads fp32 and doubles resident memory
         # with no error anywhere (D34).
         model = MultiVectorEncoder(self.model_id, device=self._device, model_kwargs={"dtype": torch.float16})
-        _assert_float16(model)
+        assert_float16(model)
         return model
 
     def _release(self, model: Any) -> None:
@@ -121,38 +173,29 @@ class ColQwenEmbedder:
             torch.mps.empty_cache()
 
 
-def _assert_float16(model: Any) -> None:
-    """Fail loudly if the weights did not load in the dtype that was asked for.
+def _typed_positions(tokenizer: Any, scored_ids: list[int], text: str) -> list[int]:
+    """Where the user's own words sit inside the sequence the model scores.
 
-    The failure this guards is silent: the wrong keyword loads fp32, the model
-    still works, and the only symptom is memory and speed. Better a startup
-    error than a mystery on a small machine.
+    ColQwen2 wraps a query as "Query: <text>" and pads it, so the rows are the
+    prefix, the words, then padding. The span is found by decoding rather than
+    by counting tokens off the front: the same word tokenizes differently at
+    the start of a string and after a space, so matching ids against a plain
+    tokenization of the same text finds nothing.
+
+    Falls back to every non-special row if the template ever stops containing
+    the text verbatim, because a heatmap over too many tokens is recoverable
+    and one over the wrong tokens is not.
     """
-    loaded = next((p.dtype for p in model.parameters() if p.is_floating_point()), None)
-    if loaded not in (torch.float16, None):
-        raise RuntimeError(f"{DEFAULT_MODEL_ID} loaded as {loaded}, not float16. Check the dtype keyword.")
+    special = set(tokenizer.all_special_ids)
+    kept = [index for index, token_id in enumerate(scored_ids) if token_id not in special]
+    wanted = text.strip()
+    for start in range(len(kept)):
+        span = kept[start:]
+        if tokenizer.decode([scored_ids[i] for i in span]).strip() == wanted:
+            return span
+    return kept
 
 
-def _decode(page_id: str, png: bytes) -> Image.Image:
-    try:
-        with Image.open(io.BytesIO(png)) as image:
-            return image.convert("RGB")
-    except (UnidentifiedImageError, OSError, ValueError) as exc:
-        raise UnreadableFileError(f"The image for page {page_id} would not decode.") from exc
-
-
-def _as_tensor(value: Any) -> torch.Tensor:
-    return value if isinstance(value, torch.Tensor) else torch.as_tensor(value)
-
-
-def _to_numpy(value: Any, dtype: Any) -> np.ndarray:
-    """A host copy in the dtype the domain stores.
-
-    Encoders hand back tensors on the accelerator, and numpy cannot read those
-    without an explicit copy to the CPU.
-    """
-    tensor = _as_tensor(value).detach().to("cpu", dtype=torch.float32)
-    rows: np.ndarray = tensor.numpy().astype(dtype)
-    if rows.ndim != 2 or rows.shape[1] != VECTOR_DIM:
-        raise RuntimeError(f"The model returned {rows.shape}, which is not a matrix of {VECTOR_DIM}-wide rows.")
-    return rows
+def _readable(tokens: list[str]) -> list[str]:
+    """Tokenizer pieces as the words they came from. The leading marker is a space, not a letter."""
+    return [token.replace("\u0120", " ").strip() or token for token in tokens]

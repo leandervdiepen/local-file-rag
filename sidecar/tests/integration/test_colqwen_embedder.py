@@ -14,6 +14,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from sidecar.domain.errors import UnreadableFileError, ValidationError
+from sidecar.domain.heatmap import build_heatmap, peak_patch
 from sidecar.domain.rerank import maxsim
 from sidecar.domain.vectors import VECTOR_DIM
 from sidecar.infrastructure.colqwen_embedder import ColQwenEmbedder
@@ -133,3 +134,60 @@ def test_the_model_loads_on_demand_and_lets_go_when_told(embedder: ColQwenEmbedd
 
     embedder.unload()
     assert embedder.embed_query("still works after a release").token_count > 1
+
+
+def a_half_marked_page(mark_top: bool) -> bytes:
+    """A page with a large red block on one half and nothing on the other."""
+    page = Image.new("RGB", PAGE_SIZE, "white")
+    draw = ImageDraw.Draw(page)
+    top = 80 if mark_top else PAGE_SIZE[1] // 2 + 80
+    draw.rectangle([100, top, PAGE_SIZE[0] - 100, top + 500], fill="#c0392b")
+    return page_bytes(page)
+
+
+def page_bytes(page: Image.Image) -> bytes:
+    buffer = io.BytesIO()
+    page.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def test_the_unpooled_page_lines_up_with_its_patch_grid(embedder: ColQwenEmbedder) -> None:
+    vectors, grid = embedder.explain_page(a_page_png(["Quarterly revenue"]))
+
+    assert vectors.pool_factor == 1
+    assert vectors.row_count == grid.patch_count
+    assert grid.rows > 1 and grid.cols > 1
+    print(f"\nunpooled grid: {grid.rows}x{grid.cols} = {grid.patch_count} patches")
+
+
+def test_a_portrait_and_a_landscape_page_get_grids_the_right_way_round(embedder: ColQwenEmbedder) -> None:
+    portrait, portrait_grid = embedder.explain_page(page_bytes(Image.new("RGB", (1024, 1448), "white")))
+    landscape, landscape_grid = embedder.explain_page(page_bytes(Image.new("RGB", (1448, 1024), "white")))
+
+    assert portrait_grid.rows > portrait_grid.cols
+    assert landscape_grid.cols > landscape_grid.rows
+    assert portrait.row_count == portrait_grid.patch_count
+    assert landscape.row_count == landscape_grid.patch_count
+
+
+def test_query_labels_line_up_with_the_rows_they_name(embedder: ColQwenEmbedder) -> None:
+    vectors, labels = embedder.query_tokens("the red error dialog")
+
+    assert len(labels) == vectors.token_count
+    assert any("error" in label for label in labels), f"the typed words are missing from {labels}"
+    print(f"\nquery labels: {labels}")
+
+
+def test_the_heatmap_points_at_the_half_of_the_page_that_matches(embedder: ColQwenEmbedder) -> None:
+    """The heatmap has to sit on the right pixels, which is the whole point of it."""
+    for mark_top in (True, False):
+        vectors, grid = embedder.explain_page(a_half_marked_page(mark_top=mark_top))
+        query, labels = embedder.query_tokens("a large red block")
+
+        heatmap = build_heatmap(query, vectors, grid, labels)
+        row, _ = peak_patch(heatmap.combined)
+
+        half = "top" if mark_top else "bottom"
+        in_top_half = row < grid.rows / 2
+        print(f"\nred block on the {half}: peak at row {row} of {grid.rows}")
+        assert in_top_half == mark_top, f"the block was on the {half} and the peak was at row {row}"
