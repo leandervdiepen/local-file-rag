@@ -167,14 +167,21 @@ def test_no_cap_miss_when_the_expected_page_is_uncached_but_within_the_cap() -> 
     assert recorder.outcomes[0].cap_miss is False
 
 
-def test_fallback_fired_when_stage_one_found_fewer_than_five_candidates() -> None:
+def test_a_page_no_text_match_proposed_but_the_ranking_found_counts_as_visual_only() -> None:
+    """The number that justifies the vision path: a hit BM25 could not have produced."""
     search = FakeTwoStageSearch(FakeVectorStore())
-    search.stage_one_by_query["funnel chart"] = [hit(f"p{n}", page_no=n) for n in range(1, 5)]
-    search.stage_one_by_query["hosting invoice"] = [hit(f"p{n}", page_no=n) for n in range(1, 6)]
+    # The funnel slide is page 4 and stage 1 never proposes it. Stage 2 widens
+    # the candidate set from the vector store and puts it first.
+    search.stage_one_by_query["funnel chart"] = [hit("p1", page_no=1), hit("p2", page_no=2)]
+    search.stage_two_by_query["funnel chart"] = [hit("p4", page_no=4), hit("p1", page_no=1)]
+    # The invoice was already in the text candidates, so finding it proves nothing new.
+    search.stage_one_by_query["hosting invoice"] = [hit("p4", page_no=4), hit("p1", page_no=1)]
 
     _, recorder = run(search, [golden(), golden(id="g11", query="hosting invoice")])
 
-    assert [o.fallback_fired for o in recorder.outcomes] == [True, False]
+    assert [o.stage1_rank for o in recorder.outcomes] == [None, 1]
+    assert [o.rank for o in recorder.outcomes] == [1, 1]
+    assert [o.visual_only for o in recorder.outcomes] == [True, False]
 
 
 def test_cold_pages_counts_only_the_candidates_stage_two_had_to_embed() -> None:
@@ -216,7 +223,7 @@ def test_a_query_whose_search_raises_still_produces_its_outcome_and_the_run_goes
     assert [o.golden.id for o in recorder.outcomes] == ["g02", "g99", "g11"]
     broken = recorder.outcomes[1]
     assert (broken.candidates, broken.stage1_rank, broken.rank, broken.cold_pages) == (0, None, None, 0)
-    assert broken.fallback_fired is False
+    assert broken.visual_only is False
     assert recorder.outcomes[2].rank == 1
     assert recorder.progress == [(0, 3), (1, 3), (2, 3)]
     assert aggregates.overall.count == 3

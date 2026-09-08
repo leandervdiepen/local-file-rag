@@ -35,7 +35,7 @@ IDENTITY_ROWS = (
 )
 TABLE_COLUMNS = (
     "id", "match_channel", "text_free", "query", "expected", "candidates", "stage1_rank", "rank",
-    "hit1", "hit5", "hit10", "cap_miss", "fallback_fired", "stage1_ms", "stage2_ms", "cold_pages",
+    "hit1", "hit5", "hit10", "cap_miss", "visual_only", "stage1_ms", "stage2_ms", "cold_pages",
 )  # fmt: skip
 
 CSS = """

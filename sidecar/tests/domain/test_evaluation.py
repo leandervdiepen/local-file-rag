@@ -60,7 +60,6 @@ def outcome(rank: int | None, stage1_rank: int | None = 1, query: GoldenQuery | 
         stage1_rank=stage1_rank,
         embedded_before_run=0,
         cap_miss=False,
-        fallback_fired=False,
         top10=(),
         rank=rank,
         stage1_ms=1,

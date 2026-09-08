@@ -79,7 +79,8 @@ def build_app(token: str, db_path: Path) -> Flask:
 
     app.register_blueprint(build_health_blueprint(ReportHealth(clock=clock, probe=FilesystemHealthProbe(db_path))))
     app.register_blueprint(build_folder_blueprint(ManageFolders(folders)))
-    app.register_blueprint(build_index_blueprint(IndexingJobs(index_folder, folders), ReadIndexStats(store, vectors)))
+    jobs = IndexingJobs(index_folder, folders, store, vectors, embed_pages)
+    app.register_blueprint(build_index_blueprint(jobs, ReadIndexStats(store, vectors)))
     app.register_blueprint(build_search_blueprint(search))
     app.register_blueprint(build_page_blueprint(RenderPage(store, sources)))
     app.register_blueprint(build_eval_blueprint(RunGoldenSet(search, vectors)))

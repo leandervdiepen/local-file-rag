@@ -81,7 +81,9 @@ class ColQwenEmbedder:
         """
         if not text.strip():
             raise ValidationError("A query has words in it.")
-        rows = self._model.use(lambda model: _to_numpy(model.encode_query([text])[0], np.float32))
+        rows = self._model.use(
+            lambda model: _to_numpy(model.encode_query([text], show_progress_bar=False)[0], np.float32)
+        )
         return QueryVectors(rows)
 
     def is_loaded(self) -> bool:
@@ -97,7 +99,9 @@ class ColQwenEmbedder:
         from sentence_transformers.multi_vector_encoder.modules.token_pooling import HierarchicalTokenPooling
 
         pooling = HierarchicalTokenPooling(pool_factor=self._pool_factor)
-        encoded = model.encode_document(images)
+        # No progress bar: stderr is the sidecar's log, and a bar per page
+        # would drown the lines a person is actually meant to read.
+        encoded = model.encode_document(images, show_progress_bar=False)
         return [_to_numpy(pooling.pool_one(_as_tensor(page)), STORED_DTYPE) for page in encoded]
 
     def _load(self) -> Any:

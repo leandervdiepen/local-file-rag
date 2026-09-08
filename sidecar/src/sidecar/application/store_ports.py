@@ -56,6 +56,14 @@ class IndexStore(Protocol):
         """
         ...
 
+    def indexed_files(self) -> list[IndexedFile]:
+        """Every file that has pages, ordered by path.
+
+        Exists so a job can walk what is in the index without a search. Skipped
+        files are not here: they have no pages and nothing to do with them.
+        """
+        ...
+
     def search_pages(self, query: str, limit: int) -> list[PageHit]:
         """Full-text search over page and file text, best first.
 

@@ -173,6 +173,7 @@ def test_progress_streams_a_progress_event_per_snapshot_then_one_done() -> None:
         "files_indexed": 1,
         "files_skipped": 0,
         "pages_indexed": 0,
+        "pages_embedded": 0,
         "current_path": "/corpus/a.pdf",
         "done": False,
     }
@@ -200,6 +201,7 @@ def test_progress_before_the_first_job_sends_a_zeroed_done() -> None:
         "files_indexed": 0,
         "files_skipped": 0,
         "pages_indexed": 0,
+        "pages_embedded": 0,
         "current_path": "",
         "done": True,
     }

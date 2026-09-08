@@ -19,6 +19,7 @@ class IndexProgress:
     files_indexed: int = 0
     files_skipped: int = 0
     pages_indexed: int = 0
+    pages_embedded: int = 0
     current_path: str = ""
     done: bool = False
 

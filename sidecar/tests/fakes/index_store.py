@@ -45,6 +45,10 @@ class FakeIndexStore:
         file = self._files.get(file_id)
         return file.content_hash if file is not None else None
 
+    def indexed_files(self) -> list[IndexedFile]:
+        indexed = (f for f in self._files.values() if f.state is FileState.TEXT_INDEXED)
+        return sorted(indexed, key=lambda file: str(file.path))
+
     def search_pages(self, query: str, limit: int) -> list[PageHit]:
         target = query.strip().lower()
         if not target:

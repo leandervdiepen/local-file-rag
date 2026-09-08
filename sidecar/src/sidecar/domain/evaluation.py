@@ -68,7 +68,6 @@ class QueryOutcome:
     stage1_rank: int | None
     embedded_before_run: int
     cap_miss: bool
-    fallback_fired: bool
     top10: tuple[RankedPage, ...]
     rank: int | None
     stage1_ms: int
@@ -78,6 +77,15 @@ class QueryOutcome:
     @property
     def stage1_hit(self) -> bool:
         return self.stage1_rank is not None
+
+    @property
+    def visual_only(self) -> bool:
+        """The expected page was found although no text match proposed it.
+
+        This is what the vision path is for and the number that justifies it:
+        every one of these is a page a text search could not have returned.
+        """
+        return self.stage1_rank is None and self.rank is not None
 
     @property
     def hit1(self) -> bool:

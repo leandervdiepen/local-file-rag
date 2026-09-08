@@ -92,7 +92,7 @@ def test_a_query_event_carries_every_field_with_files_relative_to_the_corpus_roo
         "stage1_rank": 2,
         "embedded_before_run": 0,
         "cap_miss": False,
-        "fallback_fired": True,
+        "visual_only": False,
         "top10": [
             {"page_id": "p4", "file": "decks/growth.pdf", "page": 4, "score": 0.5, "stage": "content"},
             {"page_id": "p1", "file": "decks/growth.pdf", "page": 1, "score": 3.0, "stage": "content"},

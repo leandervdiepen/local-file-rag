@@ -8,6 +8,7 @@ interface WireProgress {
   files_indexed: number
   files_skipped: number
   pages_indexed: number
+  pages_embedded: number
   current_path: string
   done: boolean
 }
@@ -29,6 +30,7 @@ function toProgress(wire: WireProgress): IndexProgress {
     filesIndexed: wire.files_indexed,
     filesSkipped: wire.files_skipped,
     pagesIndexed: wire.pages_indexed,
+    pagesEmbedded: wire.pages_embedded,
     currentPath: wire.current_path,
     done: wire.done,
   }

@@ -154,7 +154,7 @@ def _query_payload(outcome: QueryOutcome) -> dict[str, Any]:
         "stage1_rank": outcome.stage1_rank,
         "embedded_before_run": outcome.embedded_before_run,
         "cap_miss": outcome.cap_miss,
-        "fallback_fired": outcome.fallback_fired,
+        "visual_only": outcome.visual_only,
         "top10": [
             {
                 "page_id": page.page_id,

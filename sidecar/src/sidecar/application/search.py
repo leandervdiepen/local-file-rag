@@ -27,11 +27,15 @@ COLD_PAGE_CAP = 30
 # within a few seconds rather than after the whole cap.
 COLD_PAGE_CHUNK = 4
 
-# FR-7: fewer stage 1 hits than this and the query is asked of the whole
-# vector store, because a query with no matching words is exactly the query
-# this product exists for.
-FALLBACK_BELOW = 5
-FALLBACK_LIMIT = 20
+# Every search also asks the vector store directly, and the two candidate
+# sets are merged. ARCHITECTURE.md originally ran this only when stage 1
+# returned fewer than five hits, on the theory that a thin result meant a
+# visual query. Measured 2026-09-09 against the demo corpus: "slide with the
+# funnel chart" returns twenty four text matches and the funnel slide is not
+# among them, so the fallback never fired and stage 2 had nothing to find.
+# A weak text match is not a missing one, and the query this product exists
+# for is exactly the one BM25 answers plausibly and wrongly.
+VISUAL_CANDIDATE_LIMIT = 30
 
 ProgressSink = Callable[[EmbedProgress], None]
 
@@ -102,9 +106,7 @@ class Search:
             return []
         query_vectors = self._embedder.embed_query(query)
 
-        ordered = list(candidates)
-        if len(ordered) < FALLBACK_BELOW:
-            ordered = self._widen(query_vectors, ordered)
+        ordered = self._widen(query_vectors, list(candidates))
         if not ordered:
             return []
 
@@ -125,9 +127,10 @@ class Search:
         return pinned + scored + unread
 
     def _widen(self, query_vectors: QueryVectors, candidates: list[PageHit]) -> list[PageHit]:
+        """Add the pages that look like the query to the pages whose words match it."""
         seen = {hit.page_id for hit in candidates}
         widened = list(candidates)
-        for page_id, _ in self._vectors.nearest(query_vectors, FALLBACK_LIMIT):
+        for page_id, _ in self._vectors.nearest(query_vectors, VISUAL_CANDIDATE_LIMIT):
             if page_id in seen:
                 continue
             hit = self._hit_for(page_id)

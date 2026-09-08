@@ -8,7 +8,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Protocol
 
-from sidecar.application.search import COLD_PAGE_CAP, FALLBACK_BELOW, STAGE_ONE_CANDIDATE_LIMIT
+from sidecar.application.search import COLD_PAGE_CAP, STAGE_ONE_CANDIDATE_LIMIT
 from sidecar.application.store_ports import VectorStore
 from sidecar.domain.evaluation import (
     Aggregates,
@@ -107,7 +107,6 @@ class RunGoldenSet:
             stage1_rank=stage1_rank,
             embedded_before_run=len(embedded),
             cap_miss=cap_missed(stage1_rank, candidates, embedded, COLD_PAGE_CAP),
-            fallback_fired=len(candidates) < FALLBACK_BELOW,
             top10=top_pages(results, corpus_root),
             rank=rank_of(golden, results, corpus_root),
             stage1_ms=stage1_ms,
@@ -130,14 +129,13 @@ class _ColdPageCounter:
 
 
 def _nothing_ran(golden: GoldenQuery) -> QueryOutcome:
-    """The outcome of a query whose search raised: no candidates, no rank, and no fallback because nothing ran."""
+    """The outcome of a query whose search raised: no candidates and no rank, so it counts as a miss."""
     return QueryOutcome(
         golden=golden,
         candidates=0,
         stage1_rank=None,
         embedded_before_run=0,
         cap_miss=False,
-        fallback_fired=False,
         top10=(),
         rank=None,
         stage1_ms=0,
