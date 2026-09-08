@@ -6,19 +6,16 @@ Linear: `Local file RAG v1` on team `diepen`, 57 issues, DPN-224 to DPN-280.
 
 ## Now
 
-Day 2, the vision path. `embed.py`: lazy ColQwen2 load on MPS, float16, pooling factor 3, unloaded after ten idle minutes.
+Day 3, the renderer half. The page preview: canvas overlay, combined versus per-token toggle, threshold slider, and the portrait, landscape and square check.
 
-Day 1 is accepted. Every route in the day 1 slice is served, the renderer searches a real index with thumbnails, and the numbers are in the table below.
-The evaluation research the owner asked for is running in parallel and lands in `docs/research/evaluation-2026-09.md`; see `Plan swaps`.
+The sidecar half of day 3 is done and tested. `GET /pages/{id}/heatmap?q=` returns the grid as numbers, so the slider redraws without asking again.
 
 ## Next
 
-1. Page rendering at 1024 px long side for embedding, through the `PageSource` port that already renders at any size.
-2. `page_vectors` writes and reads, and the cosine index once the row count passes 2,000. This is also where LanceDB earns or loses its 438 MB: see the risk below.
-3. `rerank.py`: MaxSim in numpy over a candidate set.
-4. The semantic fallback when stage 1 returns fewer than five pages.
-5. `scripts/bench.py`, and the Day 2 acceptance: "slide with the funnel chart" finds the right slide with no matching page text.
-6. The evaluation framework, once the research doc is in: golden runner behind `POST /eval/golden/run`, recall by query type, and the answer judge once Day 4 has answers to judge.
+1. Renderer page preview with the overlay, the toggle and the slider, then the three aspect ratios.
+2. The first golden run through `scripts/eval.py`, which is written and has never been run against a live sidecar. It gives the per-split numbers the retrieval work should be steered by.
+3. Day 4: the two `Answerer` adapters, `POST /chat`, the chat panel, and Ollama as a first-class provider.
+4. Retrieval quality. The vision path finds 7 of 9 text-free queries and lands 4 in the top 5, so the gap is ranking rather than reach. The pooling factor and the candidate mix are the two levers, and the golden runner is how to pull them with evidence rather than taste.
 
 ## Plan swaps
 
@@ -83,7 +80,39 @@ M1 Max, 64 GB, macOS 26.5.1, Python 3.13.5, lancedb 0.38, 2026-09-08. `~/demo-co
 | Thumbnail, first render | 30 to 83 ms | 320 px, then immutable and cached by the renderer |
 | Index on disk | 6.1 MB | Text and BM25 only. `page_vectors` arrives on day 2 |
 
-Still unmeasured: rerank ms, heatmap cold and cached, first token ms, recall@5, DMG size.
+Still unmeasured: heatmap cold and cached, first token ms, recall over the whole golden set, DMG size.
+
+### Day 2, the vision path
+
+M1 Max, 64 GB, macOS 26.5.1, torch 2.14.0, sentence-transformers 6.0.1, `vidore/colqwen2-v1.0-merged` in float16, 2026-09-09.
+
+| Metric | Value | Note |
+| --- | --- | --- |
+| Model load plus first page | 12.7 s | Weights are already in the Hugging Face cache |
+| Seconds per page, synthetic 1024 px page | 1.67 s | A sparse drawn page |
+| Seconds per page, real corpus pages | 4.1 to 4.9 s | Denser pages make more visual tokens. This is the number that matters |
+| Query encode | 53 ms | 19 rows scored, of which 4 are the typed words |
+| Pooled rows per page | 249 | At pool factor 3 |
+| Unpooled rows per page | 747 | 736 patches on a 32 by 23 grid, plus 11 prompt tokens |
+| Storage per page | 58 KB | Measured over 218 pages of `page_vectors` |
+| Index on disk, 218 pages | 21 MB | 12.3 MB of it vectors, against 6.1 MB for text alone |
+| Search, everything embedded | 0.4 to 0.9 s | Nine text-free queries, no page left to read |
+
+### Day 2 gate
+
+PARTIAL PASS, and the shortfall is ranking rather than reach.
+
+The acceptance asks that "slide with the funnel chart" returns the right slide although no page text matches. It returns it at rank 26 of 54, so the page is reachable and not yet well ranked.
+
+Across the nine text-free golden queries, none of which stage 1 can answer at all:
+
+| Measure | Before D49 | After |
+| --- | --- | --- |
+| Expected page found anywhere | 0 of 9 | 7 of 9 |
+| Expected page in the top 5 | 0 of 9 | 4 of 9 |
+
+Every one of those hits is a page BM25 could not have returned, which is the number that justifies the vision path.
+The two levers on the remaining gap are the pooling factor and the candidate mix, and the golden runner is how to pull them with evidence.
 
 ### dtype and build sweep
 
