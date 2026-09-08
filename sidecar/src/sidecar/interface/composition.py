@@ -7,6 +7,7 @@ from pathlib import Path
 from flask import Flask
 
 from sidecar.application.embed_pages import EmbedPages
+from sidecar.application.explain_page import ExplainPage
 from sidecar.application.health import ReportHealth
 from sidecar.application.index_folder import IndexFolder
 from sidecar.application.indexing_jobs import IndexingJobs
@@ -34,6 +35,7 @@ from sidecar.interface.errors import register_error_handlers
 from sidecar.interface.eval_routes import build_eval_blueprint
 from sidecar.interface.folder_routes import build_folder_blueprint
 from sidecar.interface.health_routes import build_health_blueprint
+from sidecar.interface.heatmap_routes import build_heatmap_blueprint
 from sidecar.interface.index_routes import build_index_blueprint
 from sidecar.interface.page_routes import build_page_blueprint
 from sidecar.interface.search_routes import build_search_blueprint
@@ -82,7 +84,9 @@ def build_app(token: str, db_path: Path) -> Flask:
     jobs = IndexingJobs(index_folder, folders, store, vectors, embed_pages)
     app.register_blueprint(build_index_blueprint(jobs, ReadIndexStats(store, vectors)))
     app.register_blueprint(build_search_blueprint(search))
-    app.register_blueprint(build_page_blueprint(RenderPage(store, sources)))
+    render_page = RenderPage(store, sources)
+    app.register_blueprint(build_page_blueprint(render_page))
+    app.register_blueprint(build_heatmap_blueprint(ExplainPage(render_page, embedder)))
     app.register_blueprint(build_eval_blueprint(RunGoldenSet(search, vectors)))
 
     return app

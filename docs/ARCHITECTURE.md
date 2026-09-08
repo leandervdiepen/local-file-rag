@@ -66,6 +66,7 @@ Multivector search in LanceDB supports cosine only.
 4. Gate: skip images under 300 px on the short side, files over 200 MB, icon and sprite formats. PDFs over 300 pages index the first 300 and carry a flag. Every skip records a reason.
 5. Extract: pypdfium2 text per page. Apple Vision OCR for images and for PDF pages with an empty text layer, capped at 50 scanned pages per file in v1.
 6. Upsert `files` and `pages` and refresh the FTS index.
+7. Embed every page that has no vectors yet, reporting `pages_embedded`. Text first because it is seconds and makes search work at once, vectors second because they are the slow part (D49).
 
 Thumbnails render at 320 px wide on first display and cache to disk.
 Embedding renders at 1024 px on the long side.
@@ -74,10 +75,11 @@ The processor resizes to the 768 patch budget from there.
 ## Query pipeline
 
 1. Stage 1: FTS with BM25 over `files.text` and `pages.text`, filename boost, recency boost, up to 300 candidate pages. Emit `candidates`.
+1a. Add up to 30 pages from a multivector search over `page_vectors`, merged into the candidate set. Every search does this, not only a thin one: see D49.
 2. Candidates without vectors: embed up to 30, ordered by stage 1 score. Emit `progress` per page.
 3. MaxSim over the candidate set in numpy: for each query vector take the max dot product over page vectors and sum. Query vectors are about 25 by 128, so 300 pages score in well under a second.
 4. Sort by MaxSim. Exact filename matches pin to the top. Emit `results`.
-5. Fewer than five stage 1 hits: run a LanceDB multivector search over `page_vectors`, limit 20, and continue from step 3.
+5. Superseded by step 1a. The vector search is not a fallback for a thin result, it is half the candidate set on every query (D49).
 
 ## Heatmap
 

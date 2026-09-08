@@ -40,11 +40,11 @@ Measure: files per second crawled, OCR milliseconds per image, index size on dis
 
 ## Day 2, vision path
 
-- [ ] `embed.py`: lazy model load, MPS, pooling factor 3, float16, unload after ten idle minutes.
-- [ ] Page rendering at 1024 px long side for embedding.
-- [ ] `page_vectors` writes and reads. Create the cosine index once row count passes 2,000.
-- [ ] `rerank.py`: MaxSim in numpy over a candidate set.
-- [ ] Semantic fallback: LanceDB multivector search when stage 1 returns fewer than five pages.
+- [x] `embed.py`: lazy model load, MPS, pooling factor 3, float16, unload after ten idle minutes.
+- [x] Page rendering at 1024 px long side for embedding.
+- [x] `page_vectors` writes and reads. Create the cosine index once row count passes 2,000.
+- [x] `rerank.py`: MaxSim in numpy over a candidate set.
+- [x] Multivector search merged into the candidate set on every search, not only a thin one. D49 withdrew the fewer-than-five rule with the measurement that killed it.
 - [ ] `scripts/bench.py`: pages per second, KB per page, rerank time for 300 pages. Recall moved to the golden set runner by D46, which reports it per query split rather than as one number.
 
 Acceptance: "slide with the funnel chart" returns the right slide although no page text matches.
@@ -56,8 +56,8 @@ Protect this day.
 Nothing else gets pulled forward into it.
 
 - [x] Candidate embedding with the 30 page cap, ordered by stage 1 score, `progress` events with "reading 12 of 24 pages". Built on day 2, because stage 2 cannot rank a page it has not read. See `Plan swaps` in STATUS.md.
-- [ ] `heatmap.py`: unpooled re-encode, per-token and combined maps from the processor grid, disk LRU of 500 pages.
-- [ ] `GET /pages/{id}/heatmap?q=` returning the JSON grid.
+- [x] `heatmap.py`: unpooled re-encode, per-token and combined maps from the processor grid, in-memory LRU of 500 pages (D50).
+- [x] `GET /pages/{id}/heatmap?q=` returning the JSON grid.
 - [ ] Renderer page preview: canvas overlay, combined versus per-token toggle, threshold slider defaulting to the 90th percentile, one patch blur.
 - [ ] Test portrait, landscape and square pages. The overlay must sit on the right pixels in all three.
 
