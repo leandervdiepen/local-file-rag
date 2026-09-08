@@ -84,6 +84,7 @@ A hand that leaves the keyboard has lost.
 | up, down | move through results across file group boundaries |
 | enter | open the selected result in its default app |
 | space | toggle the page preview for the selected result |
+| space | toggle the page preview for the selected result, unless the query is empty |
 | escape | clear the query, then close the preview, then close the window |
 
 Focus is always visible.

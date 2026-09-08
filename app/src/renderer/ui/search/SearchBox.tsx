@@ -9,6 +9,7 @@ export interface SearchBoxProps {
   onOpen: () => void
   onReveal: () => void
   onCopyPath: () => void
+  onTogglePreview: () => void
 }
 
 /**
@@ -19,7 +20,7 @@ export interface SearchBoxProps {
  * are one uninterrupted motion.
  */
 export const SearchBox = forwardRef<HTMLInputElement, SearchBoxProps>(function SearchBox(
-  { query, listboxId, activeDescendant, onQueryChange, onMove, onOpen, onReveal, onCopyPath },
+  { query, listboxId, activeDescendant, onQueryChange, onMove, onOpen, onReveal, onCopyPath, onTogglePreview },
   ref,
 ) {
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
@@ -37,6 +38,13 @@ export const SearchBox = forwardRef<HTMLInputElement, SearchBoxProps>(function S
     if (event.key === 'Escape') {
       event.preventDefault()
       onQueryChange('')
+      return
+    }
+    // Space only reaches here as a shortcut when it would otherwise start a
+    // word, which it never does at the start of a query.
+    if (event.key === ' ' && query.trim() !== '') {
+      event.preventDefault()
+      onTogglePreview()
       return
     }
     if (event.metaKey && event.shiftKey && event.key.toLowerCase() === 'c') {

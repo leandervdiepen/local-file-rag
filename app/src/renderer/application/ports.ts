@@ -1,4 +1,5 @@
 import type { IndexedFolder, IndexProgress, IndexStats } from '../domain/indexing'
+import type { Heatmap } from '../domain/heatmap'
 import type { PageHit } from '../domain/search-results'
 import type { SidecarState } from '../domain/sidecar-state'
 
@@ -66,4 +67,9 @@ export interface PageImagePort {
    * over as an object URL.
    */
   imageUrl: (pageId: string, size: PageImageSize) => Promise<string>
+}
+
+export interface HeatmapPort {
+  /** The grid explaining why this page matched this query. Rejects with a `SearchError`. */
+  explain: (pageId: string, query: string, signal: AbortSignal) => Promise<Heatmap>
 }

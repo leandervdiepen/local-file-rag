@@ -57,6 +57,10 @@
   /* The one accent: focus ring, selection, the active item, links. */
   --color-accent: oklch(52% 0.16 255);
 
+  /* The heat scale. The overlay is the only thing allowed to use it, because
+     it is the one place colour means "this is why". */
+  --color-heat: oklch(62% 0.21 25);
+
   /* Status: destructive confirmation, error text, warning badges. Never progress or success. */
   --color-status-error: oklch(50% 0.19 25);
 
@@ -70,6 +74,7 @@
     --color-surface: oklch(16% 0.006 60);
     --color-border: oklch(30% 0.008 60);
     --color-accent: oklch(74% 0.14 255);
+    --color-heat: oklch(70% 0.20 25);
     --color-status-error: oklch(68% 0.17 25);
   }
 }
@@ -80,6 +85,7 @@
   --color-surface: oklch(16% 0.006 60);
   --color-border: oklch(30% 0.008 60);
   --color-accent: oklch(74% 0.14 255);
+  --color-heat: oklch(70% 0.20 25);
   --color-status-error: oklch(68% 0.17 25);
 }
 

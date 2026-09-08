@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { NativeActionsPort } from '../../application/ports'
 import { useIndexing } from '../../application/useIndexing'
 import { createFoldersPort } from '../../infrastructure/folders-adapter'
+import { createHeatmapPort } from '../../infrastructure/heatmap-adapter'
 import { createIndexPort } from '../../infrastructure/index-adapter'
 import { createPageImagePort } from '../../infrastructure/page-image-adapter'
 import { createSearchPort } from '../../infrastructure/search-adapter'
@@ -29,6 +30,7 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
   const indexPort = useMemo(() => createIndexPort(client), [client])
   const searchPort = useMemo(() => createSearchPort(client), [client])
   const pageImages = useMemo(() => createPageImagePort(client), [client])
+  const heatmaps = useMemo(() => createHeatmapPort(client), [client])
 
   const { folders, progress, stats, error, loaded, addFolder } = useIndexing(foldersPort, indexPort)
 
@@ -41,6 +43,7 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
     <SearchScreen
       search={searchPort}
       pageImages={pageImages}
+      heatmaps={heatmaps}
       nativeActions={nativeActions}
       progress={progress}
       stats={stats}

@@ -58,7 +58,7 @@ Nothing else gets pulled forward into it.
 - [x] Candidate embedding with the 30 page cap, ordered by stage 1 score, `progress` events with "reading 12 of 24 pages". Built on day 2, because stage 2 cannot rank a page it has not read. See `Plan swaps` in STATUS.md.
 - [x] `heatmap.py`: unpooled re-encode, per-token and combined maps from the processor grid, in-memory LRU of 500 pages (D50).
 - [x] `GET /pages/{id}/heatmap?q=` returning the JSON grid.
-- [ ] Renderer page preview: canvas overlay, combined versus per-token toggle, threshold slider defaulting to the 90th percentile, one patch blur.
+- [x] Renderer page preview: canvas overlay, combined versus per-token toggle, threshold slider defaulting to the 90th percentile, one patch blur.
 - [ ] Test portrait, landscape and square pages. The overlay must sit on the right pixels in all three.
 
 Acceptance: "stripe webhook error screenshot" returns the PNG and the red dialog glows. Cold heatmap under 2 s, cached under 100 ms.

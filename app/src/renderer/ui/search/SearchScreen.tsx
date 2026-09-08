@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react'
-import type { NativeActionsPort, PageImagePort, SearchPort } from '../../application/ports'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { HeatmapPort, NativeActionsPort, PageImagePort, SearchPort } from '../../application/ports'
 import { useResultSelection } from '../../application/useResultSelection'
 import { useSearch } from '../../application/useSearch'
 import type { IndexProgress, IndexStats } from '../../domain/indexing'
 import { flattenGroups, groupByFile } from '../../domain/search-results'
+import { PagePreview } from '../preview/PagePreview'
 import { IndexingBanner } from './IndexingBanner'
 import { ResultList } from './ResultList'
 import { SearchBox } from './SearchBox'
@@ -14,20 +15,24 @@ const LISTBOX_ID = 'search-results'
 interface SearchScreenProps {
   search: SearchPort
   pageImages: PageImagePort
+  heatmaps: HeatmapPort
   nativeActions: NativeActionsPort
   progress: IndexProgress | null
   stats: IndexStats | null
 }
 
-export function SearchScreen({ search, pageImages, nativeActions, progress, stats }: SearchScreenProps) {
+export function SearchScreen({ search, pageImages, heatmaps, nativeActions, progress, stats }: SearchScreenProps) {
   const { state, query, setQuery } = useSearch(search)
   const input = useRef<HTMLInputElement>(null)
+  const [previewing, setPreviewing] = useState(false)
 
   const groups = useMemo(() => groupByFile(state.hits), [state.hits])
   const ordered = useMemo(() => flattenGroups(groups), [groups])
   const orderedIds = useMemo(() => ordered.map((hit) => hit.pageId), [ordered])
   const selection = useResultSelection(orderedIds)
-  const selectedPath = ordered.find((hit) => hit.pageId === selection.selected)?.path ?? null
+  const selected = ordered.find((hit) => hit.pageId === selection.selected) ?? null
+  const selectedPath = selected?.path ?? null
+  const preview = previewing && selected ? selected : null
 
   // The product is a search box, so a keystroke anywhere on the window belongs
   // to it. Modifier combinations are left alone: those are shortcuts, not text.
@@ -66,6 +71,7 @@ export function SearchScreen({ search, pageImages, nativeActions, progress, stat
         onOpen={onSelected(actions.open)}
         onReveal={onSelected(actions.reveal)}
         onCopyPath={onSelected(actions.copyPath)}
+        onTogglePreview={() => setPreviewing((open) => !open && selected !== null)}
       />
 
       {progress && !progress.done && <IndexingBanner progress={progress} />}
@@ -79,6 +85,19 @@ export function SearchScreen({ search, pageImages, nativeActions, progress, stat
         actions={actions}
         onSelect={selection.select}
       />
+
+      {preview && (
+        <PagePreview
+          hit={preview}
+          query={query}
+          pageImages={pageImages}
+          heatmaps={heatmaps}
+          onClose={() => {
+            setPreviewing(false)
+            input.current?.focus()
+          }}
+        />
+      )}
     </main>
   )
 }
