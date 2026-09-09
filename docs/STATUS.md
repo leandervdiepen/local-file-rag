@@ -210,6 +210,32 @@ Stage 1 and stage 2 currently agree too much, because a page whose words match i
 Changing that is a ranking change that would need to be measured against the 21 for 21 the text channel currently gets, and it is not something to try without the harness pointed at it.
 The gate is written as recall@5 of 0.8 or better, or the gap written down with the failing queries. Both halves are now true, and the honest reading is the second one.
 
+### Day 7, packaging
+
+M1 Max, 64 GB, macOS 26.5.1, PyInstaller 6.11, electron-builder 26.15.3, Electron 44.2.0, 2026-09-09.
+
+| Metric | Value | Note |
+| --- | --- | --- |
+| PyInstaller build | 148 s | onedir, `--clean` |
+| Sidecar bundle | 1.2 GB | torch and its backends are most of it |
+| Sidecar executable | 76 MB | the rest is `_internal` |
+| App bundle | 1.6 GB | sidecar included as `extraResources` |
+| DMG | 515 MB | arm64, unsigned per D18 |
+
+The packaged sidecar was run on its own before the app was built, because a
+bundle that starts and cannot work is the failure that only shows up in a
+demo. It prints its `READY` handshake, loads torch and the model, crawls,
+embeds, runs Vision OCR and answers a search. OCR is the one worth naming:
+pyobjc reaches Vision through a lazy loader that imports by string, so nothing
+static finds it, and the check is that a screenshot is returned for a word
+that only exists inside its pixels. `IMG_4821.png` comes back for "webhook".
+
+The packaged app was then driven through the shipped content security policy,
+which is the only thing that differs from development. Its page is a `file://`
+page, so its origin is the string "null", which is exactly the case the CORS
+fix was written for. The renderer reaches the sidecar, a page image loads as a
+blob at 320x180, and the run logs no renderer error at all.
+
 ### dtype and build sweep
 
 Each row is its own process, so the memory numbers are not contaminated by a previous load.

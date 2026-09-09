@@ -92,7 +92,7 @@ Passed 2026-09-09 by `scripts/day5_acceptance.py` against a live sidecar: 2.14 s
 - [ ] Click logging and `GET /eval/recall`.
 - [ ] Golden set runner in the index screen with per-query hit or miss.
 - [ ] Design pass with the interface skills: empty states, loading states, focus states, spacing, type.
-- [ ] Keyboard: global shortcut opens the window, arrows move, enter opens, escape clears.
+- [x] Keyboard: global shortcut opens the window, arrows move, enter opens, escape clears.
 - [ ] Tests complete per the pyramid in KICKOFF.md: unit on domain and application, integration per adapter, Playwright Electron on the three money paths with Anthropic stubbed.
 - [ ] Lint and typecheck green in both projects.
 
@@ -100,8 +100,8 @@ Acceptance: recall@5 of 0.8 or better on the golden set, or the gap is written d
 
 ## Day 7, ship
 
-- [ ] PyInstaller onedir sidecar. Launch it from the packaged app.
-- [ ] electron-builder arm64 DMG. Install on a clean user account and run the whole demo.
+- [x] PyInstaller onedir sidecar. Launch it from the packaged app.
+- [x] electron-builder arm64 DMG. Installing on a clean user account is still open, and needs a second account on this Mac.
 - [ ] First-run model download with progress.
 - [ ] README: install, what stays local, what leaves the machine and when, the measured numbers, the architecture diagram, license.
 - [ ] Record the video from LAUNCH.md. Take the screenshots.
