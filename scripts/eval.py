@@ -92,7 +92,9 @@ def attach_thumbnails(sidecar: Sidecar, run_dir: RunDir, row: dict[str, Any], co
         png = sidecar.get_bytes(f"/pages/{page_id}/image?size=thumb")
         thumbnails[role] = None if png is None else run_dir.write_thumb(page_id, png)
         if png is None:
-            run_dir.append_error({"class": "thumbnail_unavailable", "query_id": row["id"], "page_id": page_id, "role": role})
+            run_dir.append_error(
+                {"class": "thumbnail_unavailable", "query_id": row["id"], "page_id": page_id, "role": role}
+            )
     row["thumbnails"] = thumbnails
 
 
@@ -100,7 +102,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--base-url", required=True, help="sidecar base URL, http://127.0.0.1:PORT")
     parser.add_argument("--token", required=True, help="the sidecar's bearer token")
-    parser.add_argument("--corpus", type=Path, default=Path("~/demo-corpus"), help="corpus root the index was built from")
+    parser.add_argument(
+        "--corpus", type=Path, default=Path("~/demo-corpus"), help="corpus root the index was built from"
+    )
     parser.add_argument("--golden", type=Path, default=SCRIPTS_DIR / "golden.jsonl", help="golden set jsonl")
     parser.add_argument("--out", type=Path, default=SCRIPTS_DIR / "eval-runs", help="where run directories go")
     return parser.parse_args()
@@ -160,7 +164,9 @@ def main() -> int:
 
     overall = aggregates["overall"]
     hits = "-" if not overall["count"] else f"{round(overall['hit5'] * overall['count'])}/{overall['count']}"
-    print(f"hit@5 {hits}, {len(regressed)} regressions, report at {run_dir.report_html}", file=sys.stderr)
+    # The ids, not the count: the gate that reads this line is deciding which query to open next.
+    verdict = f"regressed {', '.join(regressed)}" if regressed else "no regressions"
+    print(f"hit@5 {hits}, {verdict}, report at {run_dir.report_html}", file=sys.stderr)
     return 1 if regressed else 0
 
 
