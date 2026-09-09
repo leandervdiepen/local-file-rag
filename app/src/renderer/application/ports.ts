@@ -2,6 +2,7 @@ import type { IndexedFolder, IndexProgress, IndexStats } from '../domain/indexin
 import type { IndexedFileRow } from '../domain/skip-reasons'
 import type { AnswerUsage, Citation, RetrievedPage } from '../domain/chat'
 import type { Heatmap } from '../domain/heatmap'
+import type { ModelReadiness } from '../domain/model-readiness'
 import type { PageHit } from '../domain/search-results'
 import type { SidecarState } from '../domain/sidecar-state'
 
@@ -43,6 +44,11 @@ export interface SearchHandlers {
 export interface SearchPort {
   /** Streams one search. Resolves when the stream ends, rejects with a `SearchError`. */
   search: (query: string, handlers: SearchHandlers, signal: AbortSignal) => Promise<void>
+}
+
+export interface HealthPort {
+  /** How far the retrieval model is from usable. Never triggers loading it. */
+  readiness: () => Promise<ModelReadiness>
 }
 
 export interface FoldersPort {

@@ -41,6 +41,7 @@ def test_health_returns_200_with_the_right_shape_when_the_token_is_right() -> No
         "status": "ok",
         "version": VERSION,
         "model_loaded": True,
+        "model": {"state": "ready", "bytes_done": 0, "bytes_total": 0, "fraction": None},
         "db_path": "/tmp/sidecar-db",
         "checked_at": "2026-01-01T00:00:00+00:00",
     }

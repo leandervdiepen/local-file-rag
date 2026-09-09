@@ -94,7 +94,7 @@ Passed 2026-09-09 by `scripts/day5_acceptance.py` against a live sidecar: 2.14 s
 - [ ] Design pass with the interface skills: empty states, loading states, focus states, spacing, type.
 - [x] Keyboard: global shortcut opens the window, arrows move, enter opens, escape clears.
 - [ ] Tests complete per the pyramid in KICKOFF.md: unit on domain and application, integration per adapter, Playwright Electron on the three money paths with Anthropic stubbed.
-- [ ] Lint and typecheck green in both projects.
+- [x] Lint and typecheck green in both projects.
 
 Acceptance: recall@5 of 0.8 or better on the golden set, or the gap is written down with the failing queries. All checks green.
 
@@ -102,7 +102,7 @@ Acceptance: recall@5 of 0.8 or better on the golden set, or the gap is written d
 
 - [x] PyInstaller onedir sidecar. Launch it from the packaged app.
 - [x] electron-builder arm64 DMG. Installing on a clean user account is still open, and needs a second account on this Mac.
-- [ ] First-run model download with progress.
+- [x] First-run model download with progress.
 - [x] README: install, what stays local, what leaves the machine and when, the measured numbers, the architecture diagram, license.
 - [ ] Record the video from LAUNCH.md. Take the screenshots.
 - [ ] Publish the repo. Post.
@@ -130,7 +130,7 @@ Never cut: the heatmap, the index screen, the cold page cap with progress text, 
 
 - [ ] DMG runs on a clean machine.
 - [ ] The 45 second demo works end to end.
-- [ ] README claims match the code, word for word on privacy.
-- [ ] Measured numbers in README carry machine, model and date.
+- [x] README claims match the code, word for word on privacy.
+- [x] Measured numbers in README carry machine, model and date.
 - [ ] Lint, typecheck, pytest, vitest and the Playwright smoke test pass.
 - [ ] Repo public, post published, links in STATUS.md.

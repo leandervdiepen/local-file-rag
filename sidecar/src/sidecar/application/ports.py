@@ -15,6 +15,7 @@ from typing import Protocol
 
 from sidecar.domain.answers import AnswerChunk, AnswerRequest
 from sidecar.domain.entities import FileCandidate
+from sidecar.domain.model_readiness import ModelProgress
 
 
 class Clock(Protocol):
@@ -30,6 +31,15 @@ class HealthProbe(Protocol):
 
     def model_loaded(self) -> bool:
         """True once the retrieval model is loaded in memory. Never triggers loading it."""
+        ...
+
+    def model_readiness(self) -> ModelProgress:
+        """How far the model is from usable, and how much of any download is done.
+
+        Answered while a download is running, so it never waits on one. First
+        run fetches gigabytes before anything can be searched, and this is
+        what the app draws a bar from.
+        """
         ...
 
     def db_path(self) -> Path:

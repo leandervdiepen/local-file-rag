@@ -2059,6 +2059,7 @@ source = { editable = "." }
 dependencies = [
     { name = "blake3" },
     { name = "flask" },
+    { name = "huggingface-hub" },
     { name = "lancedb" },
     { name = "numpy" },
     { name = "pillow" },
@@ -2069,6 +2070,7 @@ dependencies = [
     { name = "sentence-transformers" },
     { name = "torch" },
     { name = "torchvision" },
+    { name = "tqdm" },
     { name = "waitress" },
     { name = "watchdog" },
 ]
@@ -2087,6 +2089,7 @@ dev = [
 requires-dist = [
     { name = "blake3", specifier = ">=1.0" },
     { name = "flask", specifier = ">=3.1" },
+    { name = "huggingface-hub", specifier = ">=0.26" },
     { name = "import-linter", marker = "extra == 'dev'" },
     { name = "lancedb", specifier = ">=0.38.0" },
     { name = "mypy", marker = "extra == 'dev'" },
@@ -2103,6 +2106,7 @@ requires-dist = [
     { name = "sentence-transformers", specifier = ">=6.0" },
     { name = "torch", specifier = ">=2.4" },
     { name = "torchvision", specifier = ">=0.19" },
+    { name = "tqdm", specifier = ">=4.66" },
     { name = "waitress", specifier = ">=3.0" },
     { name = "watchdog", specifier = ">=6.0.0" },
 ]

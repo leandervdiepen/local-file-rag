@@ -22,6 +22,12 @@ dependencies = [
     "torchvision>=0.19",
     "numpy>=2.0",
     "watchdog>=6.0.0",
+    # Both arrive with sentence-transformers and both are imported directly, to
+    # fetch the model before anything loads it and to count the bytes as they
+    # land. Declared so a lockfile sync cannot quietly take them, the way it
+    # took torchvision.
+    "huggingface-hub>=0.26",
+    "tqdm>=4.66",
 ]
 
 [project.optional-dependencies]
@@ -81,6 +87,11 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 # pyarrow 25.0 ships no py.typed marker.
 module = "pyarrow.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# tqdm ships no py.typed marker, and its stubs are a separate package.
+module = "tqdm.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

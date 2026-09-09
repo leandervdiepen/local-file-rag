@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ChatPort, HeatmapPort, NativeActionsPort, PageImagePort, SearchPort } from '../../application/ports'
+import type {
+  ChatPort,
+  HeatmapPort,
+  NativeActionsPort,
+  PageImagePort,
+  SearchPort,
+} from '../../application/ports'
 import { useChat } from '../../application/useChat'
 import { useResultSelection } from '../../application/useResultSelection'
 import { useSearch } from '../../application/useSearch'
 import type { IndexProgress, IndexStats } from '../../domain/indexing'
+import type { ModelReadiness } from '../../domain/model-readiness'
 import { flattenGroups, groupByFile } from '../../domain/search-results'
 import { ChatPanel } from '../chat/ChatPanel'
 import { PagePreview } from '../preview/PagePreview'
 import { FolderProblems } from '../index/FolderProblems'
 import { IndexingBanner } from './IndexingBanner'
+import { ModelBanner } from './ModelBanner'
 import { ResultList } from './ResultList'
 import { SearchBox } from './SearchBox'
 import { SearchStatus } from './SearchStatus'
@@ -23,6 +31,7 @@ interface SearchScreenProps {
   modelId: string
   nativeActions: NativeActionsPort
   progress: IndexProgress | null
+  modelReadiness: ModelReadiness
   stats: IndexStats | null
   onShowIndex: () => void
 }
@@ -35,6 +44,7 @@ export function SearchScreen({
   modelId,
   nativeActions,
   progress,
+  modelReadiness,
   stats,
   onShowIndex,
 }: SearchScreenProps) {
@@ -99,6 +109,7 @@ export function SearchScreen({
         }}
       />
 
+      <ModelBanner readiness={modelReadiness} />
       {progress && !progress.done && <IndexingBanner progress={progress} />}
       {progress && <FolderProblems failures={progress.failures} />}
       <div className="flex items-baseline justify-between gap-4">

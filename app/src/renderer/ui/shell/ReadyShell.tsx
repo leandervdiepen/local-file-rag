@@ -4,8 +4,10 @@ import { useMemo, useState } from 'react'
 const DEFAULT_MODEL_ID = 'openrouter/free'
 import type { NativeActionsPort } from '../../application/ports'
 import { useIndexing } from '../../application/useIndexing'
+import { useModelReadiness } from '../../application/useModelReadiness'
 import { createChatPort } from '../../infrastructure/chat-adapter'
 import { createFoldersPort } from '../../infrastructure/folders-adapter'
+import { createHealthPort } from '../../infrastructure/health-adapter'
 import { createHeatmapPort } from '../../infrastructure/heatmap-adapter'
 import { createIndexPort } from '../../infrastructure/index-adapter'
 import { createPageImagePort } from '../../infrastructure/page-image-adapter'
@@ -36,6 +38,7 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
   const searchPort = useMemo(() => createSearchPort(client), [client])
   const pageImages = useMemo(() => createPageImagePort(client), [client])
   const heatmaps = useMemo(() => createHeatmapPort(client), [client])
+  const healthPort = useMemo(() => createHealthPort(client), [client])
   const chat = useMemo(() => createChatPort(client), [client])
 
   const { folders, progress, stats, error, loaded, addFolder, setFolderEnabled, removeFolder, rescan } =
@@ -43,6 +46,7 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
     foldersPort,
     indexPort,
   )
+  const modelReadiness = useModelReadiness(healthPort)
   const [showingIndex, setShowingIndex] = useState(false)
 
   if (!loaded) return null
@@ -79,6 +83,7 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
       modelId={DEFAULT_MODEL_ID}
       nativeActions={nativeActions}
       progress={progress}
+      modelReadiness={modelReadiness}
       stats={stats}
       onShowIndex={() => setShowingIndex(true)}
     />

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sidecar.application.ports import Clock, HealthProbe
+from sidecar.domain.model_readiness import ModelProgress
 from sidecar.domain.version import VERSION
 
 
@@ -13,6 +14,7 @@ class HealthReport:
     status: str
     version: str
     model_loaded: bool
+    model: ModelProgress
     db_path: str
     checked_at: str
 
@@ -33,6 +35,7 @@ class ReportHealth:
             status="ok",
             version=VERSION,
             model_loaded=self._probe.model_loaded(),
+            model=self._probe.model_readiness(),
             db_path=str(self._probe.db_path()),
             checked_at=self._clock.now().isoformat(),
         )

@@ -5,9 +5,10 @@ from __future__ import annotations
 import atexit
 import logging
 import os
+from collections.abc import Callable
 from pathlib import Path
 
-from flask import Flask
+from flask import Flask, request
 
 from sidecar.application.activity import Activity
 from sidecar.application.answer_question import AnswerQuestion
@@ -112,7 +113,9 @@ def build_app(
     manage_folders = ManageFolders(folders, watcher)
     manage_folders.resume_watching()
 
-    app.register_blueprint(build_health_blueprint(ReportHealth(clock=clock, probe=FilesystemHealthProbe(db_path))))
+    app.register_blueprint(
+        build_health_blueprint(ReportHealth(clock=clock, probe=FilesystemHealthProbe(db_path, embedder)))
+    )
     app.register_blueprint(build_folder_blueprint(manage_folders))
     jobs = IndexingJobs(index_folder, folders, store, vectors, embed_pages)
     app.register_blueprint(
@@ -126,7 +129,7 @@ def build_app(
     app.register_blueprint(build_eval_blueprint(RunGoldenSet(search, vectors)))
 
     activity = Activity()
-    app.before_request(activity.touch)
+    app.before_request(_only_real_use(activity))
     _start_background(
         [
             PreEmbedRecent(store, vectors, embed_pages, MacPowerSource(), activity, jobs, cap_bytes).tick,
@@ -186,3 +189,19 @@ def _start_background(jobs: list[Job]) -> None:
     loop = BackgroundLoop(jobs)
     loop.start()
     atexit.register(loop.stop)
+
+
+def _only_real_use(activity: Activity) -> Callable[[], None]:
+    """Count a request as the user doing something, unless it is the app watching.
+
+    `/health` is polled while the model downloads, and idle pre-embedding waits
+    for a minute of quiet. Counting a poll would mean the machine is never idle
+    and the background work never runs at all.
+    """
+    watching = ("/health", "/index/progress")
+
+    def touch() -> None:
+        if not request.path.startswith(watching):
+            activity.touch()
+
+    return touch

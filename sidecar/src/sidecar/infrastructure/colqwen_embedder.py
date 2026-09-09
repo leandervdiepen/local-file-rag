@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import errno
 import logging
-import os
+import threading
 from collections.abc import Sequence
 from typing import Any
 
@@ -19,13 +19,11 @@ from PIL import Image
 
 from sidecar.domain.errors import ModelUnavailableError, ValidationError
 from sidecar.domain.heatmap import PatchGrid
+from sidecar.domain.model_readiness import ModelProgress, ModelState
 from sidecar.domain.vectors import STORED_DTYPE, PageVectors, QueryVectors
 from sidecar.infrastructure.colqwen_tensors import assert_float16, decode, grid_of, to_numpy
 from sidecar.infrastructure.lazy_model import LazyModel
-
-# The Xet download backend stalled at 65 MB of a 4.4 GB file and stayed there,
-# so first run goes over plain HTTP (D27). Set before anything imports the hub.
-os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+from sidecar.infrastructure.model_download import fetch_model
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +55,8 @@ class ColQwenEmbedder:
         self._pool_factor = pool_factor
         self._device = device
         self._model = LazyModel(self._load, self._release, idle_seconds)
+        self._readiness_lock = threading.Lock()
+        self._readiness = ModelProgress()
 
     def embed_pages(self, page_ids: Sequence[str], images_png: Sequence[bytes]) -> list[PageVectors]:
         if len(page_ids) != len(images_png):
@@ -116,6 +116,15 @@ class ColQwenEmbedder:
     def is_loaded(self) -> bool:
         return self._model.is_loaded()
 
+    def readiness(self) -> ModelProgress:
+        """How far the model is from usable, safe to call from any thread.
+
+        Read by `/health` while a first run downloads, so it is asked for far
+        more often than it changes and must never wait on the load it reports.
+        """
+        with self._readiness_lock:
+            return self._readiness
+
     def unload(self) -> None:
         self._model.unload()
 
@@ -160,6 +169,8 @@ class ColQwenEmbedder:
     def _load(self) -> Any:
         from sentence_transformers import MultiVectorEncoder
 
+        self._fetch_files()
+        self._set_readiness(ModelProgress(ModelState.LOADING))
         logger.info("loading %s on %s", self.model_id, self._device)
         try:
             # `dtype`, not `torch_dtype`: transformers 5 renamed it and silently
@@ -167,11 +178,36 @@ class ColQwenEmbedder:
             # with no error anywhere (D34).
             model = MultiVectorEncoder(self.model_id, device=self._device, model_kwargs={"dtype": torch.float16})
         except (OSError, ValueError, RuntimeError) as failure:
+            self._set_readiness(ModelProgress(ModelState.ABSENT))
             raise ModelUnavailableError(_why_the_model_is_missing(failure)) from failure
         assert_float16(model)
+        self._set_readiness(ModelProgress(ModelState.READY))
         return model
 
+    def _fetch_files(self) -> None:
+        """Pull the model files down first, so the download can be reported.
+
+        Constructing the encoder would fetch them anyway and say nothing while
+        it did. On a second run everything is already on disk and this returns
+        without reporting a byte.
+        """
+        self._set_readiness(ModelProgress(ModelState.DOWNLOADING))
+
+        def on_progress(done: int, total: int) -> None:
+            self._set_readiness(ModelProgress(ModelState.DOWNLOADING, done, total))
+
+        try:
+            fetch_model(self.model_id, on_progress)
+        except Exception as failure:
+            self._set_readiness(ModelProgress(ModelState.ABSENT))
+            raise ModelUnavailableError(_why_the_model_is_missing(failure)) from failure
+
+    def _set_readiness(self, progress: ModelProgress) -> None:
+        with self._readiness_lock:
+            self._readiness = progress
+
     def _release(self, model: Any) -> None:
+        self._set_readiness(ModelProgress(ModelState.ABSENT))
         del model
         if self._device == "mps":
             torch.mps.empty_cache()
