@@ -1,6 +1,10 @@
 import { useMemo } from 'react'
+
+// Until the settings screen exists, every answer uses the free default (D38).
+const DEFAULT_MODEL_ID = 'openrouter/free'
 import type { NativeActionsPort } from '../../application/ports'
 import { useIndexing } from '../../application/useIndexing'
+import { createChatPort } from '../../infrastructure/chat-adapter'
 import { createFoldersPort } from '../../infrastructure/folders-adapter'
 import { createHeatmapPort } from '../../infrastructure/heatmap-adapter'
 import { createIndexPort } from '../../infrastructure/index-adapter'
@@ -31,6 +35,7 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
   const searchPort = useMemo(() => createSearchPort(client), [client])
   const pageImages = useMemo(() => createPageImagePort(client), [client])
   const heatmaps = useMemo(() => createHeatmapPort(client), [client])
+  const chat = useMemo(() => createChatPort(client), [client])
 
   const { folders, progress, stats, error, loaded, addFolder } = useIndexing(foldersPort, indexPort)
 
@@ -44,6 +49,8 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
       search={searchPort}
       pageImages={pageImages}
       heatmaps={heatmaps}
+      chat={chat}
+      modelId={DEFAULT_MODEL_ID}
       nativeActions={nativeActions}
       progress={progress}
       stats={stats}

@@ -1,4 +1,5 @@
 import type { IndexedFolder, IndexProgress, IndexStats } from '../domain/indexing'
+import type { AnswerUsage, Citation, RetrievedPage } from '../domain/chat'
 import type { Heatmap } from '../domain/heatmap'
 import type { PageHit } from '../domain/search-results'
 import type { SidecarState } from '../domain/sidecar-state'
@@ -72,4 +73,17 @@ export interface PageImagePort {
 export interface HeatmapPort {
   /** The grid explaining why this page matched this query. Rejects with a `SearchError`. */
   explain: (pageId: string, query: string, signal: AbortSignal) => Promise<Heatmap>
+}
+
+export interface ChatHandlers {
+  onRetrieval: (pages: RetrievedPage[]) => void
+  onToken: (text: string) => void
+  onCitation: (citation: Citation) => void
+  onDone: (usage: AnswerUsage, costUsd: number, modelId: string) => void
+  onError: (error: { code: string; message: string }) => void
+}
+
+export interface ChatPort {
+  /** Streams one answer. Resolves when the stream ends, rejects with a `SearchError`. */
+  ask: (question: string, modelId: string, handlers: ChatHandlers, signal: AbortSignal) => Promise<void>
 }

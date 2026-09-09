@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { HeatmapPort, NativeActionsPort, PageImagePort, SearchPort } from '../../application/ports'
+import type { ChatPort, HeatmapPort, NativeActionsPort, PageImagePort, SearchPort } from '../../application/ports'
+import { useChat } from '../../application/useChat'
 import { useResultSelection } from '../../application/useResultSelection'
 import { useSearch } from '../../application/useSearch'
 import type { IndexProgress, IndexStats } from '../../domain/indexing'
 import { flattenGroups, groupByFile } from '../../domain/search-results'
+import { ChatPanel } from '../chat/ChatPanel'
 import { PagePreview } from '../preview/PagePreview'
 import { IndexingBanner } from './IndexingBanner'
 import { ResultList } from './ResultList'
@@ -16,15 +18,29 @@ interface SearchScreenProps {
   search: SearchPort
   pageImages: PageImagePort
   heatmaps: HeatmapPort
+  chat: ChatPort
+  modelId: string
   nativeActions: NativeActionsPort
   progress: IndexProgress | null
   stats: IndexStats | null
 }
 
-export function SearchScreen({ search, pageImages, heatmaps, nativeActions, progress, stats }: SearchScreenProps) {
+export function SearchScreen({
+  search,
+  pageImages,
+  heatmaps,
+  chat,
+  modelId,
+  nativeActions,
+  progress,
+  stats,
+}: SearchScreenProps) {
   const { state, query, setQuery } = useSearch(search)
   const input = useRef<HTMLInputElement>(null)
   const [previewing, setPreviewing] = useState(false)
+  const [asking, setAsking] = useState(false)
+  const [citedPageId, setCitedPageId] = useState<string | null>(null)
+  const answer = useChat(chat)
 
   const groups = useMemo(() => groupByFile(state.hits), [state.hits])
   const ordered = useMemo(() => flattenGroups(groups), [groups])
@@ -32,7 +48,8 @@ export function SearchScreen({ search, pageImages, heatmaps, nativeActions, prog
   const selection = useResultSelection(orderedIds)
   const selected = ordered.find((hit) => hit.pageId === selection.selected) ?? null
   const selectedPath = selected?.path ?? null
-  const preview = previewing && selected ? selected : null
+  const cited = citedPageId ? (ordered.find((hit) => hit.pageId === citedPageId) ?? null) : null
+  const preview = cited ?? (previewing && selected ? selected : null)
 
   // The product is a search box, so a keystroke anywhere on the window belongs
   // to it. Modifier combinations are left alone: those are shortcuts, not text.
@@ -60,7 +77,8 @@ export function SearchScreen({ search, pageImages, heatmaps, nativeActions, prog
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-8 py-12">
+    <main className="flex min-h-screen">
+      <div className="mx-auto w-full max-w-3xl px-8 py-12">
       <SearchBox
         ref={input}
         query={query}
@@ -72,6 +90,10 @@ export function SearchScreen({ search, pageImages, heatmaps, nativeActions, prog
         onReveal={onSelected(actions.reveal)}
         onCopyPath={onSelected(actions.copyPath)}
         onTogglePreview={() => setPreviewing((open) => !open && selected !== null)}
+        onAsk={() => {
+          setAsking(true)
+          answer.ask(query, modelId)
+        }}
       />
 
       {progress && !progress.done && <IndexingBanner progress={progress} />}
@@ -94,6 +116,20 @@ export function SearchScreen({ search, pageImages, heatmaps, nativeActions, prog
           heatmaps={heatmaps}
           onClose={() => {
             setPreviewing(false)
+            setCitedPageId(null)
+            input.current?.focus()
+          }}
+        />
+      )}
+      </div>
+
+      {asking && (
+        <ChatPanel
+          state={answer.state}
+          onOpenPage={(page) => setCitedPageId(page.pageId)}
+          onClose={() => {
+            setAsking(false)
+            answer.clear()
             input.current?.focus()
           }}
         />

@@ -83,6 +83,7 @@ A hand that leaves the keyboard has lost.
 | typing | always goes to the search box unless a text input has focus |
 | up, down | move through results across file group boundaries |
 | enter | open the selected result in its default app |
+| shift enter | ask the query as a question of the pages it found |
 | space | toggle the page preview for the selected result, unless the query is empty |
 | escape | clear the query, then close the preview, then close the window |
 

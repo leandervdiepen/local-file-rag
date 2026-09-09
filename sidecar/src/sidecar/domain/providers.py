@@ -24,6 +24,7 @@ class ProviderId(StrEnum):
     OPENAI = "openai"
     GEMINI = "gemini"
     OPENROUTER = "openrouter"
+    OLLAMA = "ollama"
     CUSTOM = "custom"
 
 
@@ -73,6 +74,9 @@ PROVIDERS: tuple[Provider, ...] = (
         "GEMINI_API_KEY",
     ),
     Provider(ProviderId.OPENROUTER, "OpenRouter", "openai", "https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
+    # The only provider that needs no key and reaches no network. With it
+    # selected, the privacy line in the README loses its exception clause.
+    Provider(ProviderId.OLLAMA, "Ollama", "openai", "http://localhost:11434/v1", "", needs_key=False),
     # A base URL the user supplies: a local server, a proxy, or the stub the
     # end to end chat test runs against.
     Provider(ProviderId.CUSTOM, "Custom endpoint", "openai", "", "CUSTOM_API_KEY", needs_key=False),
@@ -92,6 +96,9 @@ MODELS: tuple[AnswerModel, ...] = (
         128_000,
     ),
     AnswerModel(ProviderId.GEMINI, "gemini-3.8-flash", "Gemini 3.8 Flash", True, 0.75, 3.75, 1_048_576),
+    # Local, so free, and a vision model because a text-only one would answer
+    # from the question alone (D37). The user installs and pulls it themselves.
+    AnswerModel(ProviderId.OLLAMA, "qwen2.5vl:7b", "Qwen2.5 VL 7B, on this Mac", True, 0.0, 0.0, 128_000),
 )
 
 DEFAULT_MODEL_ID = "openrouter/free"
@@ -117,3 +124,13 @@ def find_model(model_id: str) -> AnswerModel | None:
 def cost_usd(model: AnswerModel, input_tokens: int, output_tokens: int) -> float:
     """Dollars for one exchange, from the prices recorded above."""
     return (input_tokens * model.usd_per_m_input + output_tokens * model.usd_per_m_output) / 1_000_000
+
+
+def runs_locally(provider: Provider) -> bool:
+    """True when choosing this provider means nothing leaves the machine at all.
+
+    The README's privacy sentence has an exception clause for the answer call.
+    With a local provider selected there is no call to except, and the settings
+    screen says so rather than leaving the user to work it out.
+    """
+    return provider.base_url.startswith(("http://localhost", "http://127.0.0.1"))
