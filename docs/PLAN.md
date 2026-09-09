@@ -74,6 +74,7 @@ Measure: cold and cached heatmap times.
 
 Acceptance: "what did the Q2 hosting invoice charge for egress" answers with a correct page citation. A question with no answer in the corpus returns "not in your files" and no citation.
 Measure: first token latency after retrieval, tokens per question.
+Passed 2026-09-09. See `Day 4 gate` in STATUS.md.
 
 ## Day 5, trust
 

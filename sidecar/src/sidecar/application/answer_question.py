@@ -21,6 +21,12 @@ logger = logging.getLogger(__name__)
 # and a weaker answer, not a better one.
 PAGES_PER_ANSWER = 5
 
+# Measured 2026-09-09 against the free default: asked something its pages
+# could not answer, it spent its budget reasoning and streamed no content at
+# all. An empty panel reads as a broken app, and the user cannot tell a
+# refusal from a failure, so an answer with no answer in it is unavailable.
+EMPTY_ANSWER = "The model returned nothing. Ask again, or pick another model in Settings."
+
 
 @dataclass(frozen=True)
 class RetrievedPage:
@@ -51,9 +57,9 @@ class AnswerQuestion:
     behind is worse than no citation, because it is the thing that makes the
     answer look checked.
 
-    Nothing is invented here about what the model said: text is passed through
-    exactly as it arrives, minus the citation markers, which are handed over
-    separately so the panel can render them as chips.
+    Nothing is invented here about what the model said. The text arrives
+    exactly as written, markers included, and each citation is additionally
+    handed over on its own so the panel can offer it as something to click.
     """
 
     def __init__(self, render: RenderPage, answerer: Answerer, pages_per_answer: int = PAGES_PER_ANSWER) -> None:
@@ -76,12 +82,14 @@ class AnswerQuestion:
         reader = CitationReader({page.index: page.page_id for page in images})
         request = AnswerRequest(question=question, pages=tuple(images), model_id=model_id)
         usage = Usage()
+        said_anything = False
 
         for chunk in self._answerer.stream(request):
             if chunk.usage is not None:
                 usage = chunk.usage
             if not chunk.text:
                 continue
+            said_anything = True
             text, citations = reader.feed(chunk.text)
             if text:
                 yield AnswerEvent(text=text)
@@ -91,6 +99,8 @@ class AnswerQuestion:
         tail = reader.flush()
         if tail:
             yield AnswerEvent(text=tail)
+        if not said_anything:
+            raise AnswerUnavailableError(EMPTY_ANSWER)
         yield AnswerEvent(done=usage, cost_usd=self._cost(model_id, usage))
 
     def _evidence(self, hits: list[PageHit]) -> tuple[list[PageImage], tuple[RetrievedPage, ...]]:

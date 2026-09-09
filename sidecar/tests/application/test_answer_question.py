@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from sidecar.application.answer_question import PAGES_PER_ANSWER, AnswerEvent, AnswerQuestion
-from sidecar.domain.answers import Usage
+from sidecar.application.answer_question import EMPTY_ANSWER, PAGES_PER_ANSWER, AnswerEvent, AnswerQuestion
+from sidecar.domain.answers import AnswerChunk, Usage
 from sidecar.domain.entities import FileKind
 from sidecar.domain.errors import AnswerUnavailableError, NotFoundError
 from sidecar.domain.providers import DEFAULT_MODEL_ID
@@ -72,7 +72,7 @@ def test_text_passes_through_and_citations_come_out_separately() -> None:
 
     text = "".join(event.text for event in events)
     cited = [event.citation for event in events if event.citation is not None]
-    assert text == "Egress was 18.4 TB  last quarter."
+    assert text == "Egress was 18.4 TB [1] last quarter.", "the sentence keeps its marker and still reads"
     assert [(c.index, c.page_id) for c in cited] == [(1, "a:1")]
 
 
@@ -82,7 +82,7 @@ def test_a_citation_split_across_chunks_arrives_once() -> None:
 
     cited = [event.citation for event in events if event.citation is not None]
     assert len(cited) == 1
-    assert "".join(event.text for event in events) == "aaaaaaaaaaaabbbb"
+    assert "".join(event.text for event in events) == "aaaaaaaaaaaa[1]bbbb"
 
 
 def test_only_the_top_pages_are_sent_and_their_indexes_are_their_positions() -> None:
@@ -134,3 +134,27 @@ def test_the_pages_reach_the_model_as_the_images_that_were_rendered() -> None:
 
     assert answerer.requests[0].pages[0].png == b"png-a:1"
     assert answerer.requests[0].question == "what did egress cost"
+
+
+def test_a_provider_that_streams_nothing_is_unavailable_rather_than_a_blank_panel() -> None:
+    """Measured against the free default: it can spend its whole budget reasoning and say nothing.
+
+    An empty panel reads as a broken app and gives the user no way to tell a
+    refusal from a failure, so this is reported rather than shown.
+    """
+    silent = FakeAnswerer([AnswerChunk(usage=Usage(input_tokens=3000, output_tokens=0))])
+    render = FakeRenderPage()
+    use_case = AnswerQuestion(render, silent)  # type: ignore[arg-type]
+
+    with pytest.raises(AnswerUnavailableError, match="returned nothing"):
+        list(use_case.run("q", [hit("a:1")], DEFAULT_MODEL_ID))
+    assert "Settings" in EMPTY_ANSWER, "the message names where to change the model"
+
+
+def test_an_answer_that_says_the_pages_do_not_have_it_is_a_real_answer() -> None:
+    """Abstaining is text with no citation, which is not the same as saying nothing."""
+    events, _ = answer_with(FakeAnswerer().saying("That is not in your files."), [hit("a:1")])
+
+    assert "".join(event.text for event in events) == "That is not in your files."
+    assert [event.citation for event in events if event.citation is not None] == []
+    assert events[-1].done is not None

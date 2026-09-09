@@ -121,12 +121,13 @@ def test_a_citation_arrives_as_its_own_event_pointing_at_a_page_that_was_sent() 
     assert all(citation["page_id"] in sent for citation in cited)
 
 
-def test_the_answer_text_carries_no_citation_markers() -> None:
+def test_the_marker_stays_in_the_sentence_and_the_citation_also_arrives_on_its_own() -> None:
+    """Lifting the marker out leaves "the invoice on page  says", so it stays and the chip repeats it."""
     stream = ask(FakeAnswerer().saying("Egress was 18.4 TB [1]."))
 
     text = "".join(payload["text"] for name, payload in stream if name == "token")
-    assert "[1]" not in text
-    assert "18.4 TB" in text
+    assert text == "Egress was 18.4 TB [1]."
+    assert [payload["index"] for name, payload in stream if name == "citation"] == [1]
 
 
 def test_done_carries_the_usage_the_cost_and_the_model() -> None:

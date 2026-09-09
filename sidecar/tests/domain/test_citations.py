@@ -22,18 +22,27 @@ def read(chunks: list[str]) -> tuple[str, list[Citation]]:
     return "".join(text), found
 
 
-def test_a_citation_is_lifted_out_of_the_text() -> None:
+def test_a_citation_is_reported_and_the_marker_stays_where_it_was_written() -> None:
     text, found = read(["Egress was 18.4 TB [1]."])
 
-    assert text == "Egress was 18.4 TB ."
+    assert text == "Egress was 18.4 TB [1]."
     assert found == [Citation(index=1, page_id="a:1")]
 
 
 def test_a_citation_split_across_chunks_is_still_one_citation() -> None:
     text, found = read(["Egress was 18.4 TB ", "[", "1", "]", "."])
 
-    assert text == "Egress was 18.4 TB ."
+    assert text == "Egress was 18.4 TB [1]."
     assert found == [Citation(index=1, page_id="a:1")]
+
+
+def test_the_text_is_the_answer_verbatim() -> None:
+    """Every character comes out once, in order, whatever the chunking."""
+    answer = "The invoice [2] lists egress at 18.4 TB [1]."
+
+    text, _ = read(list(answer))
+
+    assert text == answer
 
 
 def test_every_character_comes_out_once_and_in_order() -> None:

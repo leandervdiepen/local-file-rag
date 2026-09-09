@@ -141,6 +141,31 @@ Subtracting the padding-token response, which is what a patch answers when it an
 
 This corpus is the hardest case for patch localization, because a synthetic screenshot is mostly flat grey and gives the model nothing to distinguish in the background. The published number on real documents is a mean IoU of 0.569 (`docs/research/evaluation-2026-09.md`). Re-measure on real files before drawing a conclusion about the model.
 
+### Day 4, chat
+
+M1 Max, 2026-09-09, `openrouter/free` against the indexed demo corpus, five page images per answer.
+
+| Metric | Value | Note |
+| --- | --- | --- |
+| First token after retrieval | 15.0 to 18.5 s | The free router is the slow part. A paid model is the lever if this matters |
+| Tokens per question | about 3,300 in, 190 out | Five 1024 px page images dominate the input |
+| Cost per question | 0 | D38's default is free, so development costs nothing |
+
+### Day 4 gate
+
+PASS.
+
+Asked "what did the hosting invoice charge for egress", it answered:
+
+> The hosting invoice charged $1,472.00 for data egress, based on 18.4 TB at $80.00 per TB. [1]
+
+All three figures are exactly what the page says, and the citation resolves to `hosting-q2-2026.pdf` page 1, which is the invoice.
+Asked for a sister's phone number, it answered "The provided pages do not contain the sister's phone number" and cited nothing, which is the abstention the acceptance asks for.
+
+Two things the run found and fixed.
+The free model can spend its whole budget reasoning and stream no content at all, which showed as an empty panel: a user cannot tell a refusal from a failure, so an answer with no answer in it is now reported as unavailable with a message naming what to do.
+Lifting the `[1]` out of the prose left sentences like "the invoice on page  says", so the marker stays where it was written and the chip beneath repeats the number.
+
 ### dtype and build sweep
 
 Each row is its own process, so the memory numbers are not contaminated by a previous load.
