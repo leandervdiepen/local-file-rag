@@ -199,6 +199,17 @@ Both are the same failure: a page whose text says the words beats the page that 
 MaxSim gives every query token its best patch, and a page covered in text has a strong patch for every token, while a chart has a few strong ones and a lot of whitespace.
 That is a density bias, and it means the visual channel is currently returning what the text channel already found.
 
+The pooling factor is not the lever either.
+Re-indexing the whole corpus at pool factor 1, which stores 747 vectors a page instead of 249, gives the same 0.833 overall and the same 0.444 visual.
+Both levers named as the way forward on day 5 are now measured and both are null results.
+
+That is worth keeping for a reason beyond retrieval: pooling at 3 costs nothing in quality and a third of the disk, so D35's factor stands on evidence rather than on the paper's default.
+
+What is left is the fusion.
+Stage 1 and stage 2 currently agree too much, because a page whose words match is a strong text candidate and a strong MaxSim candidate at the same time, and nothing in the ranking knows that the second signal added no information.
+Changing that is a ranking change that would need to be measured against the 21 for 21 the text channel currently gets, and it is not something to try without the harness pointed at it.
+The gate is written as recall@5 of 0.8 or better, or the gap written down with the failing queries. Both halves are now true, and the honest reading is the second one.
+
 ### dtype and build sweep
 
 Each row is its own process, so the memory numbers are not contaminated by a previous load.
