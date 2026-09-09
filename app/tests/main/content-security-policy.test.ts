@@ -16,6 +16,10 @@ describe('the content security policy', () => {
     expect(scriptSrc).toBe("script-src 'self'")
   })
 
+  it('lets a page image reach an img element, which only works as a blob url', () => {
+    expect(directive(contentSecurityPolicy(undefined), 'img-src')).toContain('blob:')
+  })
+
   it('reaches nothing but itself and the loopback sidecar in a packaged build', () => {
     const policy = contentSecurityPolicy(undefined)
 

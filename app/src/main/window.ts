@@ -8,7 +8,11 @@ const SHIPPED_POLICY = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
+  // `blob:` is how a page image reaches an `img`. An `img` cannot carry the
+  // bearer header, so `page-image-adapter` fetches the bytes and hands over an
+  // object URL, which the page made out of a response it already had. Without
+  // this every thumbnail in the result grid is a broken image icon.
+  "img-src 'self' data: blob:",
   "font-src 'self'",
   // The sidecar binds to loopback on a port the OS assigns (--port 0), so the
   // exact port is unknown until the handshake completes. The port wildcard
