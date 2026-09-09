@@ -15,6 +15,11 @@ dependencies = [
     "waitress>=3.0",
     "sentence-transformers>=6.0",
     "torch>=2.4",
+    # Load bearing and easy to miss: transformers builds Qwen2VL's processor
+    # through torchvision, so without it the model raises on load and every
+    # other test still passes. It arrived transitively until 2026-09-09, when
+    # a lockfile sync dropped it and took the whole vision path with it.
+    "torchvision>=0.19",
     "numpy>=2.0",
     "watchdog>=6.0.0",
 ]
@@ -26,6 +31,7 @@ dev = [
     "ruff",
     "mypy",
     "import-linter",
+    "pyinstaller>=6.11",
 ]
 
 [project.scripts]

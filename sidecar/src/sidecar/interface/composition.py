@@ -50,6 +50,7 @@ from sidecar.infrastructure.text_pages import TextFilePageSource
 from sidecar.infrastructure.vision_ocr import AppleVisionTextReader
 from sidecar.interface.auth import register_auth
 from sidecar.interface.chat_routes import build_chat_blueprint
+from sidecar.interface.cors import register_cors
 from sidecar.interface.errors import register_error_handlers
 from sidecar.interface.eval_routes import build_eval_blueprint
 from sidecar.interface.folder_routes import build_folder_blueprint
@@ -83,6 +84,7 @@ def build_app(
     app = Flask(__name__)
 
     register_error_handlers(app)
+    register_cors(app)
     register_auth(app, token)
 
     clock = SystemClock()
