@@ -45,6 +45,11 @@ class FakeIndexStore:
         file = self._files.get(file_id)
         return file.content_hash if file is not None else None
 
+    def files_in_state(self, state: FileState, after_path: str | None, limit: int) -> list[IndexedFile]:
+        matching = (f for f in self._files.values() if f.state is state)
+        after = (f for f in matching if after_path is None or str(f.path) > after_path)
+        return sorted(after, key=lambda file: str(file.path))[:limit]
+
     def indexed_files(self) -> list[IndexedFile]:
         indexed = (f for f in self._files.values() if f.state is FileState.TEXT_INDEXED)
         return sorted(indexed, key=lambda file: str(file.path))

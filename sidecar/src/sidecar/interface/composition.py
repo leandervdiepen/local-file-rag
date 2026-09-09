@@ -11,6 +11,7 @@ from sidecar.application.explain_page import ExplainPage
 from sidecar.application.health import ReportHealth
 from sidecar.application.index_folder import IndexFolder
 from sidecar.application.indexing_jobs import IndexingJobs
+from sidecar.application.list_index_files import ListIndexFiles
 from sidecar.application.manage_folders import ManageFolders
 from sidecar.application.ports import PageSource
 from sidecar.application.read_index_stats import ReadIndexStats
@@ -82,7 +83,7 @@ def build_app(token: str, db_path: Path) -> Flask:
     app.register_blueprint(build_health_blueprint(ReportHealth(clock=clock, probe=FilesystemHealthProbe(db_path))))
     app.register_blueprint(build_folder_blueprint(ManageFolders(folders)))
     jobs = IndexingJobs(index_folder, folders, store, vectors, embed_pages)
-    app.register_blueprint(build_index_blueprint(jobs, ReadIndexStats(store, vectors)))
+    app.register_blueprint(build_index_blueprint(jobs, ReadIndexStats(store, vectors), ListIndexFiles(store)))
     app.register_blueprint(build_search_blueprint(search))
     render_page = RenderPage(store, sources)
     app.register_blueprint(build_page_blueprint(render_page))

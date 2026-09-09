@@ -6,12 +6,15 @@ from collections.abc import Iterator
 from dataclasses import asdict
 from typing import Any
 
-from flask import Blueprint, Response, jsonify
+from flask import Blueprint, Response, jsonify, request
 
 from sidecar.application.indexing_jobs import IndexingJobs
+from sidecar.application.list_index_files import ListIndexFiles
 from sidecar.application.read_index_stats import ReadIndexStats
+from sidecar.domain.entities import FileState, IndexedFile
 from sidecar.domain.progress import IndexProgress
 from sidecar.domain.search import IndexStats
+from sidecar.interface.errors import error_response
 from sidecar.interface.sse import encode_event
 
 _NO_JOB_YET = IndexProgress(folder_id="", done=True)
@@ -22,7 +25,10 @@ _NO_JOB_YET = IndexProgress(folder_id="", done=True)
 _LIVE_HEADERS = {"Cache-Control": "no-store", "X-Accel-Buffering": "no"}
 
 
-def build_index_blueprint(jobs: IndexingJobs, read_stats: ReadIndexStats) -> Blueprint:
+_INVALID_STATE_MESSAGE = "That is not a file state. Ask for text_indexed or skipped."
+
+
+def build_index_blueprint(jobs: IndexingJobs, read_stats: ReadIndexStats, list_files: ListIndexFiles) -> Blueprint:
     """Build the /index blueprint bound to one job runner and one stats use case."""
     bp = Blueprint("index", __name__)
 
@@ -38,11 +44,43 @@ def build_index_blueprint(jobs: IndexingJobs, read_stats: ReadIndexStats) -> Blu
         response.headers["Cache-Control"] = "no-store"
         return response
 
+    @bp.get("/index/files")
+    def files() -> Response:
+        wanted = request.args.get("state", FileState.TEXT_INDEXED.value)
+        try:
+            state = FileState(wanted)
+        except ValueError:
+            return error_response("invalid_state", _INVALID_STATE_MESSAGE, status=400, detail={"state": wanted})
+
+        page = list_files.run(state, request.args.get("cursor"))
+        response = jsonify(
+            {
+                "files": [_file_body(file) for file in page.files],
+                "next_cursor": page.next_cursor,
+            }
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
     @bp.get("/index/progress")
     def progress() -> Response:
         return Response(_progress_events(jobs), mimetype="text/event-stream", headers=_LIVE_HEADERS)
 
     return bp
+
+
+def _file_body(file: IndexedFile) -> dict[str, Any]:
+    """One row of the index screen. `skip_reason` is what the screen shows instead of a page count."""
+    return {
+        "id": file.id,
+        "path": str(file.path),
+        "kind": file.kind.value,
+        "state": file.state.value,
+        "skip_reason": file.skip_reason,
+        "size_bytes": file.size_bytes,
+        "page_count": file.page_count,
+        "truncated_pages": file.truncated_pages,
+    }
 
 
 def _stats_body(stats: IndexStats) -> dict[str, Any]:

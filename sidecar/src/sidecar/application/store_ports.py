@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
 
-from sidecar.domain.entities import Folder, IndexedFile, Page
+from sidecar.domain.entities import FileState, Folder, IndexedFile, Page
 from sidecar.domain.search import IndexStats, PageHit
 from sidecar.domain.vectors import PageVectors, QueryVectors
 
@@ -53,6 +53,15 @@ class IndexStore(Protocol):
         disk and skip an unchanged file without loading it. The day 5 watcher
         depends on that: its cost has to be proportional to what changed
         rather than to the size of the folder.
+        """
+        ...
+
+    def files_in_state(self, state: FileState, after_path: str | None, limit: int) -> list[IndexedFile]:
+        """A page of files in one state, ordered by path, starting after `after_path`.
+
+        Paged by path rather than by offset so a crawl running underneath the
+        index screen cannot make a row appear twice or not at all. `after_path`
+        of `None` starts at the beginning.
         """
         ...
 

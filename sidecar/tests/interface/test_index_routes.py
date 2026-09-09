@@ -18,6 +18,7 @@ from flask import Flask
 from flask.testing import FlaskClient
 
 from sidecar.application.indexing_jobs import IndexingJobs
+from sidecar.application.list_index_files import ListIndexFiles
 from sidecar.application.read_index_stats import ReadIndexStats
 from sidecar.domain.entities import FileKind, FileState, IndexedFile, Page
 from sidecar.domain.errors import IndexBusyError
@@ -72,8 +73,9 @@ def _client(
     app = Flask(__name__)
     register_error_handlers(app)
     register_auth(app, TOKEN)
-    read_stats = ReadIndexStats(store if store is not None else FakeIndexStore(), vectors or FakeVectorStore())
-    app.register_blueprint(build_index_blueprint(cast(IndexingJobs, jobs), read_stats))
+    index = store if store is not None else FakeIndexStore()
+    read_stats = ReadIndexStats(index, vectors or FakeVectorStore())
+    app.register_blueprint(build_index_blueprint(cast(IndexingJobs, jobs), read_stats, ListIndexFiles(index)))
     return app.test_client()
 
 
@@ -86,10 +88,12 @@ def _events(payload: str) -> list[tuple[str, Any]]:
     return parsed
 
 
-def _a_file(file_id: str, size_bytes: int, state: FileState, skip_reason: str | None = None) -> IndexedFile:
+def _a_file(
+    file_id: str, size_bytes: int, state: FileState, skip_reason: str | None = None, path: Path | None = None
+) -> IndexedFile:
     return IndexedFile(
         id=file_id,
-        path=Path(f"/corpus/{file_id}.pdf"),
+        path=path or Path(f"/corpus/{file_id}.pdf"),
         folder_id="folder-1",
         content_hash="abc",
         size_bytes=size_bytes,
@@ -205,3 +209,53 @@ def test_progress_before_the_first_job_sends_a_zeroed_done() -> None:
         "current_path": "",
         "done": True,
     }
+
+
+def test_the_index_lists_what_it_indexed() -> None:
+    response = _client(FakeIndexingJobs(), _a_stocked_store()).get("/index/files", headers=AUTH)
+
+    body = response.get_json()
+    assert [file["id"] for file in body["files"]] == ["file-1"]
+    assert body["files"][0]["state"] == "text_indexed"
+    assert body["next_cursor"] is None
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_a_skipped_file_carries_the_reason_instead_of_a_page_count() -> None:
+    response = _client(FakeIndexingJobs(), _a_stocked_store()).get(
+        "/index/files", query_string={"state": "skipped"}, headers=AUTH
+    )
+
+    [skipped] = response.get_json()["files"]
+    assert skipped["id"] == "file-2"
+    assert skipped["skip_reason"] == "too_large"
+    assert skipped["page_count"] == 0
+
+
+def test_a_state_that_does_not_exist_is_400_rather_than_an_empty_list() -> None:
+    response = _client(FakeIndexingJobs(), _a_stocked_store()).get(
+        "/index/files", query_string={"state": "pondering"}, headers=AUTH
+    )
+
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "invalid_state"
+
+
+def test_the_cursor_walks_every_file_once() -> None:
+    store = FakeIndexStore()
+    for n in range(5):
+        store.upsert_file(_a_file(f"file-{n}", 10, FileState.TEXT_INDEXED, path=Path(f"/corpus/{n}.pdf")))
+    client = _client(FakeIndexingJobs(), store)
+
+    seen: list[str] = []
+    cursor: str | None = None
+    for _ in range(6):
+        query = {} if cursor is None else {"cursor": cursor}
+        body = client.get("/index/files", query_string=query, headers=AUTH).get_json()
+        seen.extend(file["id"] for file in body["files"])
+        cursor = body["next_cursor"]
+        if cursor is None:
+            break
+
+    assert sorted(seen) == [f"file-{n}" for n in range(5)]
+    assert len(seen) == len(set(seen)), "the cursor showed a file twice"
