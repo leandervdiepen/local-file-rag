@@ -9,6 +9,7 @@ from sidecar.application.manage_folders import ManageFolders
 from sidecar.domain.errors import NotFoundError, ValidationError
 from tests.fakes.clock import FakeClock
 from tests.fakes.folder_store import FakeFolderStore
+from tests.fakes.folder_watch import FakeFolderWatch
 
 ADDED_AT = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -124,3 +125,50 @@ def test_set_enabled_raises_for_an_id_that_is_not_there() -> None:
 
     with pytest.raises(NotFoundError):
         manage.set_enabled("not-an-id", False)
+
+
+def test_a_folder_that_was_added_is_watched(tmp_path: Path) -> None:
+    watch = FakeFolderWatch()
+    manage = ManageFolders(folders=FakeFolderStore(FakeClock(ADDED_AT)), watch=watch)
+
+    manage.add(tmp_path)
+
+    assert watch.watching == {tmp_path}
+
+
+def test_a_folder_that_was_removed_is_not_watched(tmp_path: Path) -> None:
+    watch = FakeFolderWatch()
+    manage = ManageFolders(folders=FakeFolderStore(FakeClock(ADDED_AT)), watch=watch)
+    folder = manage.add(tmp_path)
+
+    manage.remove(folder.id)
+
+    assert watch.watching == set()
+
+
+def test_turning_a_folder_off_stops_watching_it_and_on_starts_again(tmp_path: Path) -> None:
+    """A disabled folder that keeps firing events is the toggle doing nothing."""
+    watch = FakeFolderWatch()
+    manage = ManageFolders(folders=FakeFolderStore(FakeClock(ADDED_AT)), watch=watch)
+    folder = manage.add(tmp_path)
+
+    manage.set_enabled(folder.id, False)
+    assert watch.watching == set()
+
+    manage.set_enabled(folder.id, True)
+    assert watch.watching == {tmp_path}
+
+
+def test_watching_resumes_for_folders_that_outlived_the_process(tmp_path: Path) -> None:
+    """Folders are stored and the watch is not, so a restart has to point it again."""
+    store = FakeFolderStore(FakeClock(ADDED_AT))
+    off = tmp_path / "off"
+    off.mkdir()
+    ManageFolders(folders=store).add(tmp_path)
+    disabled = ManageFolders(folders=store).add(off)
+    store.set_enabled(disabled.id, False)
+
+    watch = FakeFolderWatch()
+    ManageFolders(folders=store, watch=watch).resume_watching()
+
+    assert watch.watching == {tmp_path}

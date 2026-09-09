@@ -23,6 +23,9 @@ class FilesystemCrawler:
     """
 
     def crawl(self, root: Path) -> Iterator[FileCandidate]:
+        if root.is_file():
+            yield from self._one_file(root)
+            return
         if not root.is_dir():
             return  # A folder the user removed is an empty folder, not a crash.
         try:
@@ -30,6 +33,24 @@ class FilesystemCrawler:
         except OSError as exc:
             raise FolderUnreadableError(f"Cannot read folder: {root}") from exc
         yield from self._candidates(entries)
+
+    def _one_file(self, path: Path) -> Iterator[FileCandidate]:
+        """A file root is a tree of one, which is how `ApplyChanges` re-indexes a single file.
+
+        Without this the watcher walked nothing for every file it was told
+        about, and the whole re-index path did nothing quietly. Measured
+        2026-09-09.
+        """
+        try:
+            stat = path.stat()
+        except OSError:
+            logger.warning("skipping unreadable entry: %s", path)
+            return
+        yield FileCandidate(
+            path=path,
+            size_bytes=stat.st_size,
+            mtime=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
+        )
 
     def _walk(self, directory: Path) -> Iterator[FileCandidate]:
         try:

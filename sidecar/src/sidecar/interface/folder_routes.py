@@ -13,6 +13,7 @@ from sidecar.interface.errors import error_response
 
 _BODY_NOT_JSON = "The request body is not JSON. Send a JSON object with a path."
 _PATH_MISSING = 'The request needs a path. Send a JSON body like {"path": "/Users/you/Documents"}.'
+_ENABLED_MISSING = 'The request needs an enabled flag. Send a JSON body like {"enabled": false}.'
 
 
 def _serialize(folder: Folder) -> dict[str, Any]:
@@ -55,6 +56,19 @@ def build_folder_blueprint(manage: ManageFolders) -> Blueprint:
         response = _uncached(jsonify(_serialize(manage.add(Path(path)))))
         response.status_code = 201
         return response
+
+    @bp.patch("/folders/<folder_id>")
+    def set_folder_enabled(folder_id: str) -> Response:
+        body = request.get_json(silent=True)
+        if not isinstance(body, dict):
+            return error_response("invalid_request", _BODY_NOT_JSON, status=400)
+        enabled = body.get("enabled")
+        if not isinstance(enabled, bool):
+            return error_response("invalid_request", _ENABLED_MISSING, status=400)
+
+        manage.set_enabled(folder_id, enabled)
+        folder = next(candidate for candidate in manage.list() if candidate.id == folder_id)
+        return _uncached(jsonify(_serialize(folder)))
 
     @bp.delete("/folders/<folder_id>")
     def remove_folder(folder_id: str) -> Response:

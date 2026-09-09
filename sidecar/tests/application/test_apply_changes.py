@@ -13,8 +13,10 @@ from sidecar.domain.changes import ChangeKind, FileChange
 from sidecar.domain.entities import FileCandidate, FileKind
 from sidecar.domain.identity import file_id, page_id
 from sidecar.domain.vectors import STORED_DTYPE, VECTOR_DIM, PageVectors
+from tests.fakes.clock import FakeClock
 from tests.fakes.file_probe import FakeFileProbe
 from tests.fakes.folder_crawler import FakeFolderCrawler
+from tests.fakes.folder_store import FakeFolderStore
 from tests.fakes.image_text_reader import FakeImageTextReader
 from tests.fakes.index_store import FakeIndexStore
 from tests.fakes.page_source import FakePageSource
@@ -22,7 +24,7 @@ from tests.fakes.vector_store import FakeVectorStore
 
 ROOT = Path("/corpus")
 NOW = datetime(2026, 9, 9, tzinfo=UTC)
-FOLDER = "d1"
+FOLDER = file_id(ROOT)
 
 
 class World:
@@ -31,6 +33,8 @@ class World:
     def __init__(self) -> None:
         self.store = FakeIndexStore()
         self.vectors = FakeVectorStore()
+        self.folders = FakeFolderStore(FakeClock(NOW))
+        self.folders.add(ROOT)
         self.pages = FakePageSource()
         self.crawler = FakeFolderCrawler()
         self.probe = FakeFileProbe()
@@ -41,7 +45,7 @@ class World:
             ocr=FakeImageTextReader(),
             store=self.store,
         )
-        self.use_case = ApplyChanges(self.indexer, self.store, self.vectors)
+        self.use_case = ApplyChanges(self.indexer, self.folders, self.store, self.vectors)
 
     def a_file(self, name: str, pages: list[str]) -> Path:
         path = ROOT / name
@@ -57,7 +61,7 @@ class World:
             self.vectors.put_vectors([_vectors_for(page.id)])
 
     def apply(self, *changes: FileChange, sizes: dict[Path, int] | None = None) -> int:
-        return self.use_case.run(FOLDER, list(changes), sizes or {c.path: 1024 for c in changes})
+        return self.use_case.run(list(changes), sizes or {c.path: 1024 for c in changes})
 
 
 def _vectors_for(page: str) -> PageVectors:
@@ -147,3 +151,51 @@ def test_a_file_that_will_not_re_index_leaves_the_rest_alone() -> None:
     world.apply(FileChange(broken, ChangeKind.TOUCHED), FileChange(good, ChangeKind.TOUCHED))
 
     assert world.store.get_file(file_id(good)) is not None
+
+
+def test_a_file_is_attributed_to_the_folder_that_holds_it() -> None:
+    """One batch can span two watched folders, and the row has to name the right one."""
+    world = World()
+    other = Path("/elsewhere")
+    world.folders.add(other)
+    path = world.a_file("report.pdf", ["page one"])
+
+    world.apply(FileChange(path, ChangeKind.TOUCHED))
+
+    stored = world.store.get_file(file_id(path))
+    assert stored is not None
+    assert stored.folder_id == file_id(ROOT)
+
+
+def test_the_innermost_folder_wins_when_one_is_inside_another() -> None:
+    inner = ROOT / "invoices"
+    world = World()
+    world.folders.add(inner)
+    path = world.a_file("invoices/q2.pdf", ["egress"])
+
+    world.apply(FileChange(path, ChangeKind.TOUCHED))
+
+    stored = world.store.get_file(file_id(path))
+    assert stored is not None
+    assert stored.folder_id == file_id(inner)
+
+
+def test_a_change_under_no_indexed_folder_is_left_alone() -> None:
+    world = World()
+    stray = Path("/somewhere/else/report.pdf")
+    world.pages.pages[stray] = ["page one"]
+    world.probe.files[stray] = b"%PDF-1.4 body"
+    world.crawler.files[stray] = FileCandidate(path=stray, size_bytes=1024, mtime=NOW)
+
+    assert world.apply(FileChange(stray, ChangeKind.TOUCHED)) == 0
+    assert world.store.get_file(file_id(stray)) is None
+
+
+def test_a_change_in_a_folder_the_user_turned_off_is_left_alone() -> None:
+    """Reacting to it would put back exactly what the toggle was for."""
+    world = World()
+    world.folders.set_enabled(file_id(ROOT), False)
+    path = world.a_file("report.pdf", ["page one"])
+
+    assert world.apply(FileChange(path, ChangeKind.TOUCHED)) == 0
+    assert world.store.get_file(file_id(path)) is None

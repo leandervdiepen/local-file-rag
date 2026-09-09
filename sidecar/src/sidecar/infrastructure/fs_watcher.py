@@ -21,6 +21,7 @@ from watchdog.events import (
     FileSystemEventHandler,
 )
 from watchdog.observers import Observer
+from watchdog.observers.api import ObservedWatch
 
 from sidecar.domain.changes import ChangeKind, FileChange
 
@@ -52,9 +53,27 @@ class FolderWatcher:
         self._lock = threading.Lock()
         self._pending: list[FileChange] = []
         self._timer: threading.Timer | None = None
+        self._watches: dict[Path, ObservedWatch] = {}
+        self._spelling: dict[Path, Path] = {}
 
     def watch(self, root: Path) -> None:
-        self._observer.schedule(_Handler(self._record), str(root), recursive=True)
+        """Watch `root` and everything under it. Watching one twice watches it once.
+
+        Safe before and after `start`, because a folder the user adds mid
+        session has to be watched without restarting the process.
+        """
+        with self._lock:
+            if root in self._watches:
+                return
+            self._spelling[root.resolve()] = root
+            self._watches[root] = self._observer.schedule(_Handler(self._record), str(root), recursive=True)
+
+    def unwatch(self, root: Path) -> None:
+        with self._lock:
+            watch = self._watches.pop(root, None)
+            self._spelling.pop(root.resolve(), None)
+        if watch is not None:
+            self._observer.unschedule(watch)
 
     def start(self) -> None:
         self._observer.start()
@@ -71,12 +90,30 @@ class FolderWatcher:
 
     def _record(self, change: FileChange) -> None:
         with self._lock:
-            self._pending.append(change)
+            self._pending.append(self._as_watched(change))
             if self._timer is not None:
                 self._timer.cancel()
             self._timer = threading.Timer(self._debounce_seconds, self._deliver)
             self._timer.daemon = True
             self._timer.start()
+
+    def _as_watched(self, change: FileChange) -> FileChange:
+        """The change under the path the user chose, not the one the OS resolved it to.
+
+        FSEvents reports every path with its symlinks followed, so a folder
+        added as /var/folders/x arrives as /private/var/folders/x. Everything
+        downstream keys on the path the folder was added under, and a file id
+        derived from the resolved spelling would be a second row for the same
+        file. Measured 2026-09-09: without this the watcher noticed nothing at
+        all under any folder reached through a link, which on macOS includes
+        every temporary directory and any home folder on a second volume.
+
+        Called with the lock held, because `_spelling` changes under it.
+        """
+        for resolved, chosen in self._spelling.items():
+            if change.path.is_relative_to(resolved):
+                return FileChange(chosen / change.path.relative_to(resolved), change.kind)
+        return change
 
     def _deliver(self) -> None:
         with self._lock:

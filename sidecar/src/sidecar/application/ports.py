@@ -43,6 +43,10 @@ class FolderCrawler(Protocol):
     def crawl(self, root: Path) -> Iterator[FileCandidate]:
         """Yield every file under `root`, lazily.
 
+        A `root` that is itself a file is a tree of one and yields that file,
+        which is how a single changed file is re-indexed through the same
+        pipeline as a crawl rather than a second one that could disagree with
+        it about the gate, about OCR or about page ids.
         Does not follow symlinks, so a link loop cannot hang a crawl.
         Does not descend into a directory the gate excludes, because the point
         of excluding `node_modules` is not paying to walk it.
@@ -51,6 +55,23 @@ class FolderCrawler(Protocol):
         Raises `FolderUnreadableError` when the folder exists but permission is denied,
         because that one the user can fix.
         """
+        ...
+
+
+class FolderWatch(Protocol):
+    """Watches folders for changes and reports them once they settle.
+
+    The application layer decides which folders are watched. When and how a
+    change is noticed is the adapter's business, and a build with no watcher
+    satisfies this port by doing nothing.
+    """
+
+    def watch(self, root: Path) -> None:
+        """Start reporting changes under `root`. Idempotent: watching twice is watched once."""
+        ...
+
+    def unwatch(self, root: Path) -> None:
+        """Stop reporting changes under `root`. Silent for a root that was never watched."""
         ...
 
 

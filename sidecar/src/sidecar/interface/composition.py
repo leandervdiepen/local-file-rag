@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import atexit
+import logging
 import os
 from pathlib import Path
 
 from flask import Flask
 
 from sidecar.application.answer_question import AnswerQuestion
+from sidecar.application.apply_changes import ApplyChanges
 from sidecar.application.embed_pages import EmbedPages
 from sidecar.application.explain_page import ExplainPage
 from sidecar.application.health import ReportHealth
@@ -20,12 +23,14 @@ from sidecar.application.read_index_stats import ReadIndexStats
 from sidecar.application.render_page import RenderPage
 from sidecar.application.run_golden_set import RunGoldenSet
 from sidecar.application.search import Search
+from sidecar.domain.changes import FileChange
 from sidecar.domain.entities import FileKind
 from sidecar.domain.providers import PROVIDERS, ProviderId
 from sidecar.infrastructure.colqwen_embedder import ColQwenEmbedder
 from sidecar.infrastructure.filesystem_health import FilesystemHealthProbe
 from sidecar.infrastructure.fs_crawler import FilesystemCrawler
 from sidecar.infrastructure.fs_probe import FilesystemProbe
+from sidecar.infrastructure.fs_watcher import FolderWatcher
 from sidecar.infrastructure.image_pages import ImagePageSource
 from sidecar.infrastructure.lancedb_folders import LanceDBFolders
 from sidecar.infrastructure.lancedb_store import LanceDBStore
@@ -45,6 +50,8 @@ from sidecar.interface.heatmap_routes import build_heatmap_blueprint
 from sidecar.interface.index_routes import build_index_blueprint
 from sidecar.interface.page_routes import build_page_blueprint
 from sidecar.interface.search_routes import build_search_blueprint
+
+logger = logging.getLogger(__name__)
 
 
 def _page_sources() -> dict[FileKind, PageSource]:
@@ -85,8 +92,12 @@ def build_app(token: str, db_path: Path) -> Flask:
         store=store,
     )
 
+    watcher = _start_watching(ApplyChanges(index_folder, folders, store, vectors))
+    manage_folders = ManageFolders(folders, watcher)
+    manage_folders.resume_watching()
+
     app.register_blueprint(build_health_blueprint(ReportHealth(clock=clock, probe=FilesystemHealthProbe(db_path))))
-    app.register_blueprint(build_folder_blueprint(ManageFolders(folders)))
+    app.register_blueprint(build_folder_blueprint(manage_folders))
     jobs = IndexingJobs(index_folder, folders, store, vectors, embed_pages)
     app.register_blueprint(build_index_blueprint(jobs, ReadIndexStats(store, vectors), ListIndexFiles(store)))
     app.register_blueprint(build_search_blueprint(search))
@@ -109,3 +120,30 @@ def _answerer() -> OpenAIAnswerer:
     """
     provider = next(p for p in PROVIDERS if p.id is ProviderId.OPENROUTER)
     return OpenAIAnswerer(base_url=provider.base_url, api_key=os.environ.get(provider.env_var))
+
+
+def _start_watching(apply_changes: ApplyChanges) -> FolderWatcher:
+    """The running watcher, already started and registered to stop on exit.
+
+    Started before any folder is watched, because watchdog takes a folder at
+    any time but the app has to keep the two calls in one place to be sure
+    the observer thread is up before the first event can arrive.
+
+    A batch that fails is logged, not raised. It arrives on the watcher's own
+    thread, where an exception reaches nothing that could tell the user, and
+    one unreadable file must not stop the folder being watched.
+    """
+
+    def on_batch(changes: list[FileChange], sizes: dict[Path, int]) -> None:
+        try:
+            acted = apply_changes.run(changes, sizes)
+        except Exception:
+            logger.exception("applying %d filesystem changes failed", len(changes))
+            return
+        if acted:
+            logger.info("applied %d of %d filesystem changes", acted, len(changes))
+
+    watcher = FolderWatcher(on_batch)
+    watcher.start()
+    atexit.register(watcher.stop)
+    return watcher

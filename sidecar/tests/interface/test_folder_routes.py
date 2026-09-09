@@ -167,3 +167,38 @@ def test_folders_needs_the_token() -> None:
     assert client.get("/folders").status_code == 401
     assert client.post("/folders", json={"path": "/tmp"}).status_code == 401
     assert client.delete("/folders/not-an-id").status_code == 401
+
+
+def test_a_folder_can_be_turned_off_and_back_on(tmp_path: Path) -> None:
+    client = _build_client()
+    folder_id = client.post("/folders", json={"path": str(tmp_path)}, headers=AUTH).get_json()["id"]
+
+    off = client.patch(f"/folders/{folder_id}", json={"enabled": False}, headers=AUTH)
+    assert off.status_code == 200
+    assert off.get_json()["enabled"] is False
+
+    on = client.patch(f"/folders/{folder_id}", json={"enabled": True}, headers=AUTH)
+    assert on.get_json()["enabled"] is True
+
+
+def test_a_toggle_without_a_flag_says_what_the_body_needs(tmp_path: Path) -> None:
+    client = _build_client()
+    folder_id = client.post("/folders", json={"path": str(tmp_path)}, headers=AUTH).get_json()["id"]
+
+    response = client.patch(f"/folders/{folder_id}", json={}, headers=AUTH)
+
+    assert response.status_code == 400
+    assert "enabled" in response.get_json()["error"]["message"]
+
+
+def test_toggling_a_folder_that_is_not_there_is_a_404() -> None:
+    """Unlike remove: the caller is asking for a state no row can hold."""
+    client = _build_client()
+
+    assert client.patch("/folders/not-an-id", json={"enabled": False}, headers=AUTH).status_code == 404
+
+
+def test_toggling_a_folder_needs_the_token(tmp_path: Path) -> None:
+    client = _build_client()
+
+    assert client.patch("/folders/not-an-id", json={"enabled": False}).status_code == 401

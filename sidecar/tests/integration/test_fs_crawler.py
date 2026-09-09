@@ -90,3 +90,18 @@ def test_reports_real_size_and_mtime(tmp_path: Path) -> None:
     assert candidate.size_bytes == 10
     assert candidate.mtime.timestamp() == pytest.approx(path.stat().st_mtime, abs=1)
     assert stat.S_ISREG(candidate.path.stat().st_mode)
+
+
+def test_a_file_root_is_a_tree_of_one(tmp_path: Path) -> None:
+    """`ApplyChanges` re-indexes one changed file by crawling its own path.
+
+    The fake crawler always did this and the real one did not, so every unit
+    test passed while the watcher indexed nothing. Measured 2026-09-09.
+    """
+    report = tmp_path / "report.pdf"
+    report.write_bytes(b"%PDF-1.4 body")
+
+    found = list(FilesystemCrawler().crawl(report))
+
+    assert [candidate.path for candidate in found] == [report]
+    assert found[0].size_bytes == report.stat().st_size
