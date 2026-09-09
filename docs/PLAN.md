@@ -103,7 +103,7 @@ Acceptance: recall@5 of 0.8 or better on the golden set, or the gap is written d
 - [x] PyInstaller onedir sidecar. Launch it from the packaged app.
 - [x] electron-builder arm64 DMG. Installing on a clean user account is still open, and needs a second account on this Mac.
 - [ ] First-run model download with progress.
-- [ ] README: install, what stays local, what leaves the machine and when, the measured numbers, the architecture diagram, license.
+- [x] README: install, what stays local, what leaves the machine and when, the measured numbers, the architecture diagram, license.
 - [ ] Record the video from LAUNCH.md. Take the screenshots.
 - [ ] Publish the repo. Post.
 
