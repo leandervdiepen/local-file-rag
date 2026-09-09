@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Literal
 
@@ -75,6 +76,28 @@ class LanceDBVectors:
     def count(self) -> int:
         table = self._existing_table()
         return 0 if table is None else table.count_rows()
+
+    def compact(self) -> None:
+        """Rewrite the fragments and drop the versions they replaced.
+
+        Measured 2026-09-09: deleting half the rows moved the directory from
+        604 KB to 605 KB, and `optimize` on its own took it to 908 KB because
+        it keeps what it replaced. Only the cleanup gets it to 302 KB.
+
+        Nothing is kept, because the versions being dropped were made seconds
+        ago by this same process and there is no other writer to protect. A
+        scan already reading one holds its files open, and an unlinked file
+        stays readable on macOS until the last handle closes.
+        """
+        table = self._existing_table()
+        if table is None:
+            return
+        try:
+            table.optimize(cleanup_older_than=timedelta(seconds=0))
+        except (RuntimeError, ValueError, OSError):
+            # Space not reclaimed is a cap that bites again next tick, which
+            # is far better than a background job that takes the app down.
+            logger.warning("compacting page_vectors failed, its deleted rows still cost disk")
 
     def bytes_on_disk(self) -> int:
         """What the `page_vectors` table costs on disk, versions and index included.

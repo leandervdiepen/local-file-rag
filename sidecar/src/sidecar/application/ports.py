@@ -143,6 +143,20 @@ class ImageTextReader(Protocol):
         ...
 
 
+class PowerSource(Protocol):
+    """Where the machine is getting its power. Read, never waited on."""
+
+    def on_ac_power(self) -> bool:
+        """True when the machine is plugged in, and for a machine with no battery.
+
+        Answers True when it cannot tell. A desktop that reads as being on
+        battery would never pre-embed anything, and the cost of being wrong
+        the other way is some work done on a laptop that was about to be
+        unplugged.
+        """
+        ...
+
+
 class Answerer(Protocol):
     """Streams an answer grounded in the page images it is given.
 

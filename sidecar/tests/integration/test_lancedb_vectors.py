@@ -110,3 +110,37 @@ def test_the_index_is_built_once_the_table_is_big_enough_and_search_still_works(
 
     assert store._has_index(store._existing_table()) is True
     assert store.nearest(a_query("funnel", "chart"), 3)[0][0] == "hit:1"
+
+
+def test_deleting_pages_does_not_free_disk_until_the_store_is_compacted(tmp_path: Path) -> None:
+    """The defect that emptied the whole index: the cap read the same size back and evicted again.
+
+    Measured 2026-09-09 against lancedb 0.38: deleting rows leaves their bytes
+    in place, and `optimize` without the cleanup makes the directory bigger
+    because it keeps what it replaced.
+    """
+    store = LanceDBVectors(tmp_path / "db")
+    store.put_vectors([a_bulk_page(f"p{n}", rows=120, seed=n) for n in range(20)])
+    full = store.bytes_on_disk()
+
+    store.forget_pages([f"p{n}" for n in range(10)])
+    assert store.bytes_on_disk() >= full, "deleting rows is expected not to free anything on its own"
+
+    store.compact()
+
+    assert store.count() == 10
+    assert store.bytes_on_disk() < full
+
+
+def test_compacting_an_empty_store_is_allowed(tmp_path: Path) -> None:
+    LanceDBVectors(tmp_path / "db").compact()
+
+
+def test_the_pages_that_survive_a_compaction_still_read_back(tmp_path: Path) -> None:
+    store = LanceDBVectors(tmp_path / "db")
+    store.put_vectors([a_bulk_page("keep", rows=4, seed=1), a_bulk_page("drop", rows=4, seed=2)])
+
+    store.forget_pages(["drop"])
+    store.compact()
+
+    assert set(store.get_vectors(["keep", "drop"])) == {"keep"}

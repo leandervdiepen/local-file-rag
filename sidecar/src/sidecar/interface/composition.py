@@ -9,9 +9,11 @@ from pathlib import Path
 
 from flask import Flask
 
+from sidecar.application.activity import Activity
 from sidecar.application.answer_question import AnswerQuestion
 from sidecar.application.apply_changes import ApplyChanges
 from sidecar.application.embed_pages import EmbedPages
+from sidecar.application.enforce_storage_cap import EnforceStorageCap
 from sidecar.application.explain_page import ExplainPage
 from sidecar.application.health import ReportHealth
 from sidecar.application.index_folder import IndexFolder
@@ -19,6 +21,7 @@ from sidecar.application.indexing_jobs import IndexingJobs
 from sidecar.application.list_index_files import ListIndexFiles
 from sidecar.application.manage_folders import ManageFolders
 from sidecar.application.ports import PageSource
+from sidecar.application.pre_embed_recent import PreEmbedRecent
 from sidecar.application.read_index_stats import ReadIndexStats
 from sidecar.application.record_page_hit import RecordPageHit
 from sidecar.application.render_page import RenderPage
@@ -26,7 +29,9 @@ from sidecar.application.run_golden_set import RunGoldenSet
 from sidecar.application.search import Search
 from sidecar.domain.changes import FileChange
 from sidecar.domain.entities import FileKind
+from sidecar.domain.eviction import DEFAULT_CAP_BYTES
 from sidecar.domain.providers import PROVIDERS, ProviderId
+from sidecar.infrastructure.background_loop import BackgroundLoop, Job
 from sidecar.infrastructure.colqwen_embedder import ColQwenEmbedder
 from sidecar.infrastructure.filesystem_health import FilesystemHealthProbe
 from sidecar.infrastructure.fs_crawler import FilesystemCrawler
@@ -36,6 +41,7 @@ from sidecar.infrastructure.image_pages import ImagePageSource
 from sidecar.infrastructure.lancedb_folders import LanceDBFolders
 from sidecar.infrastructure.lancedb_store import LanceDBStore
 from sidecar.infrastructure.lancedb_vectors import LanceDBVectors
+from sidecar.infrastructure.mac_power import MacPowerSource
 from sidecar.infrastructure.openai_answerer import OpenAIAnswerer
 from sidecar.infrastructure.pdfium_pages import PdfiumPageSource
 from sidecar.infrastructure.system_clock import SystemClock
@@ -65,7 +71,7 @@ def _page_sources() -> dict[FileKind, PageSource]:
     }
 
 
-def build_app(token: str, db_path: Path) -> Flask:
+def build_app(token: str, db_path: Path, cap_bytes: int = DEFAULT_CAP_BYTES) -> Flask:
     """Wire adapters into use cases and return a Flask app ready to serve."""
     app = Flask(__name__)
 
@@ -108,6 +114,15 @@ def build_app(token: str, db_path: Path) -> Flask:
     app.register_blueprint(build_chat_blueprint(search, AnswerQuestion(render_page, _answerer())))
     app.register_blueprint(build_eval_blueprint(RunGoldenSet(search, vectors)))
 
+    activity = Activity()
+    app.before_request(activity.touch)
+    _start_background(
+        [
+            PreEmbedRecent(store, vectors, embed_pages, MacPowerSource(), activity, jobs, cap_bytes).tick,
+            EnforceStorageCap(store, vectors, cap_bytes).run,
+        ]
+    )
+
     return app
 
 
@@ -148,3 +163,15 @@ def _start_watching(apply_changes: ApplyChanges) -> FolderWatcher:
     watcher.start()
     atexit.register(watcher.stop)
     return watcher
+
+
+def _start_background(jobs: list[Job]) -> None:
+    """The loop that pre-embeds and evicts, started and registered to stop on exit.
+
+    Pre-embedding runs before the cap, so a tick that adds vectors is the same
+    tick that checks whether they fit. The reverse order would leave the store
+    over its cap for a whole interval every time.
+    """
+    loop = BackgroundLoop(jobs)
+    loop.start()
+    atexit.register(loop.stop)

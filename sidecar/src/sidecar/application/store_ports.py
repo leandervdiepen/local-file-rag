@@ -209,6 +209,16 @@ class VectorStore(Protocol):
         """
         ...
 
+    def compact(self) -> None:
+        """Rewrite the store so deleted rows stop costing disk. Safe to call on an empty one.
+
+        Deleting rows marks them gone and leaves their bytes in place, so
+        `bytes_on_disk` does not move until this runs. Anything that deletes
+        in order to free space has to call this or it will read the same size
+        back and delete again.
+        """
+        ...
+
     def bytes_on_disk(self) -> int:
         """What the stored vectors cost, in bytes. Zero for a store with none.
 
