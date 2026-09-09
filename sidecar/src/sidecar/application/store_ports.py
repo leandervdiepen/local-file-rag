@@ -30,6 +30,15 @@ class IndexStore(Protocol):
         """Remove a file and its pages. Silent when the file is already gone."""
         ...
 
+    def forget_pages(self, page_ids: Sequence[str]) -> None:
+        """Remove these pages, leaving their file alone. Silent for ids that are not there.
+
+        For a file that shrank. Re-indexing writes the pages that exist now and
+        cannot know about the ones that no longer do, so a ten page report cut
+        to three would go on returning pages four to ten in search results.
+        """
+        ...
+
     def get_file(self, file_id: str) -> IndexedFile | None:
         """The file stored under this id, `None` when nothing was stored under it.
 

@@ -65,13 +65,28 @@ class ApplyChanges:
         about OCR or about page ids.
         """
         owner = file_id(path)
-        stale = [page.id for page in self._store.get_pages(owner)]
         try:
             self._index_folder.run(folder_id, path)
         except Exception:
             logger.exception("re-indexing %s failed", path)
             return
-        # Pages that no longer exist after the re-index, which is what a file
-        # that lost pages leaves behind. Their vectors go with them.
-        current = {page.id for page in self._store.get_pages(owner)}
-        self._vectors.forget_pages([page_id for page_id in stale if page_id not in current])
+        self._drop_pages_past_the_end(owner)
+
+    def _drop_pages_past_the_end(self, owner: str) -> None:
+        """Forget the pages a file used to have and no longer does.
+
+        Re-indexing writes the pages that exist now and cannot know about the
+        rest, so a ten page report cut to three would go on returning pages
+        four to ten in search results. The file's own page count is the line,
+        because the rows still sitting in the store are exactly what is being
+        checked. This is the second half of D43.
+        """
+        file = self._store.get_file(owner)
+        if file is None:
+            return
+        past_the_end = [page.id for page in self._store.get_pages(owner) if page.page_no > file.page_count]
+        if not past_the_end:
+            return
+        self._store.forget_pages(past_the_end)
+        self._vectors.forget_pages(past_the_end)
+        logger.info("dropped %d pages %s no longer has", len(past_the_end), file.path)

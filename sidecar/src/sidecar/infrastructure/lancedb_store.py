@@ -55,6 +55,12 @@ class LanceDBStore:
         if pages_table is not None:
             pages_table.delete(f"file_id = {sql.literal(file_id)}")
 
+    def forget_pages(self, page_ids: Sequence[str]) -> None:
+        pages_table = self._existing_table(schema.PAGES_TABLE)
+        if pages_table is None or not page_ids:
+            return
+        pages_table.delete(f"id in ({sql.in_list(page_ids)})")
+
     def get_file(self, file_id: str) -> IndexedFile | None:
         rows = self._rows_where(schema.FILES_TABLE, f"id = {sql.literal(file_id)}")
         return schema.row_to_file(rows[0]) if rows else None

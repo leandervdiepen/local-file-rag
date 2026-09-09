@@ -35,6 +35,10 @@ class FakeIndexStore:
         for page_id in [pid for pid, page in self._pages.items() if page.file_id == file_id]:
             del self._pages[page_id]
 
+    def forget_pages(self, page_ids: Sequence[str]) -> None:
+        for page_id in page_ids:
+            self._pages.pop(page_id, None)
+
     def get_file(self, file_id: str) -> IndexedFile | None:
         return self._files.get(file_id)
 
