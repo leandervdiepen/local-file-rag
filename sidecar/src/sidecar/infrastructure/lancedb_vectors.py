@@ -48,6 +48,12 @@ class LanceDBVectors:
         table.merge_insert("page_id").when_matched_update_all().when_not_matched_insert_all().execute(rows)
         self._index_when_worth_it(table)
 
+    def forget_pages(self, page_ids: Sequence[str]) -> None:
+        table = self._existing_table()
+        if table is None or not page_ids:
+            return
+        table.delete(f"page_id in ({sql.in_list(page_ids)})")
+
     def get_vectors(self, page_ids: Sequence[str]) -> dict[str, PageVectors]:
         rows = self._rows_for(page_ids)
         return {str(row["page_id"]): schema.row_to_page_vectors(row) for row in rows}

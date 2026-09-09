@@ -25,7 +25,7 @@ export interface UseSearch {
  * covers the rest: at most one request is ever in flight, and dropping the
  * connection is what stops the reading.
  */
-export function useSearch(port: SearchPort): UseSearch {
+export function useSearch(port: SearchPort, settleMs: number = SEARCH_SETTLE_MS): UseSearch {
   const [query, setQuery] = useState('')
   const [state, dispatch] = useReducer(searchStateReducer, initialSearchState)
   const issued = useRef(0)
@@ -37,7 +37,7 @@ export function useSearch(port: SearchPort): UseSearch {
     }
 
     const controller = new AbortController()
-    const settle = setTimeout(() => runSearch(), SEARCH_SETTLE_MS)
+    const settle = setTimeout(() => runSearch(), settleMs)
 
     function runSearch(): void {
       const queryId = String((issued.current += 1))
@@ -64,7 +64,7 @@ export function useSearch(port: SearchPort): UseSearch {
       clearTimeout(settle)
       controller.abort()
     }
-  }, [query, port])
+  }, [query, port, settleMs])
 
   return { state, query, setQuery: useCallback((next: string) => setQuery(next), []) }
 }

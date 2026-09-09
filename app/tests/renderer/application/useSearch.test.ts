@@ -2,7 +2,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { SearchHandlers, SearchPort } from '../../../src/renderer/application/ports'
-import { SEARCH_SETTLE_MS, useSearch } from '../../../src/renderer/application/useSearch'
+import { useSearch } from '../../../src/renderer/application/useSearch'
+
+// Short enough that these tests never wait on the real settle delay, which is
+// tuned for a person typing and makes an already loaded machine flaky.
+const SETTLE = 5
 import type { PageHit } from '../../../src/renderer/domain/search-results'
 
 function hitFor(query: string): PageHit {
@@ -43,14 +47,14 @@ function createControllablePort() {
 describe('useSearch', () => {
   it('stays idle until something is typed', () => {
     const { port } = createControllablePort()
-    const { result } = renderHook(() => useSearch(port))
+    const { result } = renderHook(() => useSearch(port, SETTLE))
 
     expect(result.current.state.phase).toBe('idle')
   })
 
   it('shows the candidates of the search that is current', async () => {
     const { port, pending } = createControllablePort()
-    const { result } = renderHook(() => useSearch(port))
+    const { result } = renderHook(() => useSearch(port, SETTLE))
 
     act(() => result.current.setQuery('invoice'))
     await waitFor(() => expect(pending.has('invoice')).toBe(true))
@@ -67,7 +71,7 @@ describe('useSearch', () => {
 
   it('abandons the previous search when the query changes', async () => {
     const { port, pending, aborted } = createControllablePort()
-    const { result } = renderHook(() => useSearch(port))
+    const { result } = renderHook(() => useSearch(port, SETTLE))
 
     act(() => result.current.setQuery('inv'))
     await waitFor(() => expect(pending.has('inv')).toBe(true))
@@ -78,7 +82,7 @@ describe('useSearch', () => {
 
   it('spends nothing on the letters of a word still being typed', async () => {
     const { port, started } = createControllablePort()
-    const { result } = renderHook(() => useSearch(port))
+    const { result } = renderHook(() => useSearch(port, SETTLE))
 
     for (const prefix of ['i', 'in', 'inv', 'invo', 'invoi', 'invoic', 'invoice']) {
       act(() => result.current.setQuery(prefix))
@@ -86,13 +90,13 @@ describe('useSearch', () => {
 
     await waitFor(() => expect(started).toEqual(['invoice']))
     // Long enough after the settle window that a queued prefix would have fired.
-    await new Promise((resolve) => setTimeout(resolve, SEARCH_SETTLE_MS * 3))
+    await new Promise((resolve) => setTimeout(resolve, SETTLE * 20))
     expect(started).toEqual(['invoice'])
   })
 
   it('ignores a slow response from a search the user has moved past', async () => {
     const { port, pending } = createControllablePort()
-    const { result } = renderHook(() => useSearch(port))
+    const { result } = renderHook(() => useSearch(port, SETTLE))
 
     act(() => result.current.setQuery('inv'))
     await waitFor(() => expect(pending.has('inv')).toBe(true))
@@ -108,7 +112,7 @@ describe('useSearch', () => {
 
   it('returns to idle when the box is emptied', async () => {
     const { port, pending } = createControllablePort()
-    const { result } = renderHook(() => useSearch(port))
+    const { result } = renderHook(() => useSearch(port, SETTLE))
 
     act(() => result.current.setQuery('invoice'))
     await waitFor(() => expect(pending.has('invoice')).toBe(true))
@@ -119,7 +123,7 @@ describe('useSearch', () => {
 
   it('surfaces a failure as state the screen can render', async () => {
     const failing: SearchPort = { search: () => Promise.reject({ code: 'index_busy', message: 'Busy.' }) }
-    const { result } = renderHook(() => useSearch(failing))
+    const { result } = renderHook(() => useSearch(failing, SETTLE))
 
     act(() => result.current.setQuery('invoice'))
 

@@ -137,6 +137,15 @@ class VectorStore(Protocol):
         """Insert or replace by `page_id`, as one batch. Idempotent. Empty input is a no-op."""
         ...
 
+    def forget_pages(self, page_ids: Sequence[str]) -> None:
+        """Drop the vectors for these pages. Silent for ids that have none, and a no-op for an empty list.
+
+        Needed because a deleted file must leave nothing behind. Its vectors
+        are the largest thing it owned, and a page that is gone must not go on
+        being reachable through the vector search.
+        """
+        ...
+
     def get_vectors(self, page_ids: Sequence[str]) -> dict[str, PageVectors]:
         """The stored vectors for each id that has them. Ids without vectors are simply absent."""
         ...

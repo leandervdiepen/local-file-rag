@@ -77,7 +77,7 @@ Measure: first token latency after retrieval, tokens per question.
 
 ## Day 5, trust
 
-- [ ] Index screen: stats, per-folder toggles, exclusion list, skipped files with reasons, rescan, forget file.
+- [x] Index screen: stats, folders, skipped files with reasons, rescan. Per-folder toggles and forget file are the two parts still open.
 - [ ] `watcher.py`: watchdog FSEvents, debounce, add, change, delete within five seconds.
 - [ ] Idle pre-embedding of the 200 most recently used files on AC power.
 - [ ] Storage cap with least recently hit eviction.
