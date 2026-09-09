@@ -16,6 +16,11 @@ interface ResultRowProps {
   onSelect: (pageId: string) => void
 }
 
+const WHY_NO_SNIPPET: Record<string, string> = {
+  filename: 'Matched the file name',
+  visual: 'Matched what the page looks like',
+}
+
 const ACTION_CLASS =
   'rounded-control px-2 py-1 text-xs text-ink-muted hover:bg-border/50 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
@@ -32,8 +37,14 @@ export function ResultRow({ hit, selected, pageImages, actions, onSelect }: Resu
       <PageThumbnail pageId={hit.pageId} pageImages={pageImages} />
 
       <div className="min-w-0 flex-1">
-        {hit.kind === 'pdf' && <p className="font-mono text-xs text-ink-muted">Page {hit.pageNo}</p>}
-        {hit.snippet && <p className="mt-1 line-clamp-2 text-sm text-ink">{hit.snippet}</p>}
+        <p className="font-mono text-xs text-ink-muted">{hit.kind === 'pdf' ? `Page ${hit.pageNo}` : ''}</p>
+        {hit.snippet ? (
+          <p className="mt-1 line-clamp-2 text-sm text-ink">{hit.snippet}</p>
+        ) : (
+          // A snippet is its own explanation. Only a page with no matching
+          // words needs to be told why it is here.
+          <p className="mt-1 text-sm text-ink-muted">{WHY_NO_SNIPPET[hit.stage] ?? ''}</p>
+        )}
       </div>
 
       {selected && (

@@ -83,10 +83,23 @@ export class SidecarProcess {
 
     await new Promise<void>((resolveStop) => {
       const killTimer = setTimeout(() => child.kill('SIGKILL'), this.shutdownGraceMs)
-      child.once('exit', () => {
+      // A ceiling on top of the kill, because SIGKILL is not a promise that
+      // `exit` will arrive: a child whose spawn failed never emits it at all.
+      // Quit runs through here, so an unbounded wait is an app that will not
+      // close, which is worse than one that leaves a process behind.
+      const giveUpTimer = setTimeout(() => {
+        this.options.onLog?.('the sidecar did not report exiting; carrying on without it')
+        finish()
+      }, this.shutdownGraceMs * 2)
+
+      const finish = () => {
         clearTimeout(killTimer)
+        clearTimeout(giveUpTimer)
         resolveStop()
-      })
+      }
+
+      child.once('exit', finish)
+      child.once('error', finish)
       child.kill('SIGTERM')
     })
   }

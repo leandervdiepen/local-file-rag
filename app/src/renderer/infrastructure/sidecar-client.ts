@@ -66,8 +66,14 @@ export function createSidecarClient(connection: SidecarConnection) {
       path: string,
       onEvent: (name: string, payload: unknown) => void,
       signal: AbortSignal,
+      send?: { method: string; body: unknown },
     ): Promise<void> {
-      const response = await request(path, { signal })
+      const response = await request(path, {
+        signal,
+        ...(send
+          ? { method: send.method, body: JSON.stringify(send.body), headers: { 'Content-Type': 'application/json' } }
+          : {}),
+      })
       if (!response.body) throw UNREACHABLE
 
       const reader = response.body.getReader()

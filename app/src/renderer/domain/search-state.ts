@@ -1,10 +1,16 @@
 import type { PageHit } from './search-results'
 
 /**
- * `searching` covers a request in flight. Day 2 splits it into stage 1 and
- * reading, once there is a stage 2 whose progress is worth reporting.
+ * `searching` is the moment before stage 1 answers. `reading` is the partial
+ * state: stage 1 candidates are on screen while the vision model reads the
+ * pages it has not seen, and it is the state the user judges the app by.
  */
-export type SearchPhase = 'idle' | 'searching' | 'done' | 'error'
+export type SearchPhase = 'idle' | 'searching' | 'reading' | 'done' | 'error'
+
+export interface ReadingProgress {
+  pagesRead: number
+  pagesTotal: number
+}
 
 export interface SearchError {
   code: string
@@ -16,7 +22,9 @@ export interface SearchState {
   queryId: string
   query: string
   hits: PageHit[]
+  /** Time to the first results the user saw, which is stage 1. Reranking does not change it. */
   tookMs: number | null
+  reading: ReadingProgress | null
   error: SearchError | null
 }
 
@@ -26,12 +34,15 @@ export const initialSearchState: SearchState = {
   query: '',
   hits: [],
   tookMs: null,
+  reading: null,
   error: null,
 }
 
 export type SearchEvent =
   | { type: 'started'; queryId: string; query: string }
   | { type: 'candidates'; queryId: string; hits: PageHit[]; tookMs: number }
+  | { type: 'progress'; queryId: string; pagesRead: number; pagesTotal: number }
+  | { type: 'results'; queryId: string; hits: PageHit[]; tookMs: number }
   | { type: 'finished'; queryId: string }
   | { type: 'failed'; queryId: string; error: SearchError }
   | { type: 'cleared' }
@@ -51,17 +62,25 @@ export type SearchEvent =
 export function searchStateReducer(state: SearchState, event: SearchEvent): SearchState {
   if (event.type === 'cleared') return initialSearchState
   if (event.type === 'started') {
-    return { ...state, phase: 'searching', queryId: event.queryId, query: event.query, error: null }
+    return { ...state, phase: 'searching', queryId: event.queryId, query: event.query, reading: null, error: null }
   }
   if (event.queryId !== state.queryId) return state
 
   switch (event.type) {
     case 'candidates':
-      return { ...state, hits: event.hits, tookMs: event.tookMs }
+      return { ...state, phase: 'reading', hits: event.hits, tookMs: event.tookMs }
+    case 'progress':
+      return { ...state, reading: { pagesRead: event.pagesRead, pagesTotal: event.pagesTotal } }
+    case 'results':
+      // The reranked list replaces the candidates, but the headline time stays
+      // stage 1's. Results were on screen in thirty milliseconds; overwriting
+      // that with the seconds the model spent improving them would report the
+      // app as slow for having done more work.
+      return { ...state, hits: event.hits }
     case 'finished':
-      return { ...state, phase: 'done' }
+      return { ...state, phase: 'done', reading: null }
     case 'failed':
-      return { ...state, phase: 'error', hits: [], tookMs: null, error: event.error }
+      return { ...state, phase: 'error', hits: [], tookMs: null, reading: null, error: event.error }
   }
 }
 

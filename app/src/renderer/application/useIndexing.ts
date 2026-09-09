@@ -10,6 +10,7 @@ export interface UseIndexing {
   error: SearchError | null
   loaded: boolean
   addFolder: (path: string) => Promise<void>
+  rescan: () => Promise<void>
 }
 
 /**
@@ -85,5 +86,15 @@ export function useIndexing(foldersPort: FoldersPort, indexPort: IndexPort): Use
     [foldersPort, indexPort],
   )
 
-  return { folders, progress, stats, error, loaded, addFolder }
+  const rescan = useCallback(async () => {
+    setError(null)
+    try {
+      await indexPort.rescan()
+      setWatching((count) => count + 1)
+    } catch (cause: unknown) {
+      setError(asSearchError(cause))
+    }
+  }, [indexPort])
+
+  return { folders, progress, stats, error, loaded, addFolder, rescan }
 }

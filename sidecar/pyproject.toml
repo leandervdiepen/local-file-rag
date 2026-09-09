@@ -13,6 +13,10 @@ dependencies = [
     "pylance>=11.0.0",
     "pypdfium2>=4.30",
     "waitress>=3.0",
+    "sentence-transformers>=6.0",
+    "torch>=2.4",
+    "numpy>=2.0",
+    "watchdog>=6.0.0",
 ]
 
 [project.optional-dependencies]

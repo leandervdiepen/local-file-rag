@@ -15,6 +15,7 @@ from typing import cast
 
 import pytest
 
+from sidecar.application.embed_pages import EmbedPages
 from sidecar.application.index_folder import IndexFolder, ProgressSink
 from sidecar.application.indexing_jobs import IndexingJobs
 from sidecar.application.ports import Clock
@@ -24,6 +25,9 @@ from sidecar.domain.identity import file_id
 from sidecar.domain.progress import IndexProgress
 from tests.fakes.clock import FakeClock
 from tests.fakes.folder_store import FakeFolderStore
+from tests.fakes.index_store import FakeIndexStore
+from tests.fakes.page_embedder import FakePageEmbedder
+from tests.fakes.vector_store import FakeVectorStore
 
 # A guard, not a wait. The green path never reaches it, and a job that hangs
 # fails the suite in seconds instead of freezing it.
@@ -103,7 +107,18 @@ class World:
         self.store = GatedFolderStore(FakeClock(NOW))
         for path in paths:
             self.store.add(path)
-        self.jobs = IndexingJobs(cast(IndexFolder, self.indexer), self.store)
+        # An empty index, so the embedding pass finds no page to read and the
+        # crawl is the whole job. Embedding has its own tests.
+        self.index = FakeIndexStore()
+        self.vectors = FakeVectorStore()
+        self.embedder = FakePageEmbedder()
+        self.jobs = IndexingJobs(
+            cast(IndexFolder, self.indexer),
+            self.store,
+            self.index,
+            self.vectors,
+            EmbedPages(self.index, {}, self.embedder, self.vectors),
+        )
 
     def start_held(self) -> None:
         """Start a job and return once it is running but has crawled nothing."""

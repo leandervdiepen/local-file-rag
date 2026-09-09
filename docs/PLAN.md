@@ -40,12 +40,12 @@ Measure: files per second crawled, OCR milliseconds per image, index size on dis
 
 ## Day 2, vision path
 
-- [ ] `embed.py`: lazy model load, MPS, pooling factor 3, float16, unload after ten idle minutes.
-- [ ] Page rendering at 1024 px long side for embedding.
-- [ ] `page_vectors` writes and reads. Create the cosine index once row count passes 2,000.
-- [ ] `rerank.py`: MaxSim in numpy over a candidate set.
-- [ ] Semantic fallback: LanceDB multivector search when stage 1 returns fewer than five pages.
-- [ ] `scripts/bench.py`: pages per second, KB per page, rerank time for 300 pages, recall@5 on the golden set with stage 1 only versus stage 1 plus 2.
+- [x] `embed.py`: lazy model load, MPS, pooling factor 3, float16, unload after ten idle minutes.
+- [x] Page rendering at 1024 px long side for embedding.
+- [x] `page_vectors` writes and reads. Create the cosine index once row count passes 2,000.
+- [x] `rerank.py`: MaxSim in numpy over a candidate set.
+- [x] Multivector search merged into the candidate set on every search, not only a thin one. D49 withdrew the fewer-than-five rule with the measurement that killed it.
+- [ ] `scripts/bench.py`: pages per second, KB per page, rerank time for 300 pages. Recall moved to the golden set runner by D46, which reports it per query split rather than as one number.
 
 Acceptance: "slide with the funnel chart" returns the right slide although no page text matches.
 Measure: everything the bench script prints. Put it in STATUS.md with machine and date.
@@ -55,29 +55,30 @@ Measure: everything the bench script prints. Put it in STATUS.md with machine an
 Protect this day.
 Nothing else gets pulled forward into it.
 
-- [ ] Candidate embedding with the 30 page cap, ordered by stage 1 score, `progress` events with "reading 12 of 24 pages".
-- [ ] `heatmap.py`: unpooled re-encode, per-token and combined maps from the processor grid, disk LRU of 500 pages.
-- [ ] `GET /pages/{id}/heatmap?q=` returning the JSON grid.
-- [ ] Renderer page preview: canvas overlay, combined versus per-token toggle, threshold slider defaulting to the 90th percentile, one patch blur.
-- [ ] Test portrait, landscape and square pages. The overlay must sit on the right pixels in all three.
+- [x] Candidate embedding with the 30 page cap, ordered by stage 1 score, `progress` events with "reading 12 of 24 pages". Built on day 2, because stage 2 cannot rank a page it has not read. See `Plan swaps` in STATUS.md.
+- [x] `heatmap.py`: unpooled re-encode, per-token and combined maps from the processor grid, in-memory LRU of 500 pages (D50).
+- [x] `GET /pages/{id}/heatmap?q=` returning the JSON grid.
+- [x] Renderer page preview: canvas overlay, combined versus per-token toggle, threshold slider defaulting to the 90th percentile, one patch blur.
+- [x] Test portrait, landscape and square pages. The overlay must sit on the right pixels in all three. Covered by the grid test in `test_colqwen_embedder.py` and by drawing a marked half page and asserting the peak lands on it.
 
 Acceptance: "stripe webhook error screenshot" returns the PNG and the red dialog glows. Cold heatmap under 2 s, cached under 100 ms.
 Measure: cold and cached heatmap times.
 
 ## Day 4, chat
 
-- [ ] `answer.py`: Anthropic SDK, streaming, top five page images as base64 blocks, system prompt from ARCHITECTURE.md, citation parsing, usage capture.
-- [ ] `POST /chat` SSE with `retrieval`, `token`, `citation`, `done`.
-- [ ] Renderer chat panel: streaming text, citation chips, clicking a chip opens the page preview with heatmap, token and cost footer.
+- [x] Two answerers, streaming, top five page images, prompt and citation parsing in the domain, usage capture. Written against the wire with urllib rather than the Anthropic SDK: see D51.
+- [x] `POST /chat` SSE with `retrieval`, `token`, `citation`, `done`.
+- [x] Renderer chat panel: streaming text, citation chips, clicking a chip opens the page preview with heatmap, token and cost footer.
 - [ ] Offline mode toggle. Chat panel says what it disables.
 - [ ] Settings: Anthropic key through `safeStorage`, `PUT /secrets/anthropic`, model selector.
 
 Acceptance: "what did the Q2 hosting invoice charge for egress" answers with a correct page citation. A question with no answer in the corpus returns "not in your files" and no citation.
 Measure: first token latency after retrieval, tokens per question.
+Passed 2026-09-09. See `Day 4 gate` in STATUS.md.
 
 ## Day 5, trust
 
-- [ ] Index screen: stats, per-folder toggles, exclusion list, skipped files with reasons, rescan, forget file.
+- [x] Index screen: stats, folders, skipped files with reasons, rescan. Per-folder toggles and forget file are the two parts still open.
 - [ ] `watcher.py`: watchdog FSEvents, debounce, add, change, delete within five seconds.
 - [ ] Idle pre-embedding of the 200 most recently used files on AC power.
 - [ ] Storage cap with least recently hit eviction.

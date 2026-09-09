@@ -14,11 +14,12 @@ from dataclasses import replace
 from queue import Queue
 from uuid import uuid4
 
+from sidecar.application.embed_pages import EmbedPages
 from sidecar.application.index_folder import IndexFolder
-from sidecar.application.store_ports import FolderStore
+from sidecar.application.store_ports import FolderStore, IndexStore, VectorStore
 from sidecar.domain.entities import Folder
 from sidecar.domain.errors import IndexBusyError
-from sidecar.domain.progress import IndexProgress
+from sidecar.domain.progress import EmbedProgress, IndexProgress
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +37,19 @@ class IndexingJobs:
     `folder_id` is the folder being crawled at that moment.
     """
 
-    def __init__(self, index_folder: IndexFolder, folders: FolderStore) -> None:
+    def __init__(
+        self,
+        index_folder: IndexFolder,
+        folders: FolderStore,
+        store: IndexStore,
+        vectors: VectorStore,
+        embed_pages: EmbedPages,
+    ) -> None:
         self._index_folder = index_folder
         self._folders = folders
+        self._store = store
+        self._vectors = vectors
+        self._embed_pages = embed_pages
         self._lock = threading.Lock()
         self._running = False
         self._latest: IndexProgress | None = None
@@ -111,8 +122,47 @@ class IndexingJobs:
             for folder in self._folders.list():
                 if folder.enabled:
                     totals = self._crawl(folder, totals)
+            totals = self._embed(totals)
         finally:
             self._finish(replace(totals, current_path="", done=True))
+
+    def _embed(self, totals: IndexProgress) -> IndexProgress:
+        """Give every indexed page its vectors, after the text is in.
+
+        Text first, because it is seconds for the whole folder and it makes
+        search work immediately. Vectors second, because they are the slow
+        part and a page that has none can still be found by its words.
+
+        This is what makes visual search possible at all. Stage 2 can only
+        rank pages that have vectors, and a page only gets them here or by
+        being a text candidate, so without this pass a page whose words never
+        match is unreachable no matter how well the model would have scored
+        it. Measured 2026-09-09: it is exactly why the day 2 acceptance query
+        failed before this existed.
+        """
+        pending = self._pages_without_vectors()
+        if not pending:
+            return totals
+        current = totals
+
+        def on_progress(step: EmbedProgress) -> None:
+            nonlocal current
+            current = replace(totals, pages_embedded=step.pages_read, current_path=step.current_page_id)
+            self._publish(current)
+
+        try:
+            self._embed_pages.run(pending, on_progress)
+        except Exception:
+            logger.exception("embedding pages failed")
+        return current
+
+    def _pages_without_vectors(self) -> list[str]:
+        """Every indexed page with no vectors yet, oldest file first so a rescan resumes where it stopped."""
+        page_ids: list[str] = []
+        for file in self._store.indexed_files():
+            page_ids.extend(page.id for page in self._store.get_pages(file.id))
+        embedded = self._vectors.embedded_ids(page_ids)
+        return [page_id for page_id in page_ids if page_id not in embedded]
 
     def _crawl(self, folder: Folder, base: IndexProgress) -> IndexProgress:
         """Crawl one folder and return the totals it leaves for the next one.

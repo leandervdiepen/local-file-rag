@@ -6,29 +6,16 @@ Linear: `Local file RAG v1` on team `diepen`, 57 issues, DPN-224 to DPN-280.
 
 ## Now
 
-Day 2, the vision path. Two adapters are missing and they are the only thing standing between `main` and a working stage 2.
+Day 5, the rest of trust. Idle pre-embedding on AC power, the storage cap with least recently hit eviction, and the remaining error states.
 
-The session was stopped on 2026-09-08 before they were written, so the work in flight is parked on the branch `day2-vision-wip`, pushed.
-`main` is green and does not contain it.
-
-To resume, in this order:
-
-1. Check out `day2-vision-wip`. It will not import: `interface/composition.py` names `infrastructure/colqwen_embedder.py` and `infrastructure/lancedb_vectors.py`, and neither exists.
-2. Write `colqwen_embedder.py` against `application/embedding_ports.py`. `spike/spike.py` has every call it needs already working: `MultiVectorEncoder(model_id, device="mps", model_kwargs={"dtype": torch.float16})`, `encode_document`, `encode_query`, and `HierarchicalTokenPooling(pool_factor=3).pool_one(...)`. The merged model is already in the Hugging Face cache at 4.1 GB.
-3. Write `lancedb_vectors.py` against `VectorStore` in `application/store_ports.py`. `lancedb_store.py` and `lancedb_folders.py` are the shape to copy, including `lancedb_sql` for every filter literal.
-4. `make check` and `make check-int`, then the Day 2 acceptance and `scripts/bench.py`.
-5. Finish the eval slice: three ruff failures in `domain/evaluation.py` and `interface/eval_routes.py`, `scripts/eval.py` is 216 lines against a 200 line budget, the blueprint is not registered, and none of it has run against a live sidecar.
-
-The branch commit message lists exactly what is finished and what is not.
+Days 2, 3 and 4 are done and their gates are recorded below. The index screen and the file watcher are in, so what is left of day 5 is the two background behaviours and the states that explain a failure.
 
 ## Next
 
-1. Page rendering at 1024 px long side for embedding, through the `PageSource` port that already renders at any size.
-2. `page_vectors` writes and reads, and the cosine index once the row count passes 2,000. This is also where LanceDB earns or loses its 438 MB: see the risk below.
-3. `rerank.py`: MaxSim in numpy over a candidate set.
-4. The semantic fallback when stage 1 returns fewer than five pages.
-5. `scripts/bench.py`, and the Day 2 acceptance: "slide with the funnel chart" finds the right slide with no matching page text.
-6. The evaluation framework, once the research doc is in: golden runner behind `POST /eval/golden/run`, recall by query type, and the answer judge once Day 4 has answers to judge.
+1. Idle pre-embedding and the storage cap, which are what keep the index honest on a folder larger than the demo corpus.
+2. The first golden run through `scripts/eval.py`, which is written and has never been run against a live sidecar. It is the only way to steer retrieval quality with evidence rather than taste.
+3. Retrieval ranking. The vision path finds 7 of 9 text-free queries and lands 4 in the top 5, so the gap is ranking rather than reach, and the pooling factor and the candidate mix are the two levers.
+4. Day 6 and day 7: the eval numbers, the design pass on the states, packaging and the DMG.
 
 ## Plan swaps
 
@@ -43,6 +30,8 @@ Day 4 still owns `anthropic_answerer`, `openai_compatible_answerer` and the unit
 
 | Coming forward | Belongs to | Why |
 | --- | --- | --- |
+| The 30 page cold cap, its ordering by stage 1 score and its `progress` events | Day 3 | Stage 2 cannot rank a page it has never read, so the cap and the reading it governs had to exist the moment reranking did. It is `Search._embed_cold` over `EmbedPages`, with the route relaying progress from a worker thread, and it is tested on both sides. Day 3 keeps the heatmap, which is where its work actually is. |
+| `domain/heatmap.py` and the `PageExplainer` port | Day 3 | Written on day 2 as pure functions with no adapter behind them, because the vectors domain and the `PageEmbedder` port were being settled in the same sitting and the heatmap is the second configuration of the same model (D35). Day 3 keeps the endpoint, the canvas overlay, the threshold slider and the token picker, which is where its work actually is. This adds to what day 3 starts with rather than taking from it, and day 3's cut protection is unchanged. |
 | Evaluation: the golden runner behind `POST /eval/golden/run`, `scripts/eval.py` with a self-contained `report.html` and a regression diff against the previous run | Day 6 | The owner asked for it on day 1, 2026-09-08, with research first. The research (`docs/research/evaluation-2026-09.md`) settled D45 to D48. The retrieval half runs against stage 1 today and its first run is the stage 1 ceiling the Day 2 delta is measured from. The answer half, `golden_answers.jsonl` and the judge wait for Day 4 to produce answers. `bench.py` keeps speed and size; the runner owns recall and the splits. |
 
 ## Blockers
@@ -91,7 +80,91 @@ M1 Max, 64 GB, macOS 26.5.1, Python 3.13.5, lancedb 0.38, 2026-09-08. `~/demo-co
 | Thumbnail, first render | 30 to 83 ms | 320 px, then immutable and cached by the renderer |
 | Index on disk | 6.1 MB | Text and BM25 only. `page_vectors` arrives on day 2 |
 
-Still unmeasured: rerank ms, heatmap cold and cached, first token ms, recall@5, DMG size.
+Still unmeasured: heatmap cold and cached, first token ms, recall over the whole golden set, DMG size.
+
+### Day 2, the vision path
+
+M1 Max, 64 GB, macOS 26.5.1, torch 2.14.0, sentence-transformers 6.0.1, `vidore/colqwen2-v1.0-merged` in float16, 2026-09-09.
+
+| Metric | Value | Note |
+| --- | --- | --- |
+| Model load plus first page | 12.7 s | Weights are already in the Hugging Face cache |
+| Seconds per page, synthetic 1024 px page | 1.67 s | A sparse drawn page |
+| Seconds per page, real corpus pages | 4.1 to 4.9 s | Denser pages make more visual tokens. This is the number that matters |
+| Query encode | 53 ms | 19 rows scored, of which 4 are the typed words |
+| Pooled rows per page | 249 | At pool factor 3 |
+| Unpooled rows per page | 747 | 736 patches on a 32 by 23 grid, plus 11 prompt tokens |
+| Storage per page | 58 KB | Measured over 218 pages of `page_vectors` |
+| Index on disk, 218 pages | 21 MB | 12.3 MB of it vectors, against 6.1 MB for text alone |
+| Search, everything embedded | 0.4 to 0.9 s | Nine text-free queries, no page left to read |
+
+### Day 2 gate
+
+PARTIAL PASS, and the shortfall is ranking rather than reach.
+
+The acceptance asks that "slide with the funnel chart" returns the right slide although no page text matches. It returns it at rank 26 of 54, so the page is reachable and not yet well ranked.
+
+Across the nine text-free golden queries, none of which stage 1 can answer at all:
+
+| Measure | Before D49 | After |
+| --- | --- | --- |
+| Expected page found anywhere | 0 of 9 | 7 of 9 |
+| Expected page in the top 5 | 0 of 9 | 4 of 9 |
+
+Every one of those hits is a page BM25 could not have returned, which is the number that justifies the vision path.
+The two levers on the remaining gap are the pooling factor and the candidate mix, and the golden runner is how to pull them with evidence.
+
+### Day 3, the heatmap
+
+M1 Max, 2026-09-09, on `IMG_4821.png` from the demo corpus with the query "stripe webhook error screenshot".
+
+| Metric | Value | Note |
+| --- | --- | --- |
+| Cold heatmap | 1441 ms | Under the 2 s the plan asks for. It is one unpooled re-encode |
+| Cached heatmap | 44 ms | Under 100 ms. Moving the slider or switching tokens costs nothing |
+| Patch grid | 21 by 35 | 735 patches, from `image_grid_thw` halved by the spatial merge |
+| Patches above the default cutoff | 74 of 735 | The 90th percentile, as designed |
+
+### Day 3 gate
+
+PASS on the acceptance as written, with a measured limitation worth naming.
+
+- "stripe webhook error screenshot" returns `IMG_4821.png` first, and it is the Stripe webhook error screenshot.
+- Cold 1441 ms and cached 44 ms both beat their budgets.
+- The overlay was drawn and looked at, not just asserted on. The token "stripe" lands exactly on the word "stripe" inside the dialog.
+
+The limitation: the combined map is diffuse. The dialog covers 13 percent of that page and the lit patches land on it 12 percent of the time at the default cutoff, 16 at the 95th and 25 at the 99th, so the combined view is close to chance and a tighter cutoff is not reliably better on eight patches.
+
+Two things follow, both measured rather than assumed.
+Per-token maps localize where the combined map does not: specific nouns like "stripe" and "webhook" point at real content, while "error" and "screenshot" are noise, so the token picker is not a nicety, it is how the heatmap becomes readable.
+Subtracting the padding-token response, which is what a patch answers when it answers nothing, raises per-token precision (`error` 4 to 14 percent, `screenshot` 0 to 14) and lowers the combined map (12 to 7), so it was not shipped: a transform that improves the detail view and degrades the headline is not a win.
+
+This corpus is the hardest case for patch localization, because a synthetic screenshot is mostly flat grey and gives the model nothing to distinguish in the background. The published number on real documents is a mean IoU of 0.569 (`docs/research/evaluation-2026-09.md`). Re-measure on real files before drawing a conclusion about the model.
+
+### Day 4, chat
+
+M1 Max, 2026-09-09, `openrouter/free` against the indexed demo corpus, five page images per answer.
+
+| Metric | Value | Note |
+| --- | --- | --- |
+| First token after retrieval | 15.0 to 18.5 s | The free router is the slow part. A paid model is the lever if this matters |
+| Tokens per question | about 3,300 in, 190 out | Five 1024 px page images dominate the input |
+| Cost per question | 0 | D38's default is free, so development costs nothing |
+
+### Day 4 gate
+
+PASS.
+
+Asked "what did the hosting invoice charge for egress", it answered:
+
+> The hosting invoice charged $1,472.00 for data egress, based on 18.4 TB at $80.00 per TB. [1]
+
+All three figures are exactly what the page says, and the citation resolves to `hosting-q2-2026.pdf` page 1, which is the invoice.
+Asked for a sister's phone number, it answered "The provided pages do not contain the sister's phone number" and cited nothing, which is the abstention the acceptance asks for.
+
+Two things the run found and fixed.
+The free model can spend its whole budget reasoning and stream no content at all, which showed as an empty panel: a user cannot tell a refusal from a failure, so an answer with no answer in it is now reported as unavailable with a message naming what to do.
+Lifting the `[1]` out of the prose left sentences like "the invoice on page  says", so the marker stays where it was written and the chip beneath repeats the number.
 
 ### dtype and build sweep
 
@@ -150,6 +223,7 @@ True now, and each one costs more the later it is paid.
 | Debt | Why it matters |
 | --- | --- |
 | `isPathAllowed` compares resolved paths only, so a symlink inside an indexed folder that points outside it still opens. | Closing it needs the real path of the target, a filesystem call per click. Cheap, and worth doing before the index screen makes opening files routine. Main now reads the allowed roots from the sidecar's `GET /folders` on every check, so the list itself is no longer the gap. |
+| `Page.embedded_at` and the `pages.embedded_at` column are dead. Nothing writes them and nothing reads them. | They were the second copy of a fact the vector store owns, and keeping them in step made `pages` a table two threads wrote, which `conventions/python.md` forbids. The writer is gone and `ReadIndexStats` now counts from `VectorStore`, so what is left is a field, a property, a schema column and two entity tests that describe nothing. Remove them in one sweep once the day 2 adapters are merged, since `lancedb_schema.py` is being edited in the same slice. |
 | TypeScript is pinned to 5.9.3 and Vite to 7.3.6 by ecosystem compatibility, not by choice. | Nothing in the repo records which package forces which pin, so the next attempt to bump one rediscovers the break instead of reading about it. |
 | shadcn/ui is not installed. `ui/shared/Button.tsx` and `ui/shared/Screen.tsx` are hand rolled. | D01 and the Day 1 scaffold both name shadcn/ui. Every screen after the onboarding states either adopts it or D01 needs a row saying it was dropped and why. |
 | Nothing removes stale rows. A file that stops being readable keeps the pages it had, so the index screen calls it skipped while a search still returns its content. | Breaks `IndexFolder`'s stated invariant, which is the promise the index screen is built on. Measured, not inferred: see D43. It is scheduled, not forgotten. Day 5 owns it, and `content_hash_of` is the method it needs. |

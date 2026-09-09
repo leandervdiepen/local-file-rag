@@ -11,6 +11,7 @@ export interface IndexProgress {
   filesIndexed: number
   filesSkipped: number
   pagesIndexed: number
+  pagesEmbedded: number
   currentPath: string
   done: boolean
 }
@@ -31,6 +32,7 @@ export const noProgress: IndexProgress = {
   filesIndexed: 0,
   filesSkipped: 0,
   pagesIndexed: 0,
+  pagesEmbedded: 0,
   currentPath: '',
   done: false,
 }

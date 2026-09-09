@@ -67,6 +67,18 @@ class LanceDBStore:
         rows = self._rows_where(schema.FILES_TABLE, f"id = {sql.literal(file_id)}", columns=["content_hash"])
         return str(rows[0]["content_hash"]) if rows else None
 
+    def files_in_state(self, state: FileState, after_path: str | None, limit: int) -> list[IndexedFile]:
+        predicate = f"state = {sql.literal(state.value)}"
+        if after_path is not None:
+            predicate += f" AND path > {sql.literal(after_path)}"
+        rows = self._rows_where(schema.FILES_TABLE, predicate)
+        files = sorted((schema.row_to_file(row) for row in rows), key=lambda file: str(file.path))
+        return files[:limit]
+
+    def indexed_files(self) -> list[IndexedFile]:
+        rows = self._rows_where(schema.FILES_TABLE, f"state = '{FileState.TEXT_INDEXED.value}'")
+        return sorted((schema.row_to_file(row) for row in rows), key=lambda file: str(file.path))
+
     def search_pages(self, query: str, limit: int) -> list[PageHit]:
         stripped = query.strip()
         if not stripped:

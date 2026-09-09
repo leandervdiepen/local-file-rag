@@ -38,6 +38,12 @@ export function createSearchPort(client: SidecarClient): SearchPort {
           if (name === 'candidates') {
             const body = payload as { hits: WireHit[]; took_ms: number }
             handlers.onCandidates(body.hits.map(toHit), body.took_ms)
+          } else if (name === 'progress') {
+            const body = payload as { pages_read: number; pages_total: number }
+            handlers.onProgress(body.pages_read, body.pages_total)
+          } else if (name === 'results') {
+            const body = payload as { hits: WireHit[]; took_ms: number }
+            handlers.onResults(body.hits.map(toHit), body.took_ms)
           } else if (name === 'done') {
             handlers.onFinished()
           }

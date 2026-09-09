@@ -1,4 +1,7 @@
 import type { IndexedFolder, IndexProgress, IndexStats } from '../domain/indexing'
+import type { IndexedFileRow } from '../domain/skip-reasons'
+import type { AnswerUsage, Citation, RetrievedPage } from '../domain/chat'
+import type { Heatmap } from '../domain/heatmap'
 import type { PageHit } from '../domain/search-results'
 import type { SidecarState } from '../domain/sidecar-state'
 
@@ -32,6 +35,8 @@ export interface SecretsPort {
 
 export interface SearchHandlers {
   onCandidates: (hits: PageHit[], tookMs: number) => void
+  onProgress: (pagesRead: number, pagesTotal: number) => void
+  onResults: (hits: PageHit[], tookMs: number) => void
   onFinished: () => void
 }
 
@@ -46,9 +51,16 @@ export interface FoldersPort {
   remove: (id: string) => Promise<void>
 }
 
+export interface FilePage {
+  files: IndexedFileRow[]
+  nextCursor: string | null
+}
+
 export interface IndexPort {
   rescan: () => Promise<void>
   stats: () => Promise<IndexStats>
+  /** One page of files in a state, `cursor` of null starting at the beginning. */
+  files: (state: 'text_indexed' | 'skipped', cursor: string | null) => Promise<FilePage>
   /** Streams crawl progress. Resolves when the job ends, so no job is an immediate resolve. */
   watchProgress: (onProgress: (progress: IndexProgress) => void, signal: AbortSignal) => Promise<void>
 }
@@ -64,4 +76,22 @@ export interface PageImagePort {
    * over as an object URL.
    */
   imageUrl: (pageId: string, size: PageImageSize) => Promise<string>
+}
+
+export interface HeatmapPort {
+  /** The grid explaining why this page matched this query. Rejects with a `SearchError`. */
+  explain: (pageId: string, query: string, signal: AbortSignal) => Promise<Heatmap>
+}
+
+export interface ChatHandlers {
+  onRetrieval: (pages: RetrievedPage[]) => void
+  onToken: (text: string) => void
+  onCitation: (citation: Citation) => void
+  onDone: (usage: AnswerUsage, costUsd: number, modelId: string) => void
+  onError: (error: { code: string; message: string }) => void
+}
+
+export interface ChatPort {
+  /** Streams one answer. Resolves when the stream ends, rejects with a `SearchError`. */
+  ask: (question: string, modelId: string, handlers: ChatHandlers, signal: AbortSignal) => Promise<void>
 }

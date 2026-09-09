@@ -10,8 +10,9 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
 
-from sidecar.domain.entities import Folder, IndexedFile, Page
+from sidecar.domain.entities import FileState, Folder, IndexedFile, Page
 from sidecar.domain.search import IndexStats, PageHit
+from sidecar.domain.vectors import PageVectors, QueryVectors
 
 
 class IndexStore(Protocol):
@@ -52,6 +53,23 @@ class IndexStore(Protocol):
         disk and skip an unchanged file without loading it. The day 5 watcher
         depends on that: its cost has to be proportional to what changed
         rather than to the size of the folder.
+        """
+        ...
+
+    def files_in_state(self, state: FileState, after_path: str | None, limit: int) -> list[IndexedFile]:
+        """A page of files in one state, ordered by path, starting after `after_path`.
+
+        Paged by path rather than by offset so a crawl running underneath the
+        index screen cannot make a row appear twice or not at all. `after_path`
+        of `None` starts at the beginning.
+        """
+        ...
+
+    def indexed_files(self) -> list[IndexedFile]:
+        """Every file that has pages, ordered by path.
+
+        Exists so a job can walk what is in the index without a search. Skipped
+        files are not here: they have no pages and nothing to do with them.
         """
         ...
 
@@ -103,4 +121,55 @@ class FolderStore(Protocol):
         the caller is asking for a state no row can hold, and a toggle that
         silently does nothing is the bug the user reports.
         """
+        ...
+
+
+class VectorStore(Protocol):
+    """Where page vectors live. Separate from the index because it is the expensive part.
+
+    A page's vectors are written once and read many times, are rebuilt from
+    the page image when lost, and cost about 60 KB each, so this store can be
+    evicted, capped or dropped without touching what the index knows about
+    a file.
+    """
+
+    def put_vectors(self, vectors: Sequence[PageVectors]) -> None:
+        """Insert or replace by `page_id`, as one batch. Idempotent. Empty input is a no-op."""
+        ...
+
+    def forget_pages(self, page_ids: Sequence[str]) -> None:
+        """Drop the vectors for these pages. Silent for ids that have none, and a no-op for an empty list.
+
+        Needed because a deleted file must leave nothing behind. Its vectors
+        are the largest thing it owned, and a page that is gone must not go on
+        being reachable through the vector search.
+        """
+        ...
+
+    def get_vectors(self, page_ids: Sequence[str]) -> dict[str, PageVectors]:
+        """The stored vectors for each id that has them. Ids without vectors are simply absent."""
+        ...
+
+    def embedded_ids(self, page_ids: Sequence[str]) -> set[str]:
+        """Which of these ids have vectors, without reading the vectors.
+
+        Exists because deciding what still needs embedding is asked of every
+        candidate on every search, and the vectors themselves are only wanted
+        for the ones that have them.
+        """
+        ...
+
+    def nearest(self, query: QueryVectors, limit: int) -> list[tuple[str, float]]:
+        """The `limit` pages most similar to the query across the whole store, best first.
+
+        This is the fallback for a query stage 1 cannot serve, so it searches
+        everything rather than a candidate set. Returns fewer than `limit`
+        when the store holds fewer pages, and an empty list from an empty
+        store. The score is the adapter's similarity and is only comparable
+        with other scores from this method, never with MaxSim.
+        """
+        ...
+
+    def count(self) -> int:
+        """How many pages have vectors. Cheap enough to call per write."""
         ...
