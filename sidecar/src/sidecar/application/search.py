@@ -101,7 +101,7 @@ class Search:
         stage 1 order at the bottom, still present, because a page stage 1
         found is never dropped for not having been looked at yet.
 
-        A thin candidate list is widened from the whole vector store first.
+        Every candidate list is widened from the whole vector store first, thin or not (D49).
         Returns an empty list the moment `is_cancelled` says so: the caller
         has hung up and nothing it would get is worth another second of model.
         """

@@ -31,15 +31,3 @@ export interface IndexStats {
   bytesOnDisk: number
   skipsByReason: Record<string, number>
 }
-
-export const noProgress: IndexProgress = {
-  folderId: '',
-  filesSeen: 0,
-  filesIndexed: 0,
-  filesSkipped: 0,
-  pagesIndexed: 0,
-  pagesEmbedded: 0,
-  currentPath: '',
-  failures: [],
-  done: false,
-}

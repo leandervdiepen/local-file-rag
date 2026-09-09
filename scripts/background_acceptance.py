@@ -17,6 +17,10 @@ import time
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from sidecar_client import Sidecar  # noqa: E402
+
 REPO = Path(__file__).resolve().parent.parent
 CORPUS = Path.home() / "demo-corpus"
 TOKEN = "background-acceptance"
@@ -27,32 +31,8 @@ CAP_BYTES = 240 * 1024
 LOOP_SECONDS = 30.0
 
 
-def call(port: int, method: str, path: str, body: dict | None = None) -> dict:
-    request = urllib.request.Request(
-        f"http://127.0.0.1:{port}{path}",
-        data=json.dumps(body).encode() if body is not None else None,
-        headers={"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"},
-        method=method,
-    )
-    with urllib.request.urlopen(request, timeout=60) as response:
-        raw = response.read().decode()
-    return json.loads(raw) if raw else {}
-
-
-def drain_progress(port: int) -> None:
-    request = urllib.request.Request(
-        f"http://127.0.0.1:{port}/index/progress",
-        headers={"Authorization": f"Bearer {TOKEN}"},
-    )
-    with urllib.request.urlopen(request, timeout=900) as response:
-        for raw in response:
-            line = raw.decode().strip()
-            if line.startswith("data:") and json.loads(line[5:]).get("done"):
-                return
-
-
-def embedded(port: int) -> int:
-    return int(call(port, "GET", "/index/stats")["pages_embedded"])
+def embedded(sidecar: Sidecar) -> int:
+    return int(sidecar.call("GET", "/index/stats")["pages_embedded"])
 
 
 def main() -> int:
@@ -70,19 +50,19 @@ def main() -> int:
     )
     try:
         assert process.stdout is not None
-        port = int(process.stdout.readline().split()[1])
+        sidecar = Sidecar(int(process.stdout.readline().split()[1]), TOKEN)
 
-        call(port, "POST", "/folders", {"path": str(folder)})
-        call(port, "POST", "/index/rescan")
-        drain_progress(port)
-        after_crawl = embedded(port)
+        sidecar.call("POST", "/folders", {"path": str(folder)})
+        sidecar.call("POST", "/index/rescan")
+        sidecar.wait_for_crawl()
+        after_crawl = embedded(sidecar)
         print(f"crawl embedded {after_crawl} pages, cap is {CAP_BYTES // 1024} KB")
 
         # One page opened, so the cap has something it must not evict.
-        page = call(port, "GET", "/index/files")["files"][0]
+        page = sidecar.call("GET", "/index/files")["files"][0]
         urllib.request.urlopen(
             urllib.request.Request(
-                f"http://127.0.0.1:{port}/pages/{page['id']}:1/image?size=full",
+                f"{sidecar.base_url}/pages/{page['id']}:1/image?size=full",
                 headers={"Authorization": f"Bearer {TOKEN}"},
             ),
             timeout=60,
@@ -91,7 +71,7 @@ def main() -> int:
 
         print(f"leaving the machine alone for {LOOP_SECONDS * 2:.0f}s so the loop ticks")
         time.sleep(LOOP_SECONDS * 2 + 5)
-        after_cap = embedded(port)
+        after_cap = embedded(sidecar)
         print(f"after the loop ran: {after_cap} pages embedded")
 
         # The cap has to bite and then stop. Emptying the store is the failure

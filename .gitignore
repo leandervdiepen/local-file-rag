@@ -5,7 +5,6 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-.importlinter_cache/
 dist/
 build/
 *.egg-info/
@@ -30,6 +29,8 @@ scratch/
 # Corpus and measurements are generated, not tracked
 demo-corpus/
 bench-out/
+# Eval runs are generated, and their reports embed the corpus path they ran against.
+scripts/eval-runs/
 
 # macOS
 .DS_Store

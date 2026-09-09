@@ -57,6 +57,7 @@ class ColQwenEmbedder:
         self._model = LazyModel(self._load, self._release, idle_seconds)
         self._readiness_lock = threading.Lock()
         self._readiness = ModelProgress()
+        self._pooler: Any = None
 
     def embed_pages(self, page_ids: Sequence[str], images_png: Sequence[bytes]) -> list[PageVectors]:
         if len(page_ids) != len(images_png):
@@ -132,13 +133,25 @@ class ColQwenEmbedder:
         return self._model.use(lambda model: self._encode_pooled(model, images))
 
     def _encode_pooled(self, model: Any, images: list[Image.Image]) -> list[np.ndarray]:
-        from sentence_transformers.multi_vector_encoder.modules.token_pooling import HierarchicalTokenPooling
-
-        pooling = HierarchicalTokenPooling(pool_factor=self._pool_factor)
+        pooling = self._pooling()
         # No progress bar: stderr is the sidecar's log, and a bar per page
         # would drown the lines a person is actually meant to read.
         encoded = model.encode_document(images, show_progress_bar=False)
         return [to_numpy(pooling.pool_one(torch.as_tensor(page)), STORED_DTYPE) for page in encoded]
+
+    def _pooling(self) -> Any:
+        """The pooler, built once. It holds a factor and no state worth resetting.
+
+        Imported here rather than at module scope so that importing this module
+        does not drag in sentence-transformers, which costs seconds and pulls
+        torch with it. The instance is then kept, because rebuilding it for
+        every batch of eight pages bought nothing.
+        """
+        if self._pooler is None:
+            from sentence_transformers.multi_vector_encoder.modules.token_pooling import HierarchicalTokenPooling
+
+            self._pooler = HierarchicalTokenPooling(pool_factor=self._pool_factor)
+        return self._pooler
 
     def _explain(self, model: Any, image: Image.Image) -> tuple[PageVectors, PatchGrid]:
         transformer = model[0]

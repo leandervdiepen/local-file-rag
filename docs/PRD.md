@@ -86,7 +86,7 @@ Each one is testable.
 | FR-4 | A file watcher picks up new, changed and deleted files within five seconds. |
 | FR-5 | One search box. Stage 1 results render in under 150 ms, grouped by file, with page thumbnails. |
 | FR-6 | Stage 2 embeds candidate pages with ColQwen2 on demand, caches the vectors, and reranks by MaxSim. At most 30 uncached pages per query, with live progress text. |
-| FR-7 | When stage 1 returns fewer than five pages, the app runs a multivector search over every embedded page. |
+| FR-7 | Every query runs a multivector search over the embedded pages and merges the result into the text candidates. This originally fired only when stage 1 returned fewer than five pages; measuring it on day 2 showed a weak text match is not a missing one, and the fallback never fired for the queries it existed to serve (D49). |
 | FR-8 | Clicking a result shows the page with a patch heatmap. The user can view the combined map or one query token at a time and move a threshold slider. |
 | FR-9 | Chat takes a question, retrieves pages, sends the top three to five page images to Claude, streams the answer, and renders citations as file plus page. Clicking a citation opens that page with its heatmap. |
 | FR-10 | Every result offers open in default app, reveal in Finder, and copy path. |

@@ -2,12 +2,14 @@ appId: com.diepen.local-file-rag
 productName: Local file search
 directories:
   output: release
+  buildResources: build
 files:
   - out/**/*
 extraResources:
   - from: ../sidecar/dist/sidecar
     to: sidecar
 mac:
+  icon: build/icon.icns
   target: dmg
   category: public.app-category.productivity
   hardenedRuntime: true

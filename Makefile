@@ -39,7 +39,8 @@ int-sidecar:
 slow: ## The tests that load the real retrieval model. Minutes, not seconds
 	$(UV) run pytest -m slow -q -s
 
-e2e: ## Playwright over Electron, the three money paths
+e2e: ## Playwright over Electron: index a folder, search it, see why a page matched
+	$(PNPM) exec electron-vite build
 	$(PNPM) run e2e
 
 dev: ## Run the app against a dev sidecar

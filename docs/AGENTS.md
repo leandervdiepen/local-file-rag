@@ -21,4 +21,4 @@ The code repo will be created on day 1 next to this folder and linked from STATU
 
 - Do not add file types, sources, or platforms that are out of scope in PRD.md. Write them in STATUS.md under `Ideas parked` instead.
 - Do not swap the retrieval model, the store, or the sidecar framework without updating DECISIONS.md first.
-- Do not commit secrets. The sidecar reads the Anthropic key from the macOS keychain or an env var, never from a tracked file.
+- Do not commit secrets. Provider keys reach the sidecar over the authenticated local API and live in memory only (D41). The environment variables are a convenience for running from source, and the shipped app never sets them.

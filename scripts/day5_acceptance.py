@@ -1,3 +1,4 @@
+#!/usr/bin/env -S uv run python
 """The day 5 acceptance, run against a live sidecar.
 
 Three claims, all from `docs/PLAN.md`: a PDF dropped into a watched folder is
@@ -8,68 +9,26 @@ path: the real watcher, the real debounce, the real model, the real tables.
 
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
-import urllib.request
 from pathlib import Path
 
-REPO = Path("/Users/leandervandiepen/Documents/lndr/diepen/code/diepen/local-file-rag")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from sidecar_client import Sidecar  # noqa: E402
+
+REPO = Path(__file__).resolve().parent.parent
 CORPUS = Path.home() / "demo-corpus"
-TOKEN = "acceptance-token"
+TOKEN = "day5-acceptance"
 DEADLINE_S = 5.0
 
 
-def call(port: int, method: str, path: str, body: dict | None = None) -> object:
-    request = urllib.request.Request(
-        f"http://127.0.0.1:{port}{path}",
-        data=json.dumps(body).encode() if body is not None else None,
-        headers={"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"},
-        method=method,
-    )
-    with urllib.request.urlopen(request, timeout=60) as response:
-        raw = response.read().decode()
-    return json.loads(raw) if raw else None
-
-
-def drain_progress(port: int) -> None:
-    """Read /index/progress until the job publishes its done snapshot."""
-    request = urllib.request.Request(
-        f"http://127.0.0.1:{port}/index/progress",
-        headers={"Authorization": f"Bearer {TOKEN}"},
-    )
-    with urllib.request.urlopen(request, timeout=600) as response:
-        for raw in response:
-            line = raw.decode().strip()
-            if line.startswith("data:") and json.loads(line[5:]).get("done"):
-                return
-
-
-def search_names(port: int, query: str) -> list[str]:
-    request = urllib.request.Request(
-        f"http://127.0.0.1:{port}/search?q={query}",
-        headers={"Authorization": f"Bearer {TOKEN}"},
-    )
-    found: list[str] = []
-    with urllib.request.urlopen(request, timeout=60) as response:
-        for raw in response:
-            line = raw.decode().strip()
-            if not line.startswith("data:"):
-                continue
-            payload = json.loads(line[5:])
-            for hit in payload.get("hits", []):
-                found.append(Path(hit["path"]).name)
-            if payload.get("done"):
-                break
-    return found
-
-
 def main() -> int:
-    watched = Path(tempfile.mkdtemp(prefix="watch-acceptance-"))
-    db = Path(tempfile.mkdtemp(prefix="watch-acceptance-db-"))
+    watched = Path(tempfile.mkdtemp(prefix="day5-"))
+    db = Path(tempfile.mkdtemp(prefix="day5-db-"))
     seed = CORPUS / "decks" / "hiring-plan-2026.pdf"
     shutil.copy(seed, watched / "already-here.pdf")
 
@@ -77,80 +36,81 @@ def main() -> int:
         ["uv", "run", "sidecar", "--token", TOKEN, "--db", str(db)],
         cwd=REPO / "sidecar",
         stdout=subprocess.PIPE,
-        stderr=None,
+        stderr=subprocess.DEVNULL,
         text=True,
     )
     try:
         assert process.stdout is not None
-        port = int(process.stdout.readline().split()[1])
-        print(f"sidecar on {port}, watching {watched}")
+        sidecar = Sidecar(int(process.stdout.readline().split()[1]), TOKEN)
+        print(f"sidecar on {sidecar.base_url}, watching {watched}")
 
-        call(port, "POST", "/folders", {"path": str(watched)})
-        call(port, "POST", "/index/rescan")
-        drain_progress(port)
-        print("first crawl done:", call(port, "GET", "/index/stats"))
+        sidecar.call("POST", "/folders", {"path": str(watched)})
+        sidecar.call("POST", "/index/rescan")
+        sidecar.wait_for_crawl()
+        print("first crawl done:", sidecar.call("GET", "/index/stats"))
 
-        # D49 widens every query with visual candidates, so an empty stage 1
-        # still returns pages. The name is what says the new file arrived.
-        target = "zeppelin.pdf"
-        assert target not in search_names(port, "zeppelin"), "the file is not there yet"
-
-        dropped_at = time.perf_counter()
-        shutil.copy(seed, watched / target)
-
-        # Polled on /index/files rather than /search: every search runs stage 2
-        # against the model and costs about a second, so polling with it would
-        # measure the probe rather than the watcher. The search after it is
-        # what proves the word "searchable".
-        indexed_at = None
-        while time.perf_counter() - dropped_at < DEADLINE_S * 4:
-            names = [Path(f["path"]).name for f in call(port, "GET", "/index/files")["files"]]
-            if target in names:
-                indexed_at = time.perf_counter() - dropped_at
-                break
-            time.sleep(0.1)
-
-        if indexed_at is None:
-            print(f"FAIL: {target} never reached the index")
-            return 1
-
-        found = target in search_names(port, target.removesuffix(".pdf"))
-        dropped_in = indexed_at <= DEADLINE_S and found
-        print(
-            f"{_verdict(dropped_in)}: {target} indexed {indexed_at:.2f}s after it was dropped "
-            f"against a {DEADLINE_S:.0f}s budget, search finds it: {found}"
-        )
-
-        excluded = _excluding_a_folder_hides_it(port, watched, target)
-        counted = _stats_match_ls(port, watched)
+        dropped_in = _a_dropped_file_is_searchable(sidecar, watched, seed)
+        excluded = _excluding_a_folder_hides_it(sidecar)
+        counted = _stats_match_ls(sidecar, watched)
         return 0 if dropped_in and excluded and counted else 1
     finally:
         process.terminate()
-        process.wait(timeout=10)
+        process.wait(timeout=15)
         shutil.rmtree(watched, ignore_errors=True)
         shutil.rmtree(db, ignore_errors=True)
 
 
-def _excluding_a_folder_hides_it(port: int, watched: Path, target: str) -> bool:
+def _a_dropped_file_is_searchable(sidecar: Sidecar, watched: Path, seed: Path) -> bool:
+    """Drop a file in and time how long until the index has it.
+
+    Timed on `/index/files` rather than on a search, because every search runs
+    stage 2 against the model and costs about a second, so polling with one
+    would measure the probe rather than the watcher. The search after it is
+    what proves the word "searchable".
+    """
+    target = "zeppelin.pdf"
+    dropped_at = time.perf_counter()
+    shutil.copy(seed, watched / target)
+
+    indexed_at = None
+    while time.perf_counter() - dropped_at < DEADLINE_S * 4:
+        names = [Path(row["path"]).name for row in sidecar.call("GET", "/index/files")["files"]]
+        if target in names:
+            indexed_at = time.perf_counter() - dropped_at
+            break
+        time.sleep(0.1)
+
+    if indexed_at is None:
+        print(f"FAIL: {target} never reached the index")
+        return False
+
+    found = target in sidecar.search(target.removesuffix(".pdf"))
+    passed = indexed_at <= DEADLINE_S and found
+    print(
+        f"{_verdict(passed)}: {target} indexed {indexed_at:.2f}s after it was dropped "
+        f"against a {DEADLINE_S:.0f}s budget, search finds it: {found}"
+    )
+    return passed
+
+
+def _excluding_a_folder_hides_it(sidecar: Sidecar) -> bool:
     """Turn the folder off, and what it holds must stop coming back."""
-    folder = call(port, "GET", "/folders")["folders"][0]
-    call(port, "PATCH", f"/folders/{folder['id']}", {"enabled": False})
-    while_off = search_names(port, target.removesuffix(".pdf"))
+    folder = sidecar.call("GET", "/folders")["folders"][0]
+    sidecar.call("PATCH", f"/folders/{folder['id']}", {"enabled": False})
+    while_off = sidecar.search("zeppelin")
 
-    call(port, "PATCH", f"/folders/{folder['id']}", {"enabled": True})
-    while_on = search_names(port, target.removesuffix(".pdf"))
+    sidecar.call("PATCH", f"/folders/{folder['id']}", {"enabled": True})
+    while_on = sidecar.search("zeppelin")
 
-    hidden = while_off == []
-    back = target in while_on
-    print(f"{_verdict(hidden and back)}: excluded folder returns {len(while_off)} results, back on returns {len(while_on)}")
-    return hidden and back
+    passed = while_off == [] and "zeppelin.pdf" in while_on
+    print(f"{_verdict(passed)}: excluded folder returns {len(while_off)} results, back on returns {len(while_on)}")
+    return passed
 
 
-def _stats_match_ls(port: int, watched: Path) -> bool:
+def _stats_match_ls(sidecar: Sidecar, watched: Path) -> bool:
     """The count on the index screen against the count in the folder."""
     on_disk = sum(1 for entry in watched.rglob("*") if entry.is_file())
-    stats = call(port, "GET", "/index/stats")
-    scanned = stats["files_scanned"]
+    scanned = sidecar.call("GET", "/index/stats")["files_scanned"]
     print(f"{_verdict(scanned == on_disk)}: {scanned} files scanned against {on_disk} files on disk")
     return bool(scanned == on_disk)
 

@@ -83,5 +83,5 @@ Coverage is a signal, not a target.
 - Do not write a number into a doc, a README or a commit message that you did not measure. Every number carries machine, model and date.
 - Do not commit a secret. The Anthropic key arrives over the local API and lives in sidecar memory only.
 - Do not create `index.ts` barrels. Name a file after what is in it.
-- Do not let a file pass 200 lines. Split it by concern instead.
+- Keep files small, around 200 lines, by separating concerns. It is a guide, not a gate: split a file because it holds two ideas, never because it holds too many lines.
 - Do not write a second copy of any logic. The moment it appears, it becomes a shared module.

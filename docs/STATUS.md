@@ -1,21 +1,29 @@
 # Status
 
-Updated: 2026-09-08, autonomous build session.
-Repo: this folder. Planning docs moved to `docs/` on day 1.
+Updated: 2026-09-09.
 Linear: `Local file RAG v1` on team `diepen`, 57 issues, DPN-224 to DPN-280.
 
-## Now
+This file is the measurement log. Every number below carries the machine, the
+model and the date it came from, and nothing here was estimated. What is
+in flight belongs in Linear rather than in a file that goes stale between
+sessions.
 
-Day 5, the rest of trust. Idle pre-embedding on AC power, the storage cap with least recently hit eviction, and the remaining error states.
+## Where the build got to
 
-Days 2, 3 and 4 are done and their gates are recorded below. The index screen and the file watcher are in, so what is left of day 5 is the two background behaviours and the states that explain a failure.
+Days 1 through 5 are done and their gates are recorded below, along with day 6's
+first golden run and day 7's packaging numbers.
 
-## Next
+What is not built, and is written down rather than implied: an offline toggle
+separate from picking a local provider, click logging with a recall endpoint,
+and a golden set runner inside the index screen. `scripts/eval.py` does the
+last of those better than a panel would, because it keeps thumbnails and diffs
+each run against the one before it.
 
-1. Idle pre-embedding and the storage cap, which are what keep the index honest on a folder larger than the demo corpus.
-2. The first golden run through `scripts/eval.py`, which is written and has never been run against a live sidecar. It is the only way to steer retrieval quality with evidence rather than taste.
-3. Retrieval ranking. The vision path finds 7 of 9 text-free queries and lands 4 in the top 5, so the gap is ranking rather than reach, and the pooling factor and the candidate mix are the two levers.
-4. Day 6 and day 7: the eval numbers, the design pass on the states, packaging and the DMG.
+The number to argue with is retrieval on text-free queries: 0.44 at five,
+against 1.00 for queries whose page carries matching words. The two levers
+named on day 5 were measured and neither moved it. What is left is the fusion
+of the two candidate sets, which is a ranking change that has to be measured
+against the 21 of 21 the text channel gets today.
 
 ## Plan swaps
 
@@ -34,16 +42,12 @@ Day 4 still owns `anthropic_answerer`, `openai_compatible_answerer` and the unit
 | `domain/heatmap.py` and the `PageExplainer` port | Day 3 | Written on day 2 as pure functions with no adapter behind them, because the vectors domain and the `PageEmbedder` port were being settled in the same sitting and the heatmap is the second configuration of the same model (D35). Day 3 keeps the endpoint, the canvas overlay, the threshold slider and the token picker, which is where its work actually is. This adds to what day 3 starts with rather than taking from it, and day 3's cut protection is unchanged. |
 | Evaluation: the golden runner behind `POST /eval/golden/run`, `scripts/eval.py` with a self-contained `report.html` and a regression diff against the previous run | Day 6 | The owner asked for it on day 1, 2026-09-08, with research first. The research (`docs/research/evaluation-2026-09.md`) settled D45 to D48. The retrieval half runs against stage 1 today and its first run is the stage 1 ceiling the Day 2 delta is measured from. The answer half, `golden_answers.jsonl` and the judge wait for Day 4 to produce answers. `bench.py` keeps speed and size; the runner owns recall and the splits. |
 
-## Blockers
-
-None blocking. Two items need Leander, neither stops the build.
-
-## Needs Leander
+## Open with Leander
 
 | What | Why | What happens meanwhile |
 | --- | --- | --- |
-| An Anthropic API key, or `ant` CLI auth | `ANTHROPIC_API_KEY` is unset and `ant` is not installed, so no real chat call has been made | Day 4 builds and tests against a local stub that speaks the Anthropic streaming wire format. The real-call check stays open until a key exists. |
-| Whether an Apple Developer account exists | Decides notarization on day 7 | Shipping unsigned per D18, with the quarantine removal instruction in the README. |
+| Whether an Apple Developer account exists | Decides notarization | Shipping unsigned per D18, with the quarantine removal instruction in the README. |
+| Installing the DMG on a clean user account | The only way to know a fresh machine works, including the first run model download | The bundle has been run standalone and the packaged app driven through search, preview and the heatmap on this account. |
 
 ## Measurements
 
@@ -292,11 +296,11 @@ True now, and each one costs more the later it is paid.
 
 | Debt | Why it matters |
 | --- | --- |
-| `isPathAllowed` compares resolved paths only, so a symlink inside an indexed folder that points outside it still opens. | Closing it needs the real path of the target, a filesystem call per click. Cheap, and worth doing before the index screen makes opening files routine. Main now reads the allowed roots from the sidecar's `GET /folders` on every check, so the list itself is no longer the gap. |
-| `Page.embedded_at` and the `pages.embedded_at` column are dead. Nothing writes them and nothing reads them. | Still true. They were the second copy of a fact the vector store owns, and keeping them in step made `pages` a table two threads wrote, which `conventions/python.md` forbids. The writer is gone and `ReadIndexStats` now counts from `VectorStore`, so what is left is a field, a property, a schema column and two entity tests that describe nothing. Remove them in one sweep once the day 2 adapters are merged, since `lancedb_schema.py` is being edited in the same slice. |
-| TypeScript is pinned to 5.9.3 and Vite to 7.3.6 by ecosystem compatibility, not by choice. | Nothing in the repo records which package forces which pin, so the next attempt to bump one rediscovers the break instead of reading about it. |
-| shadcn/ui is not installed. `ui/shared/Button.tsx` and `ui/shared/Screen.tsx` are hand rolled. | D01 and the Day 1 scaffold both name shadcn/ui. Every screen after the onboarding states either adopts it or D01 needs a row saying it was dropped and why. |
-| Nothing removes stale rows. A file that stops being readable keeps the pages it had, so the index screen calls it skipped while a search still returns its content. | Breaks `IndexFolder`'s stated invariant, which is the promise the index screen is built on. Measured, not inferred: see D43. It is scheduled, not forgotten. Day 5 owns it, and `content_hash_of` is the method it needs. |
+| `isPathAllowed` compares resolved paths only, so a symlink inside an indexed folder that points outside it still opens. | Closing it needs the real path of the target, a filesystem call per click. Main reads the allowed roots from the sidecar's `GET /folders` on every check, so the list itself is no longer the gap. |
+| TypeScript is pinned to 5.9.3 and Vite to 7.3.6 by ecosystem compatibility, not by choice. | Nothing records which package forces which pin, so the next attempt to bump one rediscovers the break instead of reading about it. |
+| Six source files are over the 200 line guide. | Each is one cohesive thing and splitting them to hit a number would be worse. The guide now says so, which is the honest version of a rule nobody follows. |
+| The heatmap's combined map is diffuse. | Measured on day 3: the dialog covers 13 percent of the page and lit patches land on it 12 percent of the time. The per-token maps do localise, so the token picker is what makes the overlay readable rather than a nicety. |
+| The token picker shows subword pieces. | "egress" tokenizes as "e" and "gress", and both appear as chips. Merging pieces back into words means combining their maps, which changes what the overlay means, so it is a decision rather than a rename. |
 
 ## Open questions
 

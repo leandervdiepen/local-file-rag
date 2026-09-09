@@ -23,7 +23,7 @@ Acceptance: the spike prints a seconds-per-page number under 3 s and picks the r
 ## Day 1, skeleton
 
 - [x] Create the repo next to this folder. Move this folder to `docs/`. Link it from STATUS.md.
-- [x] `app/`: electron-vite with React 19, TypeScript, Tailwind v4, shadcn/ui. Main spawns the sidecar, reads `READY <port>`, exposes base URL and token through preload.
+- [x] `app/`: electron-vite with React 19, TypeScript, Tailwind v4. Main spawns the sidecar, reads `READY <port>`, exposes base URL and token through preload.
 - [x] `sidecar/`: uv project, Flask 3 app, waitress entrypoint, bearer token middleware, `/health`.
 - [x] Layer skeleton in both packages per KICKOFF.md: domain, application with ports, infrastructure, interface. import-linter and dependency-cruiser wired into `make check` on day one, before any adapter exists.
 - [x] `store.py`: LanceDB tables from ARCHITECTURE.md. FTS index on `files.text` and `pages.text`.

@@ -119,11 +119,29 @@ layers = [
 name = "Domain has no dependency beyond stdlib and numpy"
 type = "forbidden"
 source_modules = ["sidecar.domain"]
-# flask and waitress are the only non-stdlib, non-numpy packages this project has,
-# so forbidding them plus the other layers proves the stdlib-and-numpy-only rule.
+# Every runtime dependency by name, not a sample of them. This listed only
+# flask and waitress until 2026-09-09, with a comment claiming they were the
+# only non-stdlib packages in the project while `dependencies` above named
+# eleven more, so `import torch` in the domain passed the contract that exists
+# to forbid exactly that. Adding a dependency means adding a line here.
 forbidden_modules = [
+    "blake3",
     "flask",
+    "huggingface_hub",
+    "lancedb",
+    "lance",
+    "PIL",
+    "pyarrow",
+    "pypdfium2",
+    "Quartz",
+    "sentence_transformers",
+    "torch",
+    "torchvision",
+    "tqdm",
+    "transformers",
+    "Vision",
     "waitress",
+    "watchdog",
     "sidecar.application",
     "sidecar.infrastructure",
     "sidecar.interface",

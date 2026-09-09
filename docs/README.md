@@ -1,12 +1,8 @@
 # Local file RAG desktop app
 
-Working folder name: `local-file-rag`.
-The product name is not chosen yet.
-Rename the folder when it is.
-
 A macOS desktop app that indexes your files locally, retrieves document pages by what they look like, shows you why a page matched, and answers questions with page citations.
 Built as a one-week open source portfolio project.
-Everything about the project lives in this folder until the code repo exists.
+This folder holds the thinking. The code is beside it in `app/` and `sidecar/`, and the README at the repo root is the one written for a stranger.
 
 ## Files
 

@@ -71,7 +71,7 @@ App, TypeScript, `app/src/`:
 - `renderer/ui/`: components by feature folder: `search/`, `preview/`, `chat/`, `index/`, `settings/`, `onboarding/`, `shared/`.
 - `dependency-cruiser` enforces the boundaries and runs in `make check`.
 
-Files stay under 200 lines and are named after what they contain.
+Files stay small, around 200 lines, and are named after what they contain. The number is a guide; splitting a cohesive file to satisfy it is worse than leaving it.
 No `index.ts` barrels.
 Before writing anything, look for the existing thing. A second copy of any logic becomes a shared module the moment it appears.
 
@@ -119,7 +119,7 @@ If you did not measure it, do not write it.
 
 1. Linear project and issues, one pass.
 2. Day 0 spike: seconds per page on MPS with `vidore/colqwen2-v1.0` through `MultiVectorEncoder`. Record it. Above 3 seconds per page, apply the fallback from the PRD risk table and write the decision down.
-3. Day 0 corpus: `scripts/make_demo_corpus.py` generates a realistic synthetic corpus. Chart-heavy PDFs with matplotlib, slide-style PDFs, screenshots rendered from HTML with Playwright including an error dialog whose only text is inside the image, invoices with an egress line, markdown notes, and junk that the gate must skip. Write `scripts/golden.jsonl` with 30 queries, ten of which have no matching words on the target page. Real files from my Desktop or Downloads are read only and never committed.
+3. Day 0 corpus: `scripts/make_demo_corpus.py` generates a realistic synthetic corpus. Chart-heavy PDFs with matplotlib, slide-style PDFs, screenshots rendered from HTML with Playwright including an error dialog whose only text is inside the image, invoices with an egress line, markdown notes, and junk that the gate must skip. Write `scripts/golden.jsonl` with 30 queries, nine of which have no matching words on the target page. Real files from my Desktop or Downloads are read only and never committed.
 4. Day 1 onward per `PLAN.md`.
 
 Go.
