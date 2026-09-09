@@ -27,13 +27,13 @@ from sidecar.application.read_index_stats import ReadIndexStats
 from sidecar.application.record_page_hit import RecordPageHit
 from sidecar.application.render_page import RenderPage
 from sidecar.application.run_golden_set import RunGoldenSet
-from sidecar.application.search import Search
+from sidecar.application.search import VISUAL_CANDIDATE_LIMIT, Search
 from sidecar.domain.changes import FileChange
 from sidecar.domain.entities import FileKind
 from sidecar.domain.eviction import DEFAULT_CAP_BYTES
 from sidecar.domain.providers import PROVIDERS, ProviderId
 from sidecar.infrastructure.background_loop import BackgroundLoop, Job
-from sidecar.infrastructure.colqwen_embedder import ColQwenEmbedder
+from sidecar.infrastructure.colqwen_embedder import DEFAULT_POOL_FACTOR, ColQwenEmbedder
 from sidecar.infrastructure.filesystem_health import FilesystemHealthProbe
 from sidecar.infrastructure.fs_crawler import FilesystemCrawler
 from sidecar.infrastructure.fs_probe import FilesystemProbe
@@ -72,7 +72,13 @@ def _page_sources() -> dict[FileKind, PageSource]:
     }
 
 
-def build_app(token: str, db_path: Path, cap_bytes: int = DEFAULT_CAP_BYTES) -> Flask:
+def build_app(
+    token: str,
+    db_path: Path,
+    cap_bytes: int = DEFAULT_CAP_BYTES,
+    visual_candidates: int = VISUAL_CANDIDATE_LIMIT,
+    pool_factor: int = DEFAULT_POOL_FACTOR,
+) -> Flask:
     """Wire adapters into use cases and return a Flask app ready to serve."""
     app = Flask(__name__)
 
@@ -88,9 +94,9 @@ def build_app(token: str, db_path: Path, cap_bytes: int = DEFAULT_CAP_BYTES) -> 
     # One embedder for the whole process. It owns the model, loads it on the
     # first page anyone asks for and drops it when idle, so nothing else in
     # here has to know that a 4 GB model is behind these calls.
-    embedder = ColQwenEmbedder()
+    embedder = ColQwenEmbedder(pool_factor=pool_factor)
     embed_pages = EmbedPages(store, sources, embedder, vectors)
-    search = Search(store, vectors, embedder, embed_pages, folders)
+    search = Search(store, vectors, embedder, embed_pages, folders, visual_candidates)
 
     index_folder = IndexFolder(
         crawler=FilesystemCrawler(),

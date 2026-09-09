@@ -1,0 +1,94 @@
+{
+  "candidates": 17,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 17,
+  "expected": {
+    "file": "notes/changelog/CHANGELOG-beacon.md",
+    "page": 1
+  },
+  "hit1": true,
+  "hit10": true,
+  "hit5": true,
+  "id": "g17",
+  "match_channel": "content",
+  "query": "changelog entry about exports timing out",
+  "rank": 1,
+  "stage1_ms": 32,
+  "stage1_rank": 1,
+  "stage2_ms": 567,
+  "text_free": false,
+  "top10": [
+    {
+      "file": "notes/changelog/CHANGELOG-beacon.md",
+      "page": 1,
+      "page_id": "9affa832c771a284e5dea3dbbfc9b92c:1",
+      "score": 13.410058975219727,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2026-02-18 at 09.14.02.png",
+      "page": 1,
+      "page_id": "783244a81258eb512cd8cb9c2f37196e:1",
+      "score": 10.265811920166016,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/naomi-backlog-23.md",
+      "page": 1,
+      "page_id": "7df94451ac09e1002b76c7c7cf2137de:1",
+      "score": 9.677162170410156,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/devon-attrition-35.md",
+      "page": 1,
+      "page_id": "407fc36b2dba888dcfc599d37567d56b:1",
+      "score": 9.591036796569824,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/sofia-backlog-29.md",
+      "page": 1,
+      "page_id": "e086764a977aaedc5b8bfc8af284a4e0:1",
+      "score": 9.381122589111328,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/ruth-attrition-17.md",
+      "page": 1,
+      "page_id": "82f78bce3048be5d7c513f4026c1634a:1",
+      "score": 9.355688095092773,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/priya-throughput-11.md",
+      "page": 1,
+      "page_id": "97b9fc98464a836b0b1925134edcf432:1",
+      "score": 9.34525203704834,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/owen-latency-41.md",
+      "page": 1,
+      "page_id": "a16afc35cab3b96abf0bfa556b3c91a4:1",
+      "score": 9.292037963867188,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/meetings/2026-05-04-incident-review.md",
+      "page": 1,
+      "page_id": "8f7f5286b4907715de254361dfad2a8f:1",
+      "score": 9.210277557373047,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/devon-migration-5.md",
+      "page": 1,
+      "page_id": "384312dbd17709d5a34e6eeced3cc6ab:1",
+      "score": 9.179959297180176,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": false
+}

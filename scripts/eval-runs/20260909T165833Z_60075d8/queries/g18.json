@@ -1,0 +1,94 @@
+{
+  "candidates": 11,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 11,
+  "expected": {
+    "file": "notes/todo/leander-todo.md",
+    "page": 1
+  },
+  "hit1": true,
+  "hit10": true,
+  "hit5": true,
+  "id": "g18",
+  "match_channel": "content",
+  "query": "todo about renewing the ssl certificate",
+  "rank": 1,
+  "stage1_ms": 31,
+  "stage1_rank": 1,
+  "stage2_ms": 625,
+  "text_free": false,
+  "top10": [
+    {
+      "file": "notes/todo/leander-todo.md",
+      "page": 1,
+      "page_id": "12b3d96e5b4bcc4dee164c3855e89c5c:1",
+      "score": 15.878193855285645,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/nginx-snippet.md",
+      "page": 1,
+      "page_id": "57c658d8f1c8cded52819885ad8cd17d:1",
+      "score": 9.037384033203125,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/product-roadmap-2026.pdf",
+      "page": 2,
+      "page_id": "a4468cadbbc432a6324098d4ba6dbbe7:2",
+      "score": 8.712860107421875,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/product-roadmap-2026.pdf",
+      "page": 3,
+      "page_id": "a4468cadbbc432a6324098d4ba6dbbe7:3",
+      "score": 8.215705871582031,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/todo/devon-rollout-21.md",
+      "page": 1,
+      "page_id": "12b006432b2be5cf6ff5f39c636ded8e:1",
+      "score": 7.851929664611816,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2026-02-18 at 09.14.02.png",
+      "page": 1,
+      "page_id": "783244a81258eb512cd8cb9c2f37196e:1",
+      "score": 7.793538570404053,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/partnerships-review-2026.pdf",
+      "page": 3,
+      "page_id": "f8fec480ce93200384f178bb7407c34c:3",
+      "score": 7.768621921539307,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2026-08-31 at 23.59.14.png",
+      "page": 1,
+      "page_id": "b321930b6cb67e4868833628632eb62c:1",
+      "score": 7.692334175109863,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/board-narrative-q3-2026.pdf",
+      "page": 8,
+      "page_id": "c44d4f70c491eb51eaf0c000629f2553:8",
+      "score": 7.676513671875,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/CleanShot 2026-06-03.png",
+      "page": 1,
+      "page_id": "457d8a7e03a4b8c798a516fa9bc231fa:1",
+      "score": 7.428839206695557,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": false
+}

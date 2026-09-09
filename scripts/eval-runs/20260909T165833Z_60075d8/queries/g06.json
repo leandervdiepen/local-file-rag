@@ -1,0 +1,98 @@
+{
+  "candidates": 1,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 1,
+  "expected": {
+    "file": "screenshots/Screenshot 2026-07-03 at 14.28.55.png",
+    "page": 1
+  },
+  "hit1": false,
+  "hit10": false,
+  "hit5": false,
+  "id": "g06",
+  "match_channel": "visual",
+  "query": "code editor with a merge conflict left unresolved",
+  "rank": 28,
+  "stage1_ms": 27,
+  "stage1_rank": null,
+  "stage2_ms": 775,
+  "text_free": true,
+  "thumbnails": {
+    "expected": "thumbs/86013c5e223a77740d1a037aee1dbb5e_1.png",
+    "rank1": "thumbs/64a09305e50a4d94fe62289e6300c8be_1.png"
+  },
+  "top10": [
+    {
+      "file": "screenshots/CleanShot 2026-04-02.png",
+      "page": 1,
+      "page_id": "64a09305e50a4d94fe62289e6300c8be:1",
+      "score": 9.859871864318848,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/changelog/CHANGELOG-beacon.md",
+      "page": 1,
+      "page_id": "9affa832c771a284e5dea3dbbfc9b92c:1",
+      "score": 9.557050704956055,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_8844.png",
+      "page": 1,
+      "page_id": "1bf5b2f0ce8418eca65b0a0e6ade9520:1",
+      "score": 9.434347152709961,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_5310.png",
+      "page": 1,
+      "page_id": "3b21aba75c8db7e6ad108d4b3452685e:1",
+      "score": 9.377676963806152,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2026-04-09 at 19.56.55.png",
+      "page": 1,
+      "page_id": "88a473381e641196c68421a64eb1aac5:1",
+      "score": 9.174210548400879,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2025-07-11 at 04.16.47.png",
+      "page": 1,
+      "page_id": "7d84ca572b67354e26b0a430c57a914b:1",
+      "score": 9.079865455627441,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_1403.png",
+      "page": 1,
+      "page_id": "92db89a2318b136c319e8c5d24b2780e:1",
+      "score": 9.064446449279785,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2026-02-18 at 09.14.02.png",
+      "page": 1,
+      "page_id": "783244a81258eb512cd8cb9c2f37196e:1",
+      "score": 9.011895179748535,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_7538.png",
+      "page": 1,
+      "page_id": "ecac682bfe41f3c3af1a819ff723fb45:1",
+      "score": 8.95289134979248,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_4821.png",
+      "page": 1,
+      "page_id": "ea277ca9ec22460def1538f0fac9f949:1",
+      "score": 8.844615936279297,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": true
+}

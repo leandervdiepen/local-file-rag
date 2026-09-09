@@ -1,0 +1,94 @@
+{
+  "candidates": 28,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 28,
+  "expected": {
+    "file": "reports/board/voxel-health-board-update-1.pdf",
+    "page": 1
+  },
+  "hit1": true,
+  "hit10": true,
+  "hit5": true,
+  "id": "g25",
+  "match_channel": "filename",
+  "query": "voxel health board update runway status",
+  "rank": 1,
+  "stage1_ms": 41,
+  "stage1_rank": 2,
+  "stage2_ms": 346,
+  "text_free": false,
+  "top10": [
+    {
+      "file": "reports/board/voxel-health-board-update-1.pdf",
+      "page": 1,
+      "page_id": "34e3784326597855b24c01caf8c6f2da:1",
+      "score": 13.64560604095459,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/board/voxel-health-board-update-4.pdf",
+      "page": 1,
+      "page_id": "bb3fc5474445bc431e4e66003c4a51f5:1",
+      "score": 11.722437858581543,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/board/voxel-health-board-update-3.pdf",
+      "page": 1,
+      "page_id": "72f9a7ae5b89aa74c45ac916c9f2d0e9:1",
+      "score": 11.470836639404297,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/board/basalt-cloud-board-update-2.pdf",
+      "page": 1,
+      "page_id": "80cc64c82a36fc645a7198ff302fb920:1",
+      "score": 10.944490432739258,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/todo/priya-onboarding-9.md",
+      "page": 1,
+      "page_id": "9aafb35d20d4ac1de93eb4209d101728:1",
+      "score": 10.229545593261719,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/security-posture-review.pdf",
+      "page": 3,
+      "page_id": "541616e8a54d437a2486908471275276:3",
+      "score": 10.092910766601562,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/platform-reliability-q2-2026.pdf",
+      "page": 3,
+      "page_id": "debc3597c96c2553368c092ed75719b4:3",
+      "score": 10.026634216308594,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/experiments/driftline-experiment-writeup-retention-1.pdf",
+      "page": 1,
+      "page_id": "6d9ff3e69436362fb67e7c7d5dbbf095:1",
+      "score": 9.842694282531738,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/experiments/northwind-analytics-experiment-writeup-rollout-2.pdf",
+      "page": 1,
+      "page_id": "a16d1c189a82706f393eb72449829810:1",
+      "score": 9.82382869720459,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/meetings/jonas-activation-36.md",
+      "page": 1,
+      "page_id": "ba6ec862c6b9f3bc04f7cfd54f4865ed:1",
+      "score": 9.661619186401367,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": false
+}

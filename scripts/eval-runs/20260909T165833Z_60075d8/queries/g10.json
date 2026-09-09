@@ -1,0 +1,94 @@
+{
+  "candidates": 3,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 3,
+  "expected": {
+    "file": "screenshots/IMG_9013.png",
+    "page": 1
+  },
+  "hit1": true,
+  "hit10": true,
+  "hit5": true,
+  "id": "g10",
+  "match_channel": "visual",
+  "query": "mobile home screen with a ton of notification badges",
+  "rank": 1,
+  "stage1_ms": 57,
+  "stage1_rank": null,
+  "stage2_ms": 659,
+  "text_free": true,
+  "top10": [
+    {
+      "file": "screenshots/IMG_9013.png",
+      "page": 1,
+      "page_id": "802729891483f252537333c941ee76a2:1",
+      "score": 11.639740943908691,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/CleanShot 2025-10-26.png",
+      "page": 1,
+      "page_id": "a52ea60ae95bfc2ec19567c7d8e18b14:1",
+      "score": 10.347517013549805,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/CleanShot 2026-08-14.png",
+      "page": 1,
+      "page_id": "52d4b977eab5cafb3642ea4a045f30ae:1",
+      "score": 9.506034851074219,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/CleanShot 2025-03-22.png",
+      "page": 1,
+      "page_id": "ada3aaeb3cda1cfe39669b2ee360072b:1",
+      "score": 9.31044864654541,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2026-08-23 at 01.46.13.png",
+      "page": 1,
+      "page_id": "33d1929369feb954c64b297e1529b648:1",
+      "score": 9.29176139831543,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_9094.png",
+      "page": 1,
+      "page_id": "c4fcbaf072648c9373808e145cc9129f:1",
+      "score": 9.198273658752441,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_2570.png",
+      "page": 1,
+      "page_id": "af0cb9be0b02e89d0bc5f2a4c76d13e6:1",
+      "score": 9.058881759643555,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/CleanShot 2026-01-22.png",
+      "page": 1,
+      "page_id": "5a42cf72d5408a864e14c95d2ea6ae4f:1",
+      "score": 9.048206329345703,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2026-07-04 at 04.30.38.png",
+      "page": 1,
+      "page_id": "a0a76635edfc2fb5a40498bc8017f9be:1",
+      "score": 8.890275955200195,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_8844.png",
+      "page": 1,
+      "page_id": "1bf5b2f0ce8418eca65b0a0e6ade9520:1",
+      "score": 8.862390518188477,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": true
+}

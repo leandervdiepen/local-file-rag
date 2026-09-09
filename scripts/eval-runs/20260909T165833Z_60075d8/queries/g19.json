@@ -1,0 +1,94 @@
+{
+  "candidates": 31,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 31,
+  "expected": {
+    "file": "notes/readmes/ingest-service-README.md",
+    "page": 1
+  },
+  "hit1": true,
+  "hit10": true,
+  "hit5": true,
+  "id": "g19",
+  "match_channel": "content",
+  "query": "readme explaining how the ingest service retries failed jobs",
+  "rank": 1,
+  "stage1_ms": 36,
+  "stage1_rank": 1,
+  "stage2_ms": 525,
+  "text_free": false,
+  "top10": [
+    {
+      "file": "notes/readmes/ingest-service-README.md",
+      "page": 1,
+      "page_id": "1b1d4cba106a49f77760983a6ff12543:1",
+      "score": 15.942453384399414,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_8844.png",
+      "page": 1,
+      "page_id": "1bf5b2f0ce8418eca65b0a0e6ade9520:1",
+      "score": 9.134952545166016,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_4821.png",
+      "page": 1,
+      "page_id": "ea277ca9ec22460def1538f0fac9f949:1",
+      "score": 8.955160140991211,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/readmes/jonas-backlog-28.md",
+      "page": 1,
+      "page_id": "4be5adc722ab177549c229becba21355:1",
+      "score": 8.66475772857666,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/naomi-backlog-23.md",
+      "page": 1,
+      "page_id": "7df94451ac09e1002b76c7c7cf2137de:1",
+      "score": 8.545074462890625,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/CleanShot 2026-06-03.png",
+      "page": 1,
+      "page_id": "457d8a7e03a4b8c798a516fa9bc231fa:1",
+      "score": 8.414461135864258,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_6406.png",
+      "page": 1,
+      "page_id": "c022b893c37120e561d0577a2b3147d9:1",
+      "score": 8.414461135864258,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/sofia-backlog-29.md",
+      "page": 1,
+      "page_id": "e086764a977aaedc5b8bfc8af284a4e0:1",
+      "score": 8.293521881103516,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/readmes/sofia-latency-10.md",
+      "page": 1,
+      "page_id": "5bcd002947ad27e6b9f707fc18056f39:1",
+      "score": 8.20521354675293,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/readmes/owen-checkout-22.md",
+      "page": 1,
+      "page_id": "22230d3146d71b31d892a539e2e7d005:1",
+      "score": 8.200719833374023,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": false
+}

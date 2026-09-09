@@ -1,0 +1,94 @@
+{
+  "candidates": 8,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 8,
+  "expected": {
+    "file": "screenshots/Screenshot 2026-06-10 at 08.02.11.png",
+    "page": 1
+  },
+  "hit1": false,
+  "hit10": true,
+  "hit5": true,
+  "id": "g04",
+  "match_channel": "visual",
+  "query": "dashboard with a red spike at the end of the week",
+  "rank": 2,
+  "stage1_ms": 40,
+  "stage1_rank": null,
+  "stage2_ms": 611,
+  "text_free": true,
+  "top10": [
+    {
+      "file": "notes/meetings/2026-05-04-incident-review.md",
+      "page": 1,
+      "page_id": "8f7f5286b4907715de254361dfad2a8f:1",
+      "score": 11.472078323364258,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2026-06-10 at 08.02.11.png",
+      "page": 1,
+      "page_id": "157a11531ffc1299414db37a9947627c:1",
+      "score": 11.150603294372559,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/todo/farid-compliance-27.md",
+      "page": 1,
+      "page_id": "af342e7badcbf1b9fa5d30133b42c9cd:1",
+      "score": 11.11751937866211,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_5578.png",
+      "page": 1,
+      "page_id": "25afa47e1cb0eb88cb525ab101a57547:1",
+      "score": 11.064516067504883,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2025-11-07 at 04.35.59.png",
+      "page": 1,
+      "page_id": "b9c3ab97e989f8afa5ed47ef8744999b:1",
+      "score": 11.059660911560059,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2025-11-08 at 09.55.26.png",
+      "page": 1,
+      "page_id": "cc5a3eef84048780592ec31fc528f20b:1",
+      "score": 10.992830276489258,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/CleanShot 2026-03-19.png",
+      "page": 1,
+      "page_id": "525671fc3794a02cb3ed66dc4467007b:1",
+      "score": 10.887008666992188,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/experiments/landing-page-signup-jump.pdf",
+      "page": 2,
+      "page_id": "6338406f12cc27bcc339c7cff9231796:2",
+      "score": 10.757658958435059,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/experiments/northwind-analytics-experiment-writeup-rollout-2.pdf",
+      "page": 2,
+      "page_id": "a16d1c189a82706f393eb72449829810:2",
+      "score": 10.7427339553833,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/board-narrative-q3-2026.pdf",
+      "page": 4,
+      "page_id": "c44d4f70c491eb51eaf0c000629f2553:4",
+      "score": 10.25193977355957,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": true
+}

@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createMainWindow } from './window'
+import { OPEN_SHORTCUT, registerOpenShortcut, unregisterOpenShortcut } from './global-shortcut'
 import { resolveSidecarCommand } from './sidecar-command'
 import { createSidecarProcess, SidecarProcess } from './sidecar-process'
 import { createNativeActions, pickFolder } from './native-actions'
@@ -67,12 +68,18 @@ app.whenReady().then(() => {
   mainWindow = createMainWindow({ preloadPath, sidecarToken: token })
   registerIpcHandlers(() => mainWindow, token)
 
+  if (!registerOpenShortcut(() => mainWindow)) {
+    console.log(`[main] ${OPEN_SHORTCUT} is taken by another app, opening from the Dock still works`)
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       mainWindow = createMainWindow({ preloadPath, sidecarToken: token })
     }
   })
 })
+
+app.on('will-quit', unregisterOpenShortcut)
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

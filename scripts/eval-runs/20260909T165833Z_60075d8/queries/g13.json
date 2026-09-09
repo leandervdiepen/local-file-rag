@@ -1,0 +1,94 @@
+{
+  "candidates": 4,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 4,
+  "expected": {
+    "file": "screenshots/CleanShot 2026-04-02.png",
+    "page": 1
+  },
+  "hit1": true,
+  "hit10": true,
+  "hit5": true,
+  "id": "g13",
+  "match_channel": "content",
+  "query": "terminal npm peer dependency error",
+  "rank": 1,
+  "stage1_ms": 29,
+  "stage1_rank": 1,
+  "stage2_ms": 767,
+  "text_free": false,
+  "top10": [
+    {
+      "file": "screenshots/CleanShot 2026-04-02.png",
+      "page": 1,
+      "page_id": "64a09305e50a4d94fe62289e6300c8be:1",
+      "score": 11.211251258850098,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2025-07-11 at 04.16.47.png",
+      "page": 1,
+      "page_id": "7d84ca572b67354e26b0a430c57a914b:1",
+      "score": 8.867095947265625,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2026-08-31 at 23.59.14.png",
+      "page": 1,
+      "page_id": "b321930b6cb67e4868833628632eb62c:1",
+      "score": 8.406338691711426,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/product-roadmap-2026.pdf",
+      "page": 6,
+      "page_id": "a4468cadbbc432a6324098d4ba6dbbe7:6",
+      "score": 8.108675956726074,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/CleanShot 2026-07-24.png",
+      "page": 1,
+      "page_id": "1efa5d2aa66dbaa0346d01f95d3261df:1",
+      "score": 7.700709342956543,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/sales-pipeline-review.pdf",
+      "page": 6,
+      "page_id": "7b501765607d28f2e2c31bab11979506:6",
+      "score": 7.687878608703613,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/CleanShot 2025-09-22.png",
+      "page": 1,
+      "page_id": "0751ee5a28ff17c8f8498fdba05ba6ed:1",
+      "score": 7.53741979598999,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/ruth-attrition-17.md",
+      "page": 1,
+      "page_id": "82f78bce3048be5d7c513f4026c1634a:1",
+      "score": 7.489224910736084,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/product-roadmap-2026.pdf",
+      "page": 4,
+      "page_id": "a4468cadbbc432a6324098d4ba6dbbe7:4",
+      "score": 7.300688743591309,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/devon-attrition-35.md",
+      "page": 1,
+      "page_id": "407fc36b2dba888dcfc599d37567d56b:1",
+      "score": 7.228896141052246,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": false
+}

@@ -1,0 +1,94 @@
+{
+  "candidates": 75,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 75,
+  "expected": {
+    "file": "reports/quarterly/kernel-metrics-q3-2026-business-review-0.pdf",
+    "page": 1
+  },
+  "hit1": false,
+  "hit10": true,
+  "hit5": true,
+  "id": "g23",
+  "match_channel": "content",
+  "query": "net revenue retention 116 percent quarterly review",
+  "rank": 3,
+  "stage1_ms": 37,
+  "stage1_rank": 1,
+  "stage2_ms": 495,
+  "text_free": false,
+  "top10": [
+    {
+      "file": "reports/quarterly/quillview-q1-2026-business-review-4.pdf",
+      "page": 1,
+      "page_id": "5112075dae857325b5c46b467537dc90:1",
+      "score": 16.126869201660156,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/quarterly/driftline-q3-2026-business-review-3.pdf",
+      "page": 1,
+      "page_id": "ebd1bfeb0a977c198f2720353ccc1395:1",
+      "score": 16.06033706665039,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/quarterly/kernel-metrics-q3-2026-business-review-0.pdf",
+      "page": 1,
+      "page_id": "21d0c06a9dbee5c57404af38edc4f6fd:1",
+      "score": 16.0030517578125,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/quarterly/driftline-q4-2025-business-review-6.pdf",
+      "page": 1,
+      "page_id": "78a9d2f692eb38221d20f3ce11201d93:1",
+      "score": 15.867631912231445,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/quarterly/kernel-metrics-q4-2025-business-review-7.pdf",
+      "page": 1,
+      "page_id": "c33f2b232b23ca12a959d04f9c3e7d3c:1",
+      "score": 15.788358688354492,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/quarterly/pallet-freight-q2-2026-business-review-1.pdf",
+      "page": 1,
+      "page_id": "34e6f4adf891296457212f38dba9ae44:1",
+      "score": 15.687277793884277,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/quarterly/pallet-freight-q1-2026-business-review-2.pdf",
+      "page": 1,
+      "page_id": "df6e5691e6dbac3716d8ad5e88a87376:1",
+      "score": 15.578993797302246,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/quarterly/ferro-logistics-q1-2026-business-review-5.pdf",
+      "page": 1,
+      "page_id": "bc25d6081897ac0f18492af283969bfc:1",
+      "score": 15.352206230163574,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/growth-metrics-review-q1-2026.pdf",
+      "page": 3,
+      "page_id": "048120d5dfca34a015ea7bb89d4b7ac5:3",
+      "score": 13.21599292755127,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/board/voxel-health-board-update-4.pdf",
+      "page": 1,
+      "page_id": "bb3fc5474445bc431e4e66003c4a51f5:1",
+      "score": 10.63557243347168,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": false
+}

@@ -1,0 +1,94 @@
+{
+  "candidates": 5,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 5,
+  "expected": {
+    "file": "decks/partnerships-review-2026.pdf",
+    "page": 3
+  },
+  "hit1": true,
+  "hit10": true,
+  "hit5": true,
+  "id": "g29",
+  "match_channel": "filename",
+  "query": "partnerships deck mentioning the northwind referral program",
+  "rank": 1,
+  "stage1_ms": 39,
+  "stage1_rank": 1,
+  "stage2_ms": 609,
+  "text_free": false,
+  "top10": [
+    {
+      "file": "decks/partnerships-review-2026.pdf",
+      "page": 3,
+      "page_id": "f8fec480ce93200384f178bb7407c34c:3",
+      "score": 12.130958557128906,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/experiments/northwind-analytics-experiment-writeup-rollout-2.pdf",
+      "page": 1,
+      "page_id": "a16d1c189a82706f393eb72449829810:1",
+      "score": 9.246125221252441,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/partnerships-review-2026.pdf",
+      "page": 5,
+      "page_id": "f8fec480ce93200384f178bb7407c34c:5",
+      "score": 9.03710651397705,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/specs/wei-throughput-1.md",
+      "page": 1,
+      "page_id": "970504aeb00af24d9c0fe83690309e36:1",
+      "score": 8.734200477600098,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/infra-cost/northline-infrastructure-cost-breakdown-3.pdf",
+      "page": 1,
+      "page_id": "6b7a85c0ad6a0d397250dc2ea9d572df:1",
+      "score": 8.45452880859375,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/customer-success-metrics.pdf",
+      "page": 3,
+      "page_id": "0d315dcfe2dfcff5005ee2cdae487759:3",
+      "score": 8.326869010925293,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/changelog/callum-checkout-32.md",
+      "page": 1,
+      "page_id": "2fecedb26b6910e1b3dd49c866c0c974:1",
+      "score": 8.264158248901367,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/board/voxel-health-board-update-1.pdf",
+      "page": 1,
+      "page_id": "34e3784326597855b24c01caf8c6f2da:1",
+      "score": 8.253721237182617,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/board/basalt-cloud-board-update-2.pdf",
+      "page": 1,
+      "page_id": "80cc64c82a36fc645a7198ff302fb920:1",
+      "score": 8.179952621459961,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/invoices/compute-q1-2026.pdf",
+      "page": 1,
+      "page_id": "3fd28c858f3b93a8aa257c813d34972e:1",
+      "score": 8.173042297363281,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": false
+}

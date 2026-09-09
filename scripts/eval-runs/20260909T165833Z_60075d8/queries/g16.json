@@ -1,0 +1,94 @@
+{
+  "candidates": 15,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 15,
+  "expected": {
+    "file": "notes/specs/rate-limit-spec.md",
+    "page": 1
+  },
+  "hit1": true,
+  "hit10": true,
+  "hit5": true,
+  "id": "g16",
+  "match_channel": "content",
+  "query": "spec for the api rate limit",
+  "rank": 1,
+  "stage1_ms": 30,
+  "stage1_rank": 1,
+  "stage2_ms": 594,
+  "text_free": false,
+  "top10": [
+    {
+      "file": "notes/specs/rate-limit-spec.md",
+      "page": 1,
+      "page_id": "e7bd8b4e38b1aadf10fc32b9552d2715:1",
+      "score": 13.964213371276855,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/specs/marcus-latency-25.md",
+      "page": 1,
+      "page_id": "d9e40343e0a9f886820cdc98662306bb:1",
+      "score": 8.506545066833496,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2026-06-10 at 08.02.11.png",
+      "page": 1,
+      "page_id": "157a11531ffc1299414db37a9947627c:1",
+      "score": 8.344493865966797,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/specs/wei-throughput-1.md",
+      "page": 1,
+      "page_id": "970504aeb00af24d9c0fe83690309e36:1",
+      "score": 8.2330322265625,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/product-roadmap-2026.pdf",
+      "page": 7,
+      "page_id": "a4468cadbbc432a6324098d4ba6dbbe7:7",
+      "score": 8.098490715026855,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/specs/priya-throughput-19.md",
+      "page": 1,
+      "page_id": "af155109372840d92148a64cca15b855:1",
+      "score": 8.018868446350098,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/product-roadmap-2026.pdf",
+      "page": 3,
+      "page_id": "a4468cadbbc432a6324098d4ba6dbbe7:3",
+      "score": 7.977312088012695,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/nginx-snippet.md",
+      "page": 1,
+      "page_id": "57c658d8f1c8cded52819885ad8cd17d:1",
+      "score": 7.918842792510986,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/config/owen-latency-41.md",
+      "page": 1,
+      "page_id": "a16afc35cab3b96abf0bfa556b3c91a4:1",
+      "score": 7.873866081237793,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/specs/jonas-checkout-13.md",
+      "page": 1,
+      "page_id": "45381a342717e7fe5c6325908f1dbb1e:1",
+      "score": 7.851246356964111,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": false
+}

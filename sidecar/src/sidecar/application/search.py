@@ -67,12 +67,14 @@ class Search:
         embedder: PageEmbedder,
         cold_pages: ColdPageEmbedder,
         folders: FolderStore | None = None,
+        visual_candidates: int = VISUAL_CANDIDATE_LIMIT,
     ) -> None:
         self._store = store
         self._vectors = vectors
         self._embedder = embedder
         self._cold_pages = cold_pages
         self._folders = folders
+        self._visual_candidates = visual_candidates
 
     def stage_one(self, query: str, limit: int = STAGE_ONE_CANDIDATE_LIMIT) -> list[PageHit]:
         """Full-text candidates, in milliseconds.
@@ -155,7 +157,7 @@ class Search:
         """Add the pages that look like the query to the pages whose words match it."""
         seen = {hit.page_id for hit in candidates}
         widened = list(candidates)
-        for page_id, _ in self._vectors.nearest(query_vectors, VISUAL_CANDIDATE_LIMIT):
+        for page_id, _ in self._vectors.nearest(query_vectors, self._visual_candidates):
             if page_id in seen:
                 continue
             hit = self._hit_for(page_id)

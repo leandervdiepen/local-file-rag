@@ -1,0 +1,98 @@
+{
+  "candidates": 17,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 17,
+  "expected": {
+    "file": "decks/board-narrative-q3-2026.pdf",
+    "page": 4
+  },
+  "hit1": false,
+  "hit10": false,
+  "hit5": false,
+  "id": "g09",
+  "match_channel": "visual",
+  "query": "board deck slide with a hockey stick revenue curve",
+  "rank": null,
+  "stage1_ms": 57,
+  "stage1_rank": null,
+  "stage2_ms": 494,
+  "text_free": true,
+  "thumbnails": {
+    "expected": "thumbs/c44d4f70c491eb51eaf0c000629f2553_4.png",
+    "rank1": "thumbs/c33f2b232b23ca12a959d04f9c3e7d3c_1.png"
+  },
+  "top10": [
+    {
+      "file": "reports/quarterly/kernel-metrics-q4-2025-business-review-7.pdf",
+      "page": 1,
+      "page_id": "c33f2b232b23ca12a959d04f9c3e7d3c:1",
+      "score": 9.315827369689941,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/experiments/pallet-freight-experiment-writeup-capacity-4.pdf",
+      "page": 1,
+      "page_id": "df3230970c49a93390addfeae33f63e7:1",
+      "score": 8.981228828430176,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/board/voxel-health-board-update-4.pdf",
+      "page": 1,
+      "page_id": "bb3fc5474445bc431e4e66003c4a51f5:1",
+      "score": 8.865408897399902,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/quarterly/quillview-q1-2026-business-review-4.pdf",
+      "page": 1,
+      "page_id": "5112075dae857325b5c46b467537dc90:1",
+      "score": 8.5412015914917,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/board/driftline-board-update-5.pdf",
+      "page": 1,
+      "page_id": "9cc5c44791a43dc57ee4afcd818c2c0e:1",
+      "score": 8.479098320007324,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/experiments/driftline-experiment-writeup-retention-1.pdf",
+      "page": 1,
+      "page_id": "6d9ff3e69436362fb67e7c7d5dbbf095:1",
+      "score": 8.454039573669434,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/todo/ruth-capacity-33.md",
+      "page": 1,
+      "page_id": "d5fb0a0090ebdcd0b6ba4d19a0410e2e:1",
+      "score": 8.441944122314453,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/specs/jonas-checkout-13.md",
+      "page": 1,
+      "page_id": "45381a342717e7fe5c6325908f1dbb1e:1",
+      "score": 8.305200576782227,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/readmes/callum-capacity-40.md",
+      "page": 1,
+      "page_id": "6f99a1c70342dd78307966ff29ca7414:1",
+      "score": 8.299968719482422,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/todo/priya-onboarding-9.md",
+      "page": 1,
+      "page_id": "9aafb35d20d4ac1de93eb4209d101728:1",
+      "score": 8.27071475982666,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": false
+}

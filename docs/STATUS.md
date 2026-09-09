@@ -166,6 +166,39 @@ Two things the run found and fixed.
 The free model can spend its whole budget reasoning and stream no content at all, which showed as an empty panel: a user cannot tell a refusal from a failure, so an answer with no answer in it is now reported as unavailable with a message naming what to do.
 Lifting the `[1]` out of the prose left sentences like "the invoice on page  says", so the marker stays where it was written and the chip beneath repeats the number.
 
+### Day 6, the first golden run
+
+M1 Max, 64 GB, macOS 26.5.1, `vidore/colqwen2-v1.0-merged` in float16, pool factor 3, 2026-09-09.
+30 golden queries over `~/demo-corpus` at 275 crawled files, 218 pages, all embedded before the run.
+Run `20260909T165833Z_60075d8`, driven by `scripts/eval.py` against a live sidecar.
+
+| Split | Queries | hit@1 | hit@5 | hit@10 | MRR@10 |
+| --- | --- | --- | --- | --- | --- |
+| Everything | 30 | 0.73 | 0.83 | 0.87 | 0.78 |
+| Text bearing | 21 | 0.95 | 1.00 | 1.00 | 0.97 |
+| Text free | 9 | 0.22 | 0.44 | 0.56 | 0.34 |
+| Channel: content | 14 | 0.93 | 1.00 | 1.00 | 0.95 |
+| Channel: filename | 7 | 1.00 | 1.00 | 1.00 | 1.00 |
+| Channel: visual | 9 | 0.22 | 0.44 | 0.56 | 0.34 |
+
+The aggregate clears the day 6 bar of 0.8, and the aggregate is the wrong number to read.
+Text and filename retrieval is 21 for 21 at five.
+Every one of the five misses is a visual query, which is the half of the product that has no other way to be answered.
+
+The candidate limit is not the lever.
+Sweeping it at 30, 60, 120 and 250 against one index moved nothing: 0.833 overall and 0.444 visual at every setting.
+It does change what is reachable, and at 250 every page in the corpus is a candidate, so the ceiling and the floor are the same number.
+That rules out recall and leaves ranking.
+
+Looking at the pages says what ranking is doing wrong.
+For "chart showing signups after the landing page redesign" the expected page is a line chart titled "Account growth" with the jump in it.
+The page the model ranks first is page 3 of the same file, which is a paragraph reading "We shipped a redesigned landing page in week four and watched signups roughly double".
+For "slide with the funnel chart" the first result is `notes/meetings/farid-funnel-stage-30.md`, a text note with the word funnel in it.
+
+Both are the same failure: a page whose text says the words beats the page that shows the thing.
+MaxSim gives every query token its best patch, and a page covered in text has a strong patch for every token, while a chart has a few strong ones and a lot of whitespace.
+That is a density bias, and it means the visual channel is currently returning what the text channel already found.
+
 ### dtype and build sweep
 
 Each row is its own process, so the memory numbers are not contaminated by a previous load.

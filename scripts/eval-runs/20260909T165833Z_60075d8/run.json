@@ -1,0 +1,87 @@
+{
+  "aggregates": {
+    "by_match_channel": {
+      "content": {
+        "count": 14,
+        "hit1": 0.9285714285714286,
+        "hit10": 1.0,
+        "hit5": 1.0,
+        "mrr10": 0.9523809523809524,
+        "stage1_hit": 1.0,
+        "stage2_hit5": 1.0
+      },
+      "filename": {
+        "count": 7,
+        "hit1": 1.0,
+        "hit10": 1.0,
+        "hit5": 1.0,
+        "mrr10": 1.0,
+        "stage1_hit": 1.0,
+        "stage2_hit5": 1.0
+      },
+      "visual": {
+        "count": 9,
+        "hit1": 0.2222222222222222,
+        "hit10": 0.5555555555555556,
+        "hit5": 0.4444444444444444,
+        "mrr10": 0.34444444444444444,
+        "stage1_hit": 0.0,
+        "stage2_hit5": null
+      }
+    },
+    "by_text_free": {
+      "false": {
+        "count": 21,
+        "hit1": 0.9523809523809523,
+        "hit10": 1.0,
+        "hit5": 1.0,
+        "mrr10": 0.9682539682539681,
+        "stage1_hit": 1.0,
+        "stage2_hit5": 1.0
+      },
+      "true": {
+        "count": 9,
+        "hit1": 0.2222222222222222,
+        "hit10": 0.5555555555555556,
+        "hit5": 0.4444444444444444,
+        "mrr10": 0.34444444444444444,
+        "stage1_hit": 0.0,
+        "stage2_hit5": null
+      }
+    },
+    "overall": {
+      "count": 30,
+      "hit1": 0.7333333333333333,
+      "hit10": 0.8666666666666667,
+      "hit5": 0.8333333333333334,
+      "mrr10": 0.7811111111111111,
+      "stage1_hit": 0.7,
+      "stage2_hit5": 1.0
+    }
+  },
+  "answer_model": null,
+  "cold": false,
+  "corpus_manifest_hash": "7d29ca07eced1bd3ed57db3fe30011f1609bf38b9b59a6ad41ce4fd74df73db7",
+  "corpus_root": "/Users/leandervandiepen/demo-corpus",
+  "corpus_seed": 20260907,
+  "dirty": false,
+  "finished_at": "2026-09-09T16:58:51.674329+00:00",
+  "git_sha": "60075d808670df886c58e6ee5ef7f83bd6c7560f",
+  "golden_sha": "7f1d699118c559349de1233f42401c87852e148bebe951dac0712b690b8ada6e",
+  "judge_model": null,
+  "judge_prompt_sha": null,
+  "machine": "macOS-26.5.1-arm64-arm-64bit-Mach-O Apple M1 Max",
+  "previous_run_id": null,
+  "prices_read_on": null,
+  "regressions": [],
+  "retrieval": {
+    "cold_page_cap": null,
+    "dtype": null,
+    "model_id": null,
+    "model_loaded_before_run": false,
+    "pool_factor": null,
+    "sidecar_version": "0.1.0"
+  },
+  "run_id": "20260909T165833Z_60075d8",
+  "started_at": "2026-09-09T16:58:33.504696+00:00"
+}

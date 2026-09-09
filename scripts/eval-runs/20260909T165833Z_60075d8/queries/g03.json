@@ -1,0 +1,94 @@
+{
+  "candidates": 6,
+  "cap_miss": false,
+  "cold_pages": 0,
+  "embedded_before_run": 6,
+  "expected": {
+    "file": "screenshots/IMG_5310.png",
+    "page": 1
+  },
+  "hit1": false,
+  "hit10": true,
+  "hit5": true,
+  "id": "g03",
+  "match_channel": "visual",
+  "query": "chat thread where someone approves the pricing change",
+  "rank": 2,
+  "stage1_ms": 41,
+  "stage1_rank": null,
+  "stage2_ms": 642,
+  "text_free": true,
+  "top10": [
+    {
+      "file": "notes/meetings/2026-02-11-pricing-sync.md",
+      "page": 1,
+      "page_id": "3abc9ac22fba166dcd730c4a91ff3b9e:1",
+      "score": 12.165141105651855,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/IMG_5310.png",
+      "page": 1,
+      "page_id": "3b21aba75c8db7e6ad108d4b3452685e:1",
+      "score": 10.534162521362305,
+      "stage": "visual"
+    },
+    {
+      "file": "screenshots/Screenshot 2026-07-03 at 14.28.55.png",
+      "page": 1,
+      "page_id": "86013c5e223a77740d1a037aee1dbb5e:1",
+      "score": 9.812254905700684,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/changelog/CHANGELOG-beacon.md",
+      "page": 1,
+      "page_id": "9affa832c771a284e5dea3dbbfc9b92c:1",
+      "score": 9.041667938232422,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/changelog/grace-latency-14.md",
+      "page": 1,
+      "page_id": "0024e1b7f10551764f3122f7c7e76f6e:1",
+      "score": 8.329988479614258,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/hiring-plan-2026.pdf",
+      "page": 4,
+      "page_id": "3011979733d57e1f2774d49724d1aaa2:4",
+      "score": 8.238236427307129,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/sales-pipeline-review.pdf",
+      "page": 2,
+      "page_id": "7b501765607d28f2e2c31bab11979506:2",
+      "score": 8.201312065124512,
+      "stage": "visual"
+    },
+    {
+      "file": "reports/experiments/ampere-robotics-experiment-writeup-throughput-3.pdf",
+      "page": 3,
+      "page_id": "5e2ba4b123dc27c1c24fa097beafbd41:3",
+      "score": 8.10415267944336,
+      "stage": "visual"
+    },
+    {
+      "file": "decks/product-roadmap-2026.pdf",
+      "page": 2,
+      "page_id": "a4468cadbbc432a6324098d4ba6dbbe7:2",
+      "score": 8.046972274780273,
+      "stage": "visual"
+    },
+    {
+      "file": "notes/readmes/jonas-backlog-28.md",
+      "page": 1,
+      "page_id": "4be5adc722ab177549c229becba21355:1",
+      "score": 7.990553855895996,
+      "stage": "visual"
+    }
+  ],
+  "visual_only": true
+}
