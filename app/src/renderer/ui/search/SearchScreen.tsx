@@ -23,6 +23,7 @@ interface SearchScreenProps {
   nativeActions: NativeActionsPort
   progress: IndexProgress | null
   stats: IndexStats | null
+  onShowIndex: () => void
 }
 
 export function SearchScreen({
@@ -34,6 +35,7 @@ export function SearchScreen({
   nativeActions,
   progress,
   stats,
+  onShowIndex,
 }: SearchScreenProps) {
   const { state, query, setQuery } = useSearch(search)
   const input = useRef<HTMLInputElement>(null)
@@ -97,7 +99,16 @@ export function SearchScreen({
       />
 
       {progress && !progress.done && <IndexingBanner progress={progress} />}
-      <SearchStatus state={state} stats={stats} resultCount={ordered.length} />
+      <div className="flex items-baseline justify-between gap-4">
+        <SearchStatus state={state} stats={stats} resultCount={ordered.length} />
+        <button
+          type="button"
+          onClick={onShowIndex}
+          className="shrink-0 rounded-control px-2 py-1 text-xs text-ink-muted hover:bg-border/50 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          What is indexed
+        </button>
+      </div>
 
       <ResultList
         id={LISTBOX_ID}

@@ -1,4 +1,5 @@
 import type { IndexedFolder, IndexProgress, IndexStats } from '../domain/indexing'
+import type { IndexedFileRow } from '../domain/skip-reasons'
 import type { AnswerUsage, Citation, RetrievedPage } from '../domain/chat'
 import type { Heatmap } from '../domain/heatmap'
 import type { PageHit } from '../domain/search-results'
@@ -50,9 +51,16 @@ export interface FoldersPort {
   remove: (id: string) => Promise<void>
 }
 
+export interface FilePage {
+  files: IndexedFileRow[]
+  nextCursor: string | null
+}
+
 export interface IndexPort {
   rescan: () => Promise<void>
   stats: () => Promise<IndexStats>
+  /** One page of files in a state, `cursor` of null starting at the beginning. */
+  files: (state: 'text_indexed' | 'skipped', cursor: string | null) => Promise<FilePage>
   /** Streams crawl progress. Resolves when the job ends, so no job is an immediate resolve. */
   watchProgress: (onProgress: (progress: IndexProgress) => void, signal: AbortSignal) => Promise<void>
 }

@@ -1,5 +1,7 @@
-import type { IndexPort } from '../application/ports'
+import type { FilePage, IndexPort } from '../application/ports'
 import type { IndexProgress, IndexStats } from '../domain/indexing'
+import type { IndexedFileRow } from '../domain/skip-reasons'
+import type { FileKind } from '../domain/search-results'
 import type { SidecarClient } from './sidecar-client'
 
 interface WireProgress {
@@ -48,8 +50,40 @@ function toStats(wire: WireStats): IndexStats {
   }
 }
 
+interface WireFile {
+  id: string
+  path: string
+  kind: string
+  state: string
+  skip_reason: string | null
+  size_bytes: number
+  page_count: number
+  truncated_pages: boolean
+}
+
+const KINDS: readonly string[] = ['pdf', 'image', 'text']
+
+function toFile(wire: WireFile): IndexedFileRow {
+  return {
+    id: wire.id,
+    path: wire.path,
+    kind: (KINDS.includes(wire.kind) ? wire.kind : 'unknown') as FileKind,
+    state: wire.state === 'skipped' ? 'skipped' : 'text_indexed',
+    skipReason: wire.skip_reason,
+    sizeBytes: wire.size_bytes,
+    pageCount: wire.page_count,
+    truncatedPages: wire.truncated_pages,
+  }
+}
+
 export function createIndexPort(client: SidecarClient): IndexPort {
   return {
+    async files(state, cursor): Promise<FilePage> {
+      const query = new URLSearchParams({ state, ...(cursor ? { cursor } : {}) })
+      const body = await client.json<{ files: WireFile[]; next_cursor: string | null }>(`/index/files?${query}`)
+      return { files: body.files.map(toFile), nextCursor: body.next_cursor }
+    },
+
     async rescan() {
       await client.send('/index/rescan', 'POST')
     },

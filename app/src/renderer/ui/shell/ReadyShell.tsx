@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 // Until the settings screen exists, every answer uses the free default (D38).
 const DEFAULT_MODEL_ID = 'openrouter/free'
@@ -11,6 +11,7 @@ import { createIndexPort } from '../../infrastructure/index-adapter'
 import { createPageImagePort } from '../../infrastructure/page-image-adapter'
 import { createSearchPort } from '../../infrastructure/search-adapter'
 import { createSidecarClient } from '../../infrastructure/sidecar-client'
+import { IndexScreen } from '../index/IndexScreen'
 import { FirstRunPanel } from '../onboarding/FirstRunPanel'
 import { SearchScreen } from '../search/SearchScreen'
 
@@ -37,11 +38,29 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
   const heatmaps = useMemo(() => createHeatmapPort(client), [client])
   const chat = useMemo(() => createChatPort(client), [client])
 
-  const { folders, progress, stats, error, loaded, addFolder } = useIndexing(foldersPort, indexPort)
+  const { folders, progress, stats, error, loaded, addFolder, rescan } = useIndexing(foldersPort, indexPort)
+  const [showingIndex, setShowingIndex] = useState(false)
 
   if (!loaded) return null
   if (folders.length === 0) {
     return <FirstRunPanel nativeActions={nativeActions} onAddFolder={addFolder} error={error} />
+  }
+
+  async function chooseFolder(): Promise<void> {
+    const folder = await nativeActions.pickFolder()
+    if (folder) await addFolder(folder)
+  }
+
+  if (showingIndex) {
+    return (
+      <IndexScreen
+        index={indexPort}
+        folders={folders}
+        onRescan={() => void rescan()}
+        onAddFolder={() => void chooseFolder()}
+        onClose={() => setShowingIndex(false)}
+      />
+    )
   }
 
   return (
@@ -54,6 +73,7 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
       nativeActions={nativeActions}
       progress={progress}
       stats={stats}
+      onShowIndex={() => setShowingIndex(true)}
     />
   )
 }
