@@ -1,19 +1,19 @@
 import { useMemo, useState } from 'react'
-
-// Until the settings screen exists, every answer uses the free default (D38).
-const DEFAULT_MODEL_ID = 'openrouter/free'
-import type { NativeActionsPort } from '../../application/ports'
+import type { NativeActionsPort, SecretsPort } from '../../application/ports'
 import { useIndexing } from '../../application/useIndexing'
 import { useModelReadiness } from '../../application/useModelReadiness'
+import { useSettings } from '../../application/useSettings'
 import { createChatPort } from '../../infrastructure/chat-adapter'
 import { createFoldersPort } from '../../infrastructure/folders-adapter'
 import { createHealthPort } from '../../infrastructure/health-adapter'
+import { createModelsPort } from '../../infrastructure/models-adapter'
 import { createHeatmapPort } from '../../infrastructure/heatmap-adapter'
 import { createIndexPort } from '../../infrastructure/index-adapter'
 import { createPageImagePort } from '../../infrastructure/page-image-adapter'
 import { createSearchPort } from '../../infrastructure/search-adapter'
 import { createSidecarClient } from '../../infrastructure/sidecar-client'
 import { IndexScreen } from '../index/IndexScreen'
+import { SettingsScreen } from '../settings/SettingsScreen'
 import { FirstRunPanel } from '../onboarding/FirstRunPanel'
 import { SearchScreen } from '../search/SearchScreen'
 
@@ -21,6 +21,7 @@ interface ReadyShellProps {
   baseUrl: string
   token: string
   nativeActions: NativeActionsPort
+  secrets: SecretsPort
 }
 
 /**
@@ -31,7 +32,7 @@ interface ReadyShellProps {
  * the preload bridge captured at launch, because the port is only known once
  * the handshake has happened.
  */
-export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
+export function ReadyShell({ baseUrl, token, nativeActions, secrets }: ReadyShellProps) {
   const client = useMemo(() => createSidecarClient({ baseUrl, token }), [baseUrl, token])
   const foldersPort = useMemo(() => createFoldersPort(client), [client])
   const indexPort = useMemo(() => createIndexPort(client), [client])
@@ -39,6 +40,7 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
   const pageImages = useMemo(() => createPageImagePort(client), [client])
   const heatmaps = useMemo(() => createHeatmapPort(client), [client])
   const healthPort = useMemo(() => createHealthPort(client), [client])
+  const modelsPort = useMemo(() => createModelsPort(client), [client])
   const chat = useMemo(() => createChatPort(client), [client])
 
   const { folders, progress, stats, error, loaded, addFolder, setFolderEnabled, removeFolder, rescan } =
@@ -47,7 +49,9 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
     indexPort,
   )
   const modelReadiness = useModelReadiness(healthPort)
+  const { chosen } = useSettings(modelsPort, secrets)
   const [showingIndex, setShowingIndex] = useState(false)
+  const [showingSettings, setShowingSettings] = useState(false)
 
   if (!loaded) return null
   if (folders.length === 0) {
@@ -57,6 +61,10 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
   async function chooseFolder(): Promise<void> {
     const folder = await nativeActions.pickFolder()
     if (folder) await addFolder(folder)
+  }
+
+  if (showingSettings) {
+    return <SettingsScreen models={modelsPort} secrets={secrets} onClose={() => setShowingSettings(false)} />
   }
 
   if (showingIndex) {
@@ -80,12 +88,13 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
       pageImages={pageImages}
       heatmaps={heatmaps}
       chat={chat}
-      modelId={DEFAULT_MODEL_ID}
+      answerWith={chosen}
       nativeActions={nativeActions}
       progress={progress}
       modelReadiness={modelReadiness}
       stats={stats}
       onShowIndex={() => setShowingIndex(true)}
+      onShowSettings={() => setShowingSettings(true)}
     />
   )
 }

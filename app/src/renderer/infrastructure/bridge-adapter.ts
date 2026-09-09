@@ -26,7 +26,7 @@ export function createNativeActionsPort(bridge: Bridge = window.bridge): NativeA
 
 export function createSecretsPort(bridge: Bridge = window.bridge): SecretsPort {
   return {
-    setAnthropicKey: (key) => bridge.setAnthropicKey(key),
-    hasAnthropicKey: () => bridge.hasAnthropicKey(),
+    setKey: (provider, key) => bridge.setProviderKey(provider, key),
+    providersWithKeys: () => bridge.providersWithKeys(),
   }
 }

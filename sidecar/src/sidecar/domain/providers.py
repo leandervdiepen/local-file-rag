@@ -1,22 +1,16 @@
-"""Which answer models exist, and what each one can actually do.
+"""Where answers can come from: the places, not the models.
 
-Every answer this app gives is grounded in page images, so a model that
-cannot see is not a slower option, it is a wrong one. A text-only model
-handed a question about a chart will answer confidently from the question
-alone, which is worse than an error. `sees_images` is therefore a hard
-filter on what the settings screen may offer, not a badge next to a name.
-
-Prices are dollars per million tokens, recorded with the date they were
-read, because they move and a stale price shown in the chat footer is a
-number this app made up.
+Which models each provider has is asked of the provider at runtime, and lives
+in `domain/catalogue.py`. This file used to hold a hardcoded model list with
+hardcoded prices, and by the time anyone read it one of those prices
+understated a rate by three times (D52). A place changes about once a year; a
+price list changes weekly.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-
-PRICES_READ_ON = "2026-09-07"
 
 
 class ProviderId(StrEnum):
@@ -46,23 +40,6 @@ class Provider:
     needs_key: bool = True
 
 
-@dataclass(frozen=True)
-class AnswerModel:
-    """One model on one provider, with what it costs and whether it can see."""
-
-    provider: ProviderId
-    id: str
-    label: str
-    sees_images: bool
-    usd_per_m_input: float
-    usd_per_m_output: float
-    context_tokens: int
-
-    @property
-    def is_free(self) -> bool:
-        return self.usd_per_m_input == 0.0 and self.usd_per_m_output == 0.0
-
-
 PROVIDERS: tuple[Provider, ...] = (
     Provider(ProviderId.ANTHROPIC, "Anthropic", "anthropic", "https://api.anthropic.com", "ANTHROPIC_API_KEY"),
     Provider(ProviderId.OPENAI, "OpenAI", "openai", "https://api.openai.com/v1", "OPENAI_API_KEY"),
@@ -82,48 +59,12 @@ PROVIDERS: tuple[Provider, ...] = (
     Provider(ProviderId.CUSTOM, "Custom endpoint", "openai", "", "CUSTOM_API_KEY", needs_key=False),
 )
 
-MODELS: tuple[AnswerModel, ...] = (
-    AnswerModel(ProviderId.ANTHROPIC, "claude-opus-5", "Claude Opus 5", True, 0.0, 0.0, 200_000),
-    AnswerModel(ProviderId.OPENROUTER, "openrouter/free", "OpenRouter free", True, 0.0, 0.0, 200_000),
-    AnswerModel(ProviderId.OPENROUTER, "google/gemini-3.8-flash", "Gemini 3.8 Flash", True, 0.75, 3.75, 1_048_576),
-    AnswerModel(
-        ProviderId.OPENROUTER,
-        "deepseek/deepseek-v4-flash-vision-exp",
-        "DeepSeek V4 Flash Vision",
-        True,
-        0.22,
-        0.22,
-        128_000,
-    ),
-    AnswerModel(ProviderId.GEMINI, "gemini-3.8-flash", "Gemini 3.8 Flash", True, 0.75, 3.75, 1_048_576),
-    # Local, so free, and a vision model because a text-only one would answer
-    # from the question alone (D37). The user installs and pulls it themselves.
-    AnswerModel(ProviderId.OLLAMA, "qwen2.5vl:7b", "Qwen2.5 VL 7B, on this Mac", True, 0.0, 0.0, 128_000),
-)
+DEFAULT_PROVIDER_ID = "openrouter"
 
+# The router that picks among whatever is free today, so a first question works
+# as soon as a key is in. Which models exist beyond this one is asked of the
+# provider rather than listed here (D52).
 DEFAULT_MODEL_ID = "openrouter/free"
-
-
-def provider_for(model: AnswerModel) -> Provider:
-    return next(p for p in PROVIDERS if p.id is model.provider)
-
-
-def selectable_models() -> tuple[AnswerModel, ...]:
-    """The models the settings screen may offer.
-
-    A model that cannot see page images cannot answer this app's questions,
-    so it never reaches the list rather than being offered and failing later.
-    """
-    return tuple(m for m in MODELS if m.sees_images)
-
-
-def find_model(model_id: str) -> AnswerModel | None:
-    return next((m for m in MODELS if m.id == model_id), None)
-
-
-def cost_usd(model: AnswerModel, input_tokens: int, output_tokens: int) -> float:
-    """Dollars for one exchange, from the prices recorded above."""
-    return (input_tokens * model.usd_per_m_input + output_tokens * model.usd_per_m_output) / 1_000_000
 
 
 def runs_locally(provider: Provider) -> bool:

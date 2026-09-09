@@ -12,11 +12,14 @@ from flask.testing import FlaskClient
 
 from sidecar.application.answer_question import AnswerQuestion
 from sidecar.application.search import Search
+from sidecar.domain.catalogue import OfferedModel
 from sidecar.domain.entities import FileKind, FileState, IndexedFile, Page
+from sidecar.domain.providers import DEFAULT_MODEL_ID, ProviderId
 from sidecar.interface.auth import register_auth
 from sidecar.interface.chat_routes import build_chat_blueprint
 from sidecar.interface.errors import register_error_handlers
 from tests.fakes.answerer import FakeAnswerer
+from tests.fakes.answerer_choice import FakeAnswererChoice
 from tests.fakes.cold_pages import FakeColdPages
 from tests.fakes.index_store import FakeIndexStore
 from tests.fakes.page_embedder import FakePageEmbedder
@@ -56,6 +59,11 @@ def a_store() -> FakeIndexStore:
     return store
 
 
+def _free(_provider: str, model_id: str) -> OfferedModel:
+    """The default router charges nothing, which is a price rather than a missing one."""
+    return OfferedModel(ProviderId.OPENROUTER, model_id, model_id, True, 0.0, 0.0)
+
+
 def a_client(answerer: FakeAnswerer) -> FlaskClient:
     app = Flask(__name__)
     register_error_handlers(app)
@@ -68,13 +76,13 @@ def a_client(answerer: FakeAnswerer) -> FlaskClient:
     vectors = FakeVectorStore()
     vectors.put_vectors(embedder.embed_pages(["f1:1", "f1:2"], [b"png", b"png"]))
     search = Search(store, vectors, embedder, FakeColdPages(embedder, vectors))
-    answer = AnswerQuestion(StubRenderPage(), answerer)  # type: ignore[arg-type]
+    answer = AnswerQuestion(StubRenderPage(), FakeAnswererChoice(answerer), _free)  # type: ignore[arg-type]
     app.register_blueprint(build_chat_blueprint(search, answer))
     return app.test_client()
 
 
 def ask(answerer: FakeAnswerer, **body: Any) -> list[tuple[str, dict[str, Any]]]:
-    payload = {"question": "what did egress cost", **body}
+    payload = {"question": "what did egress cost", "model_id": DEFAULT_MODEL_ID, **body}
     response = a_client(answerer).post("/chat", json=payload, headers=AUTH)
     assert response.status_code == 200
     return events_in(response.get_data(as_text=True))
@@ -158,15 +166,18 @@ def test_a_body_with_no_question_is_400_before_the_stream_opens() -> None:
     assert response.get_json()["error"]["code"] == "missing_question"
 
 
-def test_a_model_this_app_cannot_use_is_400() -> None:
-    response = a_client(FakeAnswerer()).post("/chat", json={"question": "q", "model_id": "made/up"}, headers=AUTH)
+def test_a_body_with_no_model_in_it_is_400_before_the_stream_opens() -> None:
+    """Which models exist is the provider's answer, so the id is not checked, only its presence."""
+    response = a_client(FakeAnswerer()).post("/chat", json={"question": "q"}, headers=AUTH)
 
     assert response.status_code == 400
-    assert response.get_json()["error"]["code"] == "unknown_model"
+    assert response.get_json()["error"]["code"] == "missing_model"
 
 
 def test_the_stream_is_named_uncached_and_unbuffered() -> None:
-    response = a_client(FakeAnswerer().saying("ok")).post("/chat", json={"question": "q"}, headers=AUTH)
+    response = a_client(FakeAnswerer().saying("ok")).post(
+        "/chat", json={"question": "q", "model_id": DEFAULT_MODEL_ID}, headers=AUTH
+    )
 
     assert response.mimetype == "text/event-stream"
     assert response.headers["Cache-Control"] == "no-store"
@@ -174,4 +185,4 @@ def test_the_stream_is_named_uncached_and_unbuffered() -> None:
 
 
 def test_chat_is_behind_the_token_like_every_other_route() -> None:
-    assert a_client(FakeAnswerer()).post("/chat", json={"question": "q"}).status_code == 401
+    assert a_client(FakeAnswerer()).post("/chat", json={"question": "q", "model_id": "m"}).status_code == 401

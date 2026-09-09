@@ -21,14 +21,17 @@ The index, the page images and every embedding stay on this machine.
 
 Two things reach the network.
 The retrieval model downloads once from Hugging Face, 4.43 GB, on the first search or crawl that needs it.
-Asking a question sends those five matched page images to OpenRouter's free tier, which is the provider this version ships with.
+Asking a question sends the five matched page images to the provider you picked.
+
+Searching, previewing a page and reading the heatmap need no account and no key at all.
+Answering needs one, because every hosted provider authenticates even where it does not charge, and OpenRouter's free tier is no exception.
 
 Everything else is local.
 Once the model is on disk, indexing, search, the heatmap, the watcher and the file preview make no network call at all.
 There is no analytics of any kind: the string does not appear in the codebase, and neither does any vendor's.
 
-Keeping the answer step local as well is a settings screen away.
-The provider registry and the OpenAI-compatible adapter already serve [Ollama](https://ollama.com) and LM Studio, and `qwen2.5vl:7b` is in the model list, so the code path exists and nothing in the interface reaches it yet.
+Run [Ollama](https://ollama.com) with `qwen2.5vl:7b` and pick it in settings, and the answer step stays on the machine too.
+Nothing then leaves this Mac after the model download.
 
 ## Measured
 

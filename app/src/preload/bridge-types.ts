@@ -41,8 +41,8 @@ export interface Bridge {
   revealInFinder: (path: string) => Promise<void>
   copyPath: (path: string) => Promise<void>
   pickFolder: () => Promise<string | null>
-  setAnthropicKey: (key: string) => Promise<void>
-  hasAnthropicKey: () => Promise<boolean>
+  setProviderKey: (provider: string, key: string) => Promise<void>
+  providersWithKeys: () => Promise<string[]>
   onSidecarState: (listener: (state: SidecarStateEvent) => void) => () => void
   restartSidecar: () => Promise<void>
 }

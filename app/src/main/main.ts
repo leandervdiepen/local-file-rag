@@ -8,7 +8,8 @@ import { resolveSidecarCommand } from './sidecar-command'
 import { createSidecarProcess, SidecarProcess } from './sidecar-process'
 import { createNativeActions, pickFolder } from './native-actions'
 import { createIndexedFolders } from './indexed-folders'
-import { setAnthropicKey, hasAnthropicKey } from './secrets'
+import { setProviderKey, providersWithKeys } from './secrets'
+import { sendStoredKeys } from './send-keys'
 import { IPC_CHANNELS } from '../preload/ipc-channels'
 import type { SidecarStateEvent } from '../preload/bridge-types'
 
@@ -36,6 +37,9 @@ function startSidecar(token: string): SidecarProcess {
   })
   process_.onState((state: SidecarStateEvent) => {
     mainWindow?.webContents.send(IPC_CHANNELS.sidecarState, state)
+    // A sidecar that restarted has forgotten every key it was told, and would
+    // answer "add a key in Settings" to a user who already did.
+    if (state.status === 'ready') void sendStoredKeys(state.baseUrl, token)
   })
   process_.start()
   return process_
@@ -56,8 +60,13 @@ function registerIpcHandlers(getWindow: () => BrowserWindow | null, token: strin
     const window = getWindow()
     return window ? pickFolder(window) : null
   })
-  ipcMain.handle(IPC_CHANNELS.setAnthropicKey, (_event, key: string) => setAnthropicKey(key))
-  ipcMain.handle(IPC_CHANNELS.hasAnthropicKey, () => hasAnthropicKey())
+  ipcMain.handle(IPC_CHANNELS.setProviderKey, async (_event, provider: string, key: string) => {
+    await setProviderKey(provider, key)
+    // Straight on to the sidecar, so the next question uses it without a restart.
+    const baseUrl = readyBaseUrl()
+    if (baseUrl) await sendStoredKeys(baseUrl, token)
+  })
+  ipcMain.handle(IPC_CHANNELS.providersWithKeys, () => providersWithKeys())
   ipcMain.handle(IPC_CHANNELS.restartSidecar, () => sidecarProcess?.restart())
   ipcMain.handle(IPC_CHANNELS.getSidecarState, (): SidecarStateEvent => sidecarProcess?.getState() ?? { status: 'starting' })
 }

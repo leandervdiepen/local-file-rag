@@ -8,11 +8,13 @@ import pytest
 
 from sidecar.application.answer_question import EMPTY_ANSWER, PAGES_PER_ANSWER, AnswerEvent, AnswerQuestion
 from sidecar.domain.answers import AnswerChunk, Usage
+from sidecar.domain.catalogue import OfferedModel
 from sidecar.domain.entities import FileKind
 from sidecar.domain.errors import AnswerUnavailableError, NotFoundError
-from sidecar.domain.providers import DEFAULT_MODEL_ID
+from sidecar.domain.providers import DEFAULT_MODEL_ID, DEFAULT_PROVIDER_ID, ProviderId
 from sidecar.domain.search import PageHit
 from tests.fakes.answerer import FakeAnswerer
+from tests.fakes.answerer_choice import FakeAnswererChoice
 
 CORPUS = Path("/corpus")
 
@@ -43,12 +45,16 @@ def hit(page_id: str, page_no: int = 1) -> PageHit:
     )
 
 
+def a_free_model(_provider: str, model_id: str) -> OfferedModel:
+    return OfferedModel(ProviderId.OPENROUTER, model_id, model_id, True, 0.0, 0.0)
+
+
 def answer_with(
     answerer: FakeAnswerer, hits: list[PageHit], unrenderable: set[str] | None = None
 ) -> tuple[list[AnswerEvent], FakeRenderPage]:
     render = FakeRenderPage(unrenderable)
-    use_case = AnswerQuestion(render, answerer)  # type: ignore[arg-type]
-    return list(use_case.run("what did egress cost", hits, DEFAULT_MODEL_ID)), render
+    use_case = AnswerQuestion(render, FakeAnswererChoice(answerer), a_free_model)  # type: ignore[arg-type]
+    return list(use_case.run("what did egress cost", hits, DEFAULT_PROVIDER_ID, DEFAULT_MODEL_ID)), render
 
 
 def test_what_the_answer_may_look_at_is_reported_before_any_text() -> None:
@@ -119,12 +125,24 @@ def test_the_answer_carries_what_it_used_and_what_that_cost() -> None:
     assert done.cost_usd == 0.0, "the default model is free, so a million tokens of it still costs nothing"
 
 
-def test_a_model_that_is_not_configured_is_refused_rather_than_priced_at_zero() -> None:
+def test_a_model_nobody_published_a_price_for_is_not_priced_at_zero() -> None:
+    """A zero here would print as free next to a question that was billed."""
     render = FakeRenderPage()
-    use_case = AnswerQuestion(render, FakeAnswerer().saying("ok"))  # type: ignore[arg-type]
+    use_case = AnswerQuestion(render, FakeAnswererChoice(FakeAnswerer().saying("ok")))  # type: ignore[arg-type]
 
-    with pytest.raises(AnswerUnavailableError):
-        list(use_case.run("q", [hit("a:1")], "something/made-up"))
+    events = list(use_case.run("q", [hit("a:1")], DEFAULT_PROVIDER_ID, "unpriced/model"))
+
+    assert events[-1].cost_usd is None
+
+
+def test_a_model_the_provider_does_not_have_is_the_provider_s_answer_to_give() -> None:
+    """Which models exist changes without this app being rebuilt, so nothing here holds a list."""
+    render = FakeRenderPage()
+    use_case = AnswerQuestion(render, FakeAnswererChoice(FakeAnswerer().saying("ok")))  # type: ignore[arg-type]
+
+    events = list(use_case.run("q", [hit("a:1")], DEFAULT_PROVIDER_ID, "something/made-up"))
+
+    assert any(event.text for event in events)
 
 
 def test_the_pages_reach_the_model_as_the_images_that_were_rendered() -> None:
@@ -144,10 +162,10 @@ def test_a_provider_that_streams_nothing_is_unavailable_rather_than_a_blank_pane
     """
     silent = FakeAnswerer([AnswerChunk(usage=Usage(input_tokens=3000, output_tokens=0))])
     render = FakeRenderPage()
-    use_case = AnswerQuestion(render, silent)  # type: ignore[arg-type]
+    use_case = AnswerQuestion(render, FakeAnswererChoice(silent))  # type: ignore[arg-type]
 
     with pytest.raises(AnswerUnavailableError, match="returned nothing"):
-        list(use_case.run("q", [hit("a:1")], DEFAULT_MODEL_ID))
+        list(use_case.run("q", [hit("a:1")], DEFAULT_PROVIDER_ID, DEFAULT_MODEL_ID))
     assert "Settings" in EMPTY_ANSWER, "the message names where to change the model"
 
 

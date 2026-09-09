@@ -54,7 +54,7 @@ export type ChatEvent =
   | { type: 'retrieved'; askId: string; pages: RetrievedPage[] }
   | { type: 'token'; askId: string; text: string }
   | { type: 'cited'; askId: string; citation: Citation }
-  | { type: 'finished'; askId: string; usage: AnswerUsage; costUsd: number; modelId: string }
+  | { type: 'finished'; askId: string; usage: AnswerUsage; costUsd: number | null; modelId: string }
   | { type: 'failed'; askId: string; error: { code: string; message: string } }
   | { type: 'cleared' }
 

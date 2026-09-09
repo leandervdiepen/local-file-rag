@@ -15,7 +15,7 @@ function toPage(wire: WirePage): RetrievedPage {
 
 export function createChatPort(client: SidecarClient): ChatPort {
   return {
-    ask(question, modelId, handlers: ChatHandlers, signal) {
+    ask(question, providerId, modelId, handlers: ChatHandlers, signal) {
       return client.stream(
         '/chat',
         (name, payload) => {
@@ -29,7 +29,7 @@ export function createChatPort(client: SidecarClient): ChatPort {
           } else if (name === 'done') {
             const body = payload as {
               usage: { input_tokens: number; output_tokens: number }
-              cost_usd: number
+              cost_usd: number | null
               model_id: string
             }
             handlers.onDone(
@@ -42,7 +42,7 @@ export function createChatPort(client: SidecarClient): ChatPort {
           }
         },
         signal,
-        { method: 'POST', body: { question, model_id: modelId } },
+        { method: 'POST', body: { question, provider: providerId, model_id: modelId } },
       )
     },
   }

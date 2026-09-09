@@ -9,6 +9,7 @@ import type {
 import { useChat } from '../../application/useChat'
 import { useResultSelection } from '../../application/useResultSelection'
 import { useSearch } from '../../application/useSearch'
+import type { Chosen } from '../../application/useSettings'
 import type { IndexProgress, IndexStats } from '../../domain/indexing'
 import type { ModelReadiness } from '../../domain/model-readiness'
 import { flattenGroups, groupByFile } from '../../domain/search-results'
@@ -28,12 +29,13 @@ interface SearchScreenProps {
   pageImages: PageImagePort
   heatmaps: HeatmapPort
   chat: ChatPort
-  modelId: string
+  answerWith: Chosen
   nativeActions: NativeActionsPort
   progress: IndexProgress | null
   modelReadiness: ModelReadiness
   stats: IndexStats | null
   onShowIndex: () => void
+  onShowSettings: () => void
 }
 
 export function SearchScreen({
@@ -41,12 +43,13 @@ export function SearchScreen({
   pageImages,
   heatmaps,
   chat,
-  modelId,
+  answerWith,
   nativeActions,
   progress,
   modelReadiness,
   stats,
   onShowIndex,
+  onShowSettings,
 }: SearchScreenProps) {
   const { state, query, setQuery } = useSearch(search)
   const input = useRef<HTMLInputElement>(null)
@@ -105,7 +108,7 @@ export function SearchScreen({
         onTogglePreview={() => setPreviewing((open) => !open && selected !== null)}
         onAsk={() => {
           setAsking(true)
-          answer.ask(query, modelId)
+          answer.ask(query, answerWith.provider, answerWith.model)
         }}
       />
 
@@ -114,13 +117,10 @@ export function SearchScreen({
       {progress && <FolderProblems failures={progress.failures} />}
       <div className="flex items-baseline justify-between gap-4">
         <SearchStatus state={state} stats={stats} resultCount={ordered.length} />
-        <button
-          type="button"
-          onClick={onShowIndex}
-          className="shrink-0 rounded-control px-2 py-1 text-xs text-ink-muted hover:bg-border/50 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          What is indexed
-        </button>
+        <div className="flex shrink-0 items-baseline gap-1">
+          <QuietButton onClick={onShowIndex}>What is indexed</QuietButton>
+          <QuietButton onClick={onShowSettings}>Settings</QuietButton>
+        </div>
       </div>
 
       <ResultList
@@ -159,5 +159,18 @@ export function SearchScreen({
         />
       )}
     </main>
+  )
+}
+
+/** A control that is present without competing with the results for attention. */
+function QuietButton({ onClick, children }: { onClick: () => void; children: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-control px-2 py-1 text-xs text-ink-muted hover:bg-border/50 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+    >
+      {children}
+    </button>
   )
 }

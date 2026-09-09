@@ -5,7 +5,7 @@ import type { ChatPort } from './ports'
 
 export interface UseChat {
   state: ChatState
-  ask: (question: string, modelId: string) => void
+  ask: (question: string, providerId: string, modelId: string) => void
   clear: () => void
 }
 
@@ -22,7 +22,7 @@ export function useChat(port: ChatPort): UseChat {
   const issued = useRef(0)
 
   const ask = useCallback(
-    (question: string, modelId: string) => {
+    (question: string, providerId: string, modelId: string) => {
       if (!question.trim()) return
       inFlight.current?.abort()
 
@@ -34,6 +34,7 @@ export function useChat(port: ChatPort): UseChat {
       port
         .ask(
           question,
+          providerId,
           modelId,
           {
             onRetrieval: (pages) => dispatch({ type: 'retrieved', askId, pages }),

@@ -20,8 +20,8 @@ const bridge: Bridge = {
   revealInFinder: (path) => ipcRenderer.invoke(IPC_CHANNELS.revealInFinder, path),
   copyPath: (path) => ipcRenderer.invoke(IPC_CHANNELS.copyPath, path),
   pickFolder: () => ipcRenderer.invoke(IPC_CHANNELS.pickFolder),
-  setAnthropicKey: (key) => ipcRenderer.invoke(IPC_CHANNELS.setAnthropicKey, key),
-  hasAnthropicKey: () => ipcRenderer.invoke(IPC_CHANNELS.hasAnthropicKey),
+  setProviderKey: (provider, key) => ipcRenderer.invoke(IPC_CHANNELS.setProviderKey, provider, key),
+  providersWithKeys: () => ipcRenderer.invoke(IPC_CHANNELS.providersWithKeys),
   restartSidecar: () => ipcRenderer.invoke(IPC_CHANNELS.restartSidecar),
   onSidecarState: (listener) => {
     // The sidecar can reach ready before this listener attaches, and main

@@ -11,14 +11,14 @@ from flask import Blueprint, Response, request
 from sidecar.application.answer_question import AnswerEvent, AnswerQuestion
 from sidecar.application.search import Search
 from sidecar.domain.errors import AnswerUnavailableError
-from sidecar.domain.providers import DEFAULT_MODEL_ID, find_model
+from sidecar.domain.providers import DEFAULT_PROVIDER_ID
 from sidecar.interface.errors import error_response
 from sidecar.interface.sse import encode_event
 
 logger = logging.getLogger(__name__)
 
 _MISSING_QUESTION = "A question is needed. Send one in the body as question."
-_UNKNOWN_MODEL = "That model is not one this app can use. Pick another in Settings."
+_MISSING_MODEL = "A provider and a model are needed. Pick one in Settings."
 
 _STREAM_HEADERS = {"Cache-Control": "no-store", "X-Accel-Buffering": "no"}
 
@@ -41,18 +41,24 @@ def build_chat_blueprint(search: Search, answer: AnswerQuestion) -> Blueprint:
         if not isinstance(question, str) or not question.strip():
             return error_response("missing_question", _MISSING_QUESTION, status=400)
 
-        model_id = body.get("model_id") or DEFAULT_MODEL_ID
-        if find_model(model_id) is None:
-            return error_response("unknown_model", _UNKNOWN_MODEL, status=400, detail={"model_id": model_id})
+        # Which models exist is the provider's answer to give, so nothing here
+        # checks the id against a list. A provider that does not have it says
+        # so, and that message reaches the panel as an error event.
+        provider_id = body.get("provider") or DEFAULT_PROVIDER_ID
+        model_id = body.get("model_id")
+        if not isinstance(provider_id, str) or not isinstance(model_id, str) or not model_id.strip():
+            return error_response("missing_model", _MISSING_MODEL, status=400)
 
         return Response(
-            _events(search, answer, question, model_id), mimetype="text/event-stream", headers=_STREAM_HEADERS
+            _events(search, answer, question, provider_id, model_id),
+            mimetype="text/event-stream",
+            headers=_STREAM_HEADERS,
         )
 
     return bp
 
 
-def _events(search: Search, answer: AnswerQuestion, question: str, model_id: str) -> Iterator[str]:
+def _events(search: Search, answer: AnswerQuestion, question: str, provider_id: str, model_id: str) -> Iterator[str]:
     """Retrieve, then answer, converting each step into one named event.
 
     Retrieval runs before the answer and inside the stream, because it is the
@@ -67,7 +73,7 @@ def _events(search: Search, answer: AnswerQuestion, question: str, model_id: str
         return
 
     try:
-        for event in answer.run(question, hits, model_id):
+        for event in answer.run(question, hits, provider_id, model_id):
             yield _encode(event, model_id)
     except AnswerUnavailableError as unavailable:
         yield encode_event("error", {"code": unavailable.code, "message": unavailable.message})

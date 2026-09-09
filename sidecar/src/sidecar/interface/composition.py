@@ -13,6 +13,8 @@ from flask import Flask, request
 from sidecar.application.activity import Activity
 from sidecar.application.answer_question import AnswerQuestion
 from sidecar.application.apply_changes import ApplyChanges
+from sidecar.application.catalogue_ports import ModelCatalogue
+from sidecar.application.choose_answerer import ChooseAnswerer
 from sidecar.application.embed_pages import EmbedPages
 from sidecar.application.enforce_storage_cap import EnforceStorageCap
 from sidecar.application.explain_page import ExplainPage
@@ -21,9 +23,11 @@ from sidecar.application.health import ReportHealth
 from sidecar.application.index_folder import IndexFolder
 from sidecar.application.indexing_jobs import IndexingJobs
 from sidecar.application.list_index_files import ListIndexFiles
+from sidecar.application.list_models import ListModels
 from sidecar.application.manage_folders import ManageFolders
-from sidecar.application.ports import PageSource
+from sidecar.application.ports import Answerer, PageSource
 from sidecar.application.pre_embed_recent import PreEmbedRecent
+from sidecar.application.provider_keys import ProviderKeys
 from sidecar.application.read_index_stats import ReadIndexStats
 from sidecar.application.record_page_hit import RecordPageHit
 from sidecar.application.render_page import RenderPage
@@ -32,7 +36,9 @@ from sidecar.application.search import VISUAL_CANDIDATE_LIMIT, Search
 from sidecar.domain.changes import FileChange
 from sidecar.domain.entities import FileKind
 from sidecar.domain.eviction import DEFAULT_CAP_BYTES
-from sidecar.domain.providers import PROVIDERS, ProviderId
+from sidecar.domain.providers import PROVIDERS, Provider, ProviderId
+from sidecar.infrastructure.anthropic_answerer import AnthropicAnswerer
+from sidecar.infrastructure.anthropic_catalogue import AnthropicCatalogue
 from sidecar.infrastructure.background_loop import BackgroundLoop, Job
 from sidecar.infrastructure.colqwen_embedder import DEFAULT_POOL_FACTOR, ColQwenEmbedder
 from sidecar.infrastructure.filesystem_health import FilesystemHealthProbe
@@ -44,7 +50,10 @@ from sidecar.infrastructure.lancedb_folders import LanceDBFolders
 from sidecar.infrastructure.lancedb_store import LanceDBStore
 from sidecar.infrastructure.lancedb_vectors import LanceDBVectors
 from sidecar.infrastructure.mac_power import MacPowerSource
+from sidecar.infrastructure.ollama_catalogue import OllamaCatalogue
 from sidecar.infrastructure.openai_answerer import OpenAIAnswerer
+from sidecar.infrastructure.openai_catalogue import OpenAICompatibleCatalogue
+from sidecar.infrastructure.openrouter_catalogue import OpenRouterCatalogue
 from sidecar.infrastructure.pdfium_pages import PdfiumPageSource
 from sidecar.infrastructure.system_clock import SystemClock
 from sidecar.infrastructure.text_pages import TextFilePageSource
@@ -60,6 +69,7 @@ from sidecar.interface.heatmap_routes import build_heatmap_blueprint
 from sidecar.interface.index_routes import build_index_blueprint
 from sidecar.interface.page_routes import build_page_blueprint
 from sidecar.interface.search_routes import build_search_blueprint
+from sidecar.interface.settings_routes import build_settings_blueprint
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +135,16 @@ def build_app(
     render_page = RenderPage(store, sources)
     app.register_blueprint(build_page_blueprint(render_page, RecordPageHit(store, clock)))
     app.register_blueprint(build_heatmap_blueprint(ExplainPage(render_page, embedder)))
-    app.register_blueprint(build_chat_blueprint(search, AnswerQuestion(render_page, _answerer())))
+    keys = ProviderKeys()
+    _remember_development_keys(keys)
+    list_models = ListModels(keys, _catalogues())
+    app.register_blueprint(build_settings_blueprint(keys, list_models))
+    app.register_blueprint(
+        build_chat_blueprint(
+            search,
+            AnswerQuestion(render_page, ChooseAnswerer(keys, _build_answerer), list_models.price_for),
+        )
+    )
     app.register_blueprint(build_eval_blueprint(RunGoldenSet(search, vectors)))
 
     activity = Activity()
@@ -140,16 +159,31 @@ def build_app(
     return app
 
 
-def _answerer() -> OpenAIAnswerer:
-    """The provider answers go to.
+def _build_answerer(provider: Provider, api_key: str | None) -> Answerer:
+    """One adapter per wire format, not per vendor.
 
-    One provider for now, chosen by D38 because it is free and needs no key,
-    so the app answers before the user has configured anything. The settings
-    screen replaces this with a choice, and every option except Anthropic
-    speaks this same wire (D36).
+    Everything except Anthropic speaks the OpenAI chat completions shape,
+    including Gemini's compatibility endpoint, OpenRouter, Ollama and LM
+    Studio, so the difference between them is the row in the registry (D36).
     """
-    provider = next(p for p in PROVIDERS if p.id is ProviderId.OPENROUTER)
-    return OpenAIAnswerer(base_url=provider.base_url, api_key=os.environ.get(provider.env_var))
+    if provider.wire == "anthropic":
+        return AnthropicAnswerer(base_url=provider.base_url, api_key=api_key or "")
+    return OpenAIAnswerer(base_url=provider.base_url, api_key=api_key)
+
+
+def _remember_development_keys(keys: ProviderKeys) -> None:
+    """Pick up keys from the environment, for a developer running from source.
+
+    The shipped app never reaches this: it is launched by Electron with no
+    provider variables set, and its keys arrive over the API from
+    `safeStorage` instead (D41). This is what makes `make dev` work without a
+    settings screen round trip on every launch.
+    """
+    for provider in PROVIDERS:
+        from_environment = os.environ.get(provider.env_var)
+        if from_environment:
+            keys.remember(provider.id, from_environment)
+            logger.info("using the %s key from %s", provider.label, provider.env_var)
 
 
 def _start_watching(apply_changes: ApplyChanges) -> FolderWatcher:
@@ -205,3 +239,20 @@ def _only_real_use(activity: Activity) -> Callable[[], None]:
             activity.touch()
 
     return touch
+
+
+def _catalogues() -> dict[ProviderId, ModelCatalogue]:
+    """One catalogue per provider API shape.
+
+    OpenRouter is the only one that publishes prices and modalities, so it is
+    the only one whose models arrive fully described. The rest answer with ids
+    and the settings screen says so rather than filling the gap in.
+    """
+    openai_style = OpenAICompatibleCatalogue()
+    return {
+        ProviderId.OPENROUTER: OpenRouterCatalogue(),
+        ProviderId.OLLAMA: OllamaCatalogue(),
+        ProviderId.ANTHROPIC: AnthropicCatalogue(),
+        ProviderId.OPENAI: openai_style,
+        ProviderId.GEMINI: openai_style,
+    }

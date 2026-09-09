@@ -2,6 +2,7 @@ import type { IndexedFolder, IndexProgress, IndexStats } from '../domain/indexin
 import type { IndexedFileRow } from '../domain/skip-reasons'
 import type { AnswerUsage, Citation, RetrievedPage } from '../domain/chat'
 import type { Heatmap } from '../domain/heatmap'
+import type { AnswerModel, AnswerProvider } from '../domain/models'
 import type { ModelReadiness } from '../domain/model-readiness'
 import type { PageHit } from '../domain/search-results'
 import type { SidecarState } from '../domain/sidecar-state'
@@ -30,8 +31,10 @@ export interface NativeActionsPort {
 }
 
 export interface SecretsPort {
-  setAnthropicKey: (key: string) => Promise<void>
-  hasAnthropicKey: () => Promise<boolean>
+  /** Store a provider's key, encrypted by the OS, and hand it to the sidecar. An empty key removes it. */
+  setKey: (provider: string, key: string) => Promise<void>
+  /** Which providers have a key stored. Never the keys: the renderer cannot read one back. */
+  providersWithKeys: () => Promise<string[]>
 }
 
 export interface SearchHandlers {
@@ -44,6 +47,13 @@ export interface SearchHandlers {
 export interface SearchPort {
   /** Streams one search. Resolves when the stream ends, rejects with a `SearchError`. */
   search: (query: string, handlers: SearchHandlers, signal: AbortSignal) => Promise<void>
+}
+
+export interface ModelsPort {
+  /** Every place answers can come from, and whether each has a key yet. */
+  providers: () => Promise<AnswerProvider[]>
+  /** What one provider is offering right now. Rejects when it cannot be reached. */
+  modelsFor: (providerId: string) => Promise<AnswerModel[]>
 }
 
 export interface HealthPort {
@@ -97,11 +107,17 @@ export interface ChatHandlers {
   onRetrieval: (pages: RetrievedPage[]) => void
   onToken: (text: string) => void
   onCitation: (citation: Citation) => void
-  onDone: (usage: AnswerUsage, costUsd: number, modelId: string) => void
+  onDone: (usage: AnswerUsage, costUsd: number | null, modelId: string) => void
   onError: (error: { code: string; message: string }) => void
 }
 
 export interface ChatPort {
   /** Streams one answer. Resolves when the stream ends, rejects with a `SearchError`. */
-  ask: (question: string, modelId: string, handlers: ChatHandlers, signal: AbortSignal) => Promise<void>
+  ask: (
+    question: string,
+    providerId: string,
+    modelId: string,
+    handlers: ChatHandlers,
+    signal: AbortSignal,
+  ) => Promise<void>
 }
