@@ -10,6 +10,8 @@ export interface UseIndexing {
   error: SearchError | null
   loaded: boolean
   addFolder: (path: string) => Promise<void>
+  setFolderEnabled: (id: string, enabled: boolean) => Promise<void>
+  removeFolder: (id: string) => Promise<void>
   rescan: () => Promise<void>
 }
 
@@ -86,6 +88,37 @@ export function useIndexing(foldersPort: FoldersPort, indexPort: IndexPort): Use
     [foldersPort, indexPort],
   )
 
+  const setFolderEnabled = useCallback(
+    async (id: string, enabled: boolean) => {
+      setError(null)
+      // Optimistic, because the switch has to move under the finger. A failure
+      // puts it back and says why, which is the only honest way to show a
+      // toggle whose real state lives in another process.
+      setFolders((current) => current.map((folder) => (folder.id === id ? { ...folder, enabled } : folder)))
+      try {
+        const updated = await foldersPort.setEnabled(id, enabled)
+        setFolders((current) => current.map((folder) => (folder.id === id ? updated : folder)))
+      } catch (cause: unknown) {
+        setFolders((current) => current.map((folder) => (folder.id === id ? { ...folder, enabled: !enabled } : folder)))
+        setError(asSearchError(cause))
+      }
+    },
+    [foldersPort],
+  )
+
+  const removeFolder = useCallback(
+    async (id: string) => {
+      setError(null)
+      try {
+        await foldersPort.remove(id)
+        setFolders((current) => current.filter((folder) => folder.id !== id))
+      } catch (cause: unknown) {
+        setError(asSearchError(cause))
+      }
+    },
+    [foldersPort],
+  )
+
   const rescan = useCallback(async () => {
     setError(null)
     try {
@@ -96,5 +129,5 @@ export function useIndexing(foldersPort: FoldersPort, indexPort: IndexPort): Use
     }
   }, [indexPort])
 
-  return { folders, progress, stats, error, loaded, addFolder, rescan }
+  return { folders, progress, stats, error, loaded, addFolder, setFolderEnabled, removeFolder, rescan }
 }

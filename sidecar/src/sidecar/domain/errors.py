@@ -56,6 +56,17 @@ class EncryptedFileError(DomainError):
     code = "file_encrypted"
 
 
+class ModelUnavailableError(DomainError):
+    """The retrieval model is not on this machine and could not be fetched.
+
+    First run downloads about four gigabytes, and the two ways that fails are
+    no connection and no disk. Both are the user's to fix, so this carries a
+    message that says which and leaves the library's own wording out of it.
+    """
+
+    code = "model_unavailable"
+
+
 class IndexBusyError(DomainError):
     """An indexing job is already running and a second would conflict with it."""
 

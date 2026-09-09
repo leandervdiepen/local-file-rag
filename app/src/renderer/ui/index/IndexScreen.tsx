@@ -1,16 +1,21 @@
 import { useEffect, useState } from 'react'
 import type { IndexPort } from '../../application/ports'
-import { formatBytes, shortenHomePath } from '../../domain/format'
-import type { IndexedFolder, IndexStats } from '../../domain/indexing'
+import { formatBytes } from '../../domain/format'
+import type { FolderFailure, IndexedFolder, IndexStats } from '../../domain/indexing'
 import { skipsByCount, type IndexedFileRow } from '../../domain/skip-reasons'
 import { Button } from '../shared/Button'
+import { FolderList } from './FolderList'
+import { FolderProblems } from './FolderProblems'
 import { SkippedFiles } from './SkippedFiles'
 
 interface IndexScreenProps {
   index: IndexPort
   folders: IndexedFolder[]
+  failures: FolderFailure[]
   onRescan: () => void
   onAddFolder: () => void
+  onToggleFolder: (id: string, enabled: boolean) => void
+  onRemoveFolder: (id: string) => void
   onClose: () => void
 }
 
@@ -21,7 +26,16 @@ interface IndexScreenProps {
  * only be believed by someone who knows what was left out. So the skipped
  * files are not an error log tucked away, they are half the page.
  */
-export function IndexScreen({ index, folders, onRescan, onAddFolder, onClose }: IndexScreenProps) {
+export function IndexScreen({
+  index,
+  folders,
+  failures,
+  onRescan,
+  onAddFolder,
+  onToggleFolder,
+  onRemoveFolder,
+  onClose,
+}: IndexScreenProps) {
   const [stats, setStats] = useState<IndexStats | null>(null)
   const [skipped, setSkipped] = useState<IndexedFileRow[]>([])
 
@@ -33,6 +47,14 @@ export function IndexScreen({ index, folders, onRescan, onAddFolder, onClose }: 
       live = false
     }
   }, [index])
+
+  async function forget(fileId: string): Promise<void> {
+    // The row goes first. It is the user's own action, and a list that waits
+    // for a round trip before acknowledging a click feels broken.
+    setSkipped((current) => current.filter((file) => file.id !== fileId))
+    await index.forget(fileId)
+    setStats(await index.stats())
+  }
 
   return (
     <section className="fixed inset-0 z-10 overflow-auto bg-surface" aria-label="Index">
@@ -52,15 +74,15 @@ export function IndexScreen({ index, folders, onRescan, onAddFolder, onClose }: 
           </dl>
         )}
 
+        <div className="mt-8">
+          <FolderProblems failures={failures} />
+        </div>
+
         <h2 className="mt-12 text-sm text-ink">Folders</h2>
-        <ul className="mt-3">
-          {folders.map((folder) => (
-            <li key={folder.id} className="truncate py-1 font-mono text-xs text-ink-muted" title={folder.path}>
-              {shortenHomePath(folder.path)}
-            </li>
-          ))}
-          {folders.length === 0 && <li className="py-1 text-sm text-ink-muted">No folder is indexed yet.</li>}
-        </ul>
+        <p className="mt-1 text-xs text-ink-muted">
+          A folder that is off keeps its files in the index and stops being watched for changes.
+        </p>
+        <FolderList folders={folders} onToggle={onToggleFolder} onRemove={onRemoveFolder} />
         <div className="mt-3">
           <Button onClick={onAddFolder}>Add folder</Button>
         </div>
@@ -77,7 +99,7 @@ export function IndexScreen({ index, folders, onRescan, onAddFolder, onClose }: 
                 </li>
               ))}
             </ul>
-            <SkippedFiles files={skipped} />
+            <SkippedFiles files={skipped} onForget={forget} />
           </>
         )}
       </div>

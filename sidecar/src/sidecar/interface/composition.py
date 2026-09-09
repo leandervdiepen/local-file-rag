@@ -15,6 +15,7 @@ from sidecar.application.apply_changes import ApplyChanges
 from sidecar.application.embed_pages import EmbedPages
 from sidecar.application.enforce_storage_cap import EnforceStorageCap
 from sidecar.application.explain_page import ExplainPage
+from sidecar.application.forget_file import ForgetFile
 from sidecar.application.health import ReportHealth
 from sidecar.application.index_folder import IndexFolder
 from sidecar.application.indexing_jobs import IndexingJobs
@@ -89,7 +90,7 @@ def build_app(token: str, db_path: Path, cap_bytes: int = DEFAULT_CAP_BYTES) -> 
     # here has to know that a 4 GB model is behind these calls.
     embedder = ColQwenEmbedder()
     embed_pages = EmbedPages(store, sources, embedder, vectors)
-    search = Search(store, vectors, embedder, embed_pages)
+    search = Search(store, vectors, embedder, embed_pages, folders)
 
     index_folder = IndexFolder(
         crawler=FilesystemCrawler(),
@@ -106,7 +107,9 @@ def build_app(token: str, db_path: Path, cap_bytes: int = DEFAULT_CAP_BYTES) -> 
     app.register_blueprint(build_health_blueprint(ReportHealth(clock=clock, probe=FilesystemHealthProbe(db_path))))
     app.register_blueprint(build_folder_blueprint(manage_folders))
     jobs = IndexingJobs(index_folder, folders, store, vectors, embed_pages)
-    app.register_blueprint(build_index_blueprint(jobs, ReadIndexStats(store, vectors), ListIndexFiles(store)))
+    app.register_blueprint(
+        build_index_blueprint(jobs, ReadIndexStats(store, vectors), ListIndexFiles(store), ForgetFile(store, vectors))
+    )
     app.register_blueprint(build_search_blueprint(search))
     render_page = RenderPage(store, sources)
     app.register_blueprint(build_page_blueprint(render_page, RecordPageHit(store, clock)))

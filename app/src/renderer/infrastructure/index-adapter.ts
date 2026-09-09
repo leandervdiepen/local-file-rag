@@ -12,6 +12,7 @@ interface WireProgress {
   pages_indexed: number
   pages_embedded: number
   current_path: string
+  failures: { path: string; reason: string }[]
   done: boolean
 }
 
@@ -34,6 +35,9 @@ function toProgress(wire: WireProgress): IndexProgress {
     pagesIndexed: wire.pages_indexed,
     pagesEmbedded: wire.pages_embedded,
     currentPath: wire.current_path,
+    // A sidecar mid-upgrade can send a snapshot without this, and a crawl
+    // banner that throws is worse than one that reports no failures.
+    failures: wire.failures ?? [],
     done: wire.done,
   }
 }
@@ -90,6 +94,10 @@ export function createIndexPort(client: SidecarClient): IndexPort {
 
     async stats() {
       return toStats(await client.json<WireStats>('/index/stats'))
+    },
+
+    async forget(fileId) {
+      await client.send(`/index/files/${encodeURIComponent(fileId)}`, 'DELETE')
     },
 
     watchProgress(onProgress, signal) {

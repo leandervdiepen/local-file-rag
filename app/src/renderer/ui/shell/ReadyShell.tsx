@@ -38,7 +38,11 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
   const heatmaps = useMemo(() => createHeatmapPort(client), [client])
   const chat = useMemo(() => createChatPort(client), [client])
 
-  const { folders, progress, stats, error, loaded, addFolder, rescan } = useIndexing(foldersPort, indexPort)
+  const { folders, progress, stats, error, loaded, addFolder, setFolderEnabled, removeFolder, rescan } =
+    useIndexing(
+    foldersPort,
+    indexPort,
+  )
   const [showingIndex, setShowingIndex] = useState(false)
 
   if (!loaded) return null
@@ -56,8 +60,11 @@ export function ReadyShell({ baseUrl, token, nativeActions }: ReadyShellProps) {
       <IndexScreen
         index={indexPort}
         folders={folders}
+        failures={progress?.failures ?? []}
         onRescan={() => void rescan()}
         onAddFolder={() => void chooseFolder()}
+        onToggleFolder={(id, enabled) => void setFolderEnabled(id, enabled)}
+        onRemoveFolder={(id) => void removeFolder(id)}
         onClose={() => setShowingIndex(false)}
       />
     )

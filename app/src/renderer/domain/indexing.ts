@@ -5,6 +5,11 @@ export interface IndexedFolder {
   addedAt: string
 }
 
+export interface FolderFailure {
+  path: string
+  reason: string
+}
+
 export interface IndexProgress {
   folderId: string
   filesSeen: number
@@ -13,6 +18,7 @@ export interface IndexProgress {
   pagesIndexed: number
   pagesEmbedded: number
   currentPath: string
+  failures: FolderFailure[]
   done: boolean
 }
 
@@ -34,5 +40,6 @@ export const noProgress: IndexProgress = {
   pagesIndexed: 0,
   pagesEmbedded: 0,
   currentPath: '',
+  failures: [],
   done: false,
 }

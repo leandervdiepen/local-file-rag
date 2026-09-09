@@ -31,5 +31,15 @@ export function createFoldersPort(client: SidecarClient): FoldersPort {
     async remove(id) {
       await client.send(`/folders/${encodeURIComponent(id)}`, 'DELETE')
     },
+
+    async setEnabled(id, enabled) {
+      return toFolder(
+        await client.json<WireFolder>(`/folders/${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ enabled }),
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+    },
   }
 }

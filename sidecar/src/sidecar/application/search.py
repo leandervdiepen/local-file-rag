@@ -7,10 +7,11 @@ from dataclasses import replace
 from typing import Protocol
 
 from sidecar.application.embedding_ports import PageEmbedder
-from sidecar.application.store_ports import IndexStore, VectorStore
+from sidecar.application.store_ports import FolderStore, IndexStore, VectorStore
 from sidecar.domain.identity import split_page_id
 from sidecar.domain.progress import EmbedProgress
 from sidecar.domain.rerank import rank_by_maxsim
+from sidecar.domain.scoping import is_searchable
 from sidecar.domain.search import PageHit
 from sidecar.domain.vectors import QueryVectors
 
@@ -60,12 +61,18 @@ class Search:
     """
 
     def __init__(
-        self, store: IndexStore, vectors: VectorStore, embedder: PageEmbedder, cold_pages: ColdPageEmbedder
+        self,
+        store: IndexStore,
+        vectors: VectorStore,
+        embedder: PageEmbedder,
+        cold_pages: ColdPageEmbedder,
+        folders: FolderStore | None = None,
     ) -> None:
         self._store = store
         self._vectors = vectors
         self._embedder = embedder
         self._cold_pages = cold_pages
+        self._folders = folders
 
     def stage_one(self, query: str, limit: int = STAGE_ONE_CANDIDATE_LIMIT) -> list[PageHit]:
         """Full-text candidates, in milliseconds.
@@ -75,7 +82,7 @@ class Search:
         """
         if not query.strip():
             return []
-        return self._store.search_pages(query, limit)
+        return self._in_scope(self._store.search_pages(query, limit))
 
     def stage_two(
         self,
@@ -106,7 +113,7 @@ class Search:
             return []
         query_vectors = self._embedder.embed_query(query)
 
-        ordered = self._widen(query_vectors, list(candidates))
+        ordered = self._widen(query_vectors, self._in_scope(candidates))
         if not ordered:
             return []
 
@@ -126,6 +133,24 @@ class Search:
         unread = [hit for hit in ordered if hit.stage != FILENAME_STAGE and hit.page_id not in scores]
         return pinned + scored + unread
 
+    def _in_scope(self, hits: Sequence[PageHit]) -> list[PageHit]:
+        """Drop the hits from folders the user turned off.
+
+        Filtered here rather than in the store because both stages produce
+        hits and the vector search knows nothing about folders, so one filter
+        over both is the only way the two stages agree about what is excluded.
+
+        The rows stay in the index while a folder is off, so turning it back
+        on is instant and costs no crawl. What the toggle changes is what the
+        user is shown, which is what they meant by excluding it.
+        """
+        if self._folders is None:
+            return list(hits)
+        folders = self._folders.list()
+        if all(folder.enabled for folder in folders):
+            return list(hits)
+        return [hit for hit in hits if is_searchable(hit.path, folders)]
+
     def _widen(self, query_vectors: QueryVectors, candidates: list[PageHit]) -> list[PageHit]:
         """Add the pages that look like the query to the pages whose words match it."""
         seen = {hit.page_id for hit in candidates}
@@ -140,12 +165,18 @@ class Search:
         return widened
 
     def _hit_for(self, page_id: str) -> PageHit | None:
-        """A hit for a page the vector store knows but stage 1 did not surface. `None` if its file is gone."""
+        """A hit for a page the vector store knows but stage 1 did not surface.
+
+        `None` when its file is gone, and when its folder is turned off: the
+        vector store holds vectors for excluded pages on purpose, so that
+        turning the folder back on needs no re-embedding.
+        """
         file_id, page_no = split_page_id(page_id)
         file = self._store.get_file(file_id)
         if file is None:
             return None
-        return PageHit(page_id, file_id, file.path, page_no, file.kind, score=0.0, stage=VISUAL_STAGE)
+        hit = PageHit(page_id, file_id, file.path, page_no, file.kind, score=0.0, stage=VISUAL_STAGE)
+        return hit if self._in_scope([hit]) else None
 
     def _embed_cold(
         self, ordered: list[PageHit], on_progress: ProgressSink | None, cancelled: Callable[[], bool]

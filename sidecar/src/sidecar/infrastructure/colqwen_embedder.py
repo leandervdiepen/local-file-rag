@@ -7,6 +7,7 @@ or PIL image ever leaves it.
 
 from __future__ import annotations
 
+import errno
 import logging
 import os
 from collections.abc import Sequence
@@ -16,7 +17,7 @@ import numpy as np
 import torch
 from PIL import Image
 
-from sidecar.domain.errors import ValidationError
+from sidecar.domain.errors import ModelUnavailableError, ValidationError
 from sidecar.domain.heatmap import PatchGrid
 from sidecar.domain.vectors import STORED_DTYPE, PageVectors, QueryVectors
 from sidecar.infrastructure.colqwen_tensors import assert_float16, decode, grid_of, to_numpy
@@ -160,10 +161,13 @@ class ColQwenEmbedder:
         from sentence_transformers import MultiVectorEncoder
 
         logger.info("loading %s on %s", self.model_id, self._device)
-        # `dtype`, not `torch_dtype`: transformers 5 renamed it and silently
-        # ignores the old name, which loads fp32 and doubles resident memory
-        # with no error anywhere (D34).
-        model = MultiVectorEncoder(self.model_id, device=self._device, model_kwargs={"dtype": torch.float16})
+        try:
+            # `dtype`, not `torch_dtype`: transformers 5 renamed it and silently
+            # ignores the old name, which loads fp32 and doubles resident memory
+            # with no error anywhere (D34).
+            model = MultiVectorEncoder(self.model_id, device=self._device, model_kwargs={"dtype": torch.float16})
+        except (OSError, ValueError, RuntimeError) as failure:
+            raise ModelUnavailableError(_why_the_model_is_missing(failure)) from failure
         assert_float16(model)
         return model
 
@@ -199,3 +203,24 @@ def _typed_positions(tokenizer: Any, scored_ids: list[int], text: str) -> list[i
 def _readable(tokens: list[str]) -> list[str]:
     """Tokenizer pieces as the words they came from. The leading marker is a space, not a letter."""
     return [token.replace("\u0120", " ").strip() or token for token in tokens]
+
+
+# First run fetches about four gigabytes, and the two ways that fails are the
+# two the user can act on. Anything else keeps the library's own words, because
+# inventing a cause would send them to fix the wrong thing.
+_NO_SPACE = "There is not enough disk space for the search model. It needs about 5 GB free. Free some up and try again."
+_NO_NETWORK = (
+    "The search model could not be downloaded. Check your connection and try again. "
+    "It is about 4 GB and is downloaded once."
+)
+
+
+def _why_the_model_is_missing(failure: Exception) -> str:
+    if isinstance(failure, OSError) and failure.errno == errno.ENOSPC:
+        return _NO_SPACE
+    words = str(failure).lower()
+    if any(mark in words for mark in ("no space", "disk full", "quota exceeded")):
+        return _NO_SPACE
+    if any(mark in words for mark in ("connection", "network", "timed out", "resolve", "offline", "unreachable")):
+        return _NO_NETWORK
+    return f"The search model would not load. {failure}"

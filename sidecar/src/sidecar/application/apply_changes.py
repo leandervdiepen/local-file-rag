@@ -9,8 +9,8 @@ from pathlib import Path
 from sidecar.application.index_folder import IndexFolder
 from sidecar.application.store_ports import FolderStore, IndexStore, VectorStore
 from sidecar.domain.changes import ChangeKind, FileChange, collapse, worth_reacting_to
-from sidecar.domain.entities import Folder
 from sidecar.domain.identity import file_id
+from sidecar.domain.scoping import folder_holding
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class ApplyChanges:
         enabled = [folder for folder in self._folders.list() if folder.enabled]
         acted = 0
         for change in collapse(list(changes)):
-            owner = _folder_holding(change.path, enabled)
+            owner = folder_holding(change.path, enabled)
             if owner is None or not worth_reacting_to(change, sizes.get(change.path, 0)):
                 continue
             acted += 1
@@ -106,13 +106,3 @@ class ApplyChanges:
         self._store.forget_pages(past_the_end)
         self._vectors.forget_pages(past_the_end)
         logger.info("dropped %d pages %s no longer has", len(past_the_end), file.path)
-
-
-def _folder_holding(path: Path, folders: Sequence[Folder]) -> Folder | None:
-    """The innermost enabled folder this path is under, `None` when no folder is.
-
-    Innermost rather than first, because a user who indexed both a folder and
-    a folder inside it means the file to belong to the one they named last.
-    """
-    holding = [folder for folder in folders if path.is_relative_to(folder.path)]
-    return max(holding, key=lambda folder: len(folder.path.parts), default=None)

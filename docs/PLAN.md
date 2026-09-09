@@ -78,13 +78,14 @@ Passed 2026-09-09. See `Day 4 gate` in STATUS.md.
 
 ## Day 5, trust
 
-- [x] Index screen: stats, folders, skipped files with reasons, rescan. Per-folder toggles and forget file are the two parts still open.
-- [ ] `watcher.py`: watchdog FSEvents, debounce, add, change, delete within five seconds.
-- [ ] Idle pre-embedding of the 200 most recently used files on AC power.
-- [ ] Storage cap with least recently hit eviction.
-- [ ] Error states: sidecar down, model download failed, folder permission denied, corrupt file.
+- [x] Index screen: stats, folders, skipped files with reasons, rescan, per-folder toggles, forget file.
+- [x] `watcher.py`: watchdog FSEvents, debounce, add, change, delete within five seconds.
+- [x] Idle pre-embedding of the 200 most recently used files on AC power.
+- [x] Storage cap with least recently hit eviction.
+- [x] Error states: sidecar down, model download failed, folder permission denied, corrupt file.
 
 Acceptance: drop a PDF into the folder and it is searchable in five seconds. Exclude a folder and its results vanish. Stats match `ls` counts.
+Passed 2026-09-09 by `scripts/day5_acceptance.py` against a live sidecar: 2.14 s to searchable, an excluded folder returns nothing and returns 21 results again when turned back on, 2 files scanned against 2 on disk.
 
 ## Day 6, eval and polish
 

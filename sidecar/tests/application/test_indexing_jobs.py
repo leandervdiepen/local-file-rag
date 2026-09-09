@@ -211,3 +211,27 @@ def test_subscribing_with_no_job_running_ends_at_once_with_nothing() -> None:
     assert world.jobs.progress() == IndexProgress(
         folder_id=file_id(FIRST), done=True, files_seen=2, files_indexed=2, pages_indexed=4
     )
+
+
+def test_a_folder_macos_will_not_let_the_app_read_says_so_in_the_snapshot() -> None:
+    """A crawl that quietly indexes nothing is the failure a user cannot diagnose."""
+    world = World(FIRST)
+    world.indexer.unreadable.add(file_id(FIRST))
+
+    final = world.run_to_done()[-1]
+
+    assert [failure.path for failure in final.failures] == [str(FIRST)]
+    assert "Full Disk Access" in final.failures[0].reason
+
+
+def test_one_unreadable_folder_does_not_cost_the_folders_after_it() -> None:
+    world = World(FIRST, SECOND)
+    world.indexer.unreadable.add(file_id(FIRST))
+
+    final = world.run_to_done()[-1]
+
+    assert (final.files_indexed, len(final.failures)) == (2, 1)
+
+
+def test_a_crawl_that_reads_everything_reports_no_failures() -> None:
+    assert World(FIRST).run_to_done()[-1].failures == ()

@@ -7,6 +7,7 @@ import type { IndexProgress, IndexStats } from '../../domain/indexing'
 import { flattenGroups, groupByFile } from '../../domain/search-results'
 import { ChatPanel } from '../chat/ChatPanel'
 import { PagePreview } from '../preview/PagePreview'
+import { FolderProblems } from '../index/FolderProblems'
 import { IndexingBanner } from './IndexingBanner'
 import { ResultList } from './ResultList'
 import { SearchBox } from './SearchBox'
@@ -99,6 +100,7 @@ export function SearchScreen({
       />
 
       {progress && !progress.done && <IndexingBanner progress={progress} />}
+      {progress && <FolderProblems failures={progress.failures} />}
       <div className="flex items-baseline justify-between gap-4">
         <SearchStatus state={state} stats={stats} resultCount={ordered.length} />
         <button

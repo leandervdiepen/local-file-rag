@@ -17,6 +17,7 @@ import numpy as np
 from flask import Flask
 from flask.testing import FlaskClient
 
+from sidecar.application.forget_file import ForgetFile
 from sidecar.application.indexing_jobs import IndexingJobs
 from sidecar.application.list_index_files import ListIndexFiles
 from sidecar.application.read_index_stats import ReadIndexStats
@@ -74,8 +75,13 @@ def _client(
     register_error_handlers(app)
     register_auth(app, TOKEN)
     index = store if store is not None else FakeIndexStore()
-    read_stats = ReadIndexStats(index, vectors or FakeVectorStore())
-    app.register_blueprint(build_index_blueprint(cast(IndexingJobs, jobs), read_stats, ListIndexFiles(index)))
+    page_vectors = vectors or FakeVectorStore()
+    read_stats = ReadIndexStats(index, page_vectors)
+    app.register_blueprint(
+        build_index_blueprint(
+            cast(IndexingJobs, jobs), read_stats, ListIndexFiles(index), ForgetFile(index, page_vectors)
+        )
+    )
     return app.test_client()
 
 
@@ -179,6 +185,7 @@ def test_progress_streams_a_progress_event_per_snapshot_then_one_done() -> None:
         "pages_indexed": 0,
         "pages_embedded": 0,
         "current_path": "/corpus/a.pdf",
+        "failures": [],
         "done": False,
     }
     assert (events[1][1]["files_seen"], events[1][1]["pages_indexed"], events[1][1]["done"]) == (2, 5, True)
@@ -207,6 +214,7 @@ def test_progress_before_the_first_job_sends_a_zeroed_done() -> None:
         "pages_indexed": 0,
         "pages_embedded": 0,
         "current_path": "",
+        "failures": [],
         "done": True,
     }
 
@@ -259,3 +267,26 @@ def test_the_cursor_walks_every_file_once() -> None:
 
     assert sorted(seen) == [f"file-{n}" for n in range(5)]
     assert len(seen) == len(set(seen)), "the cursor showed a file twice"
+
+
+def test_forgetting_a_file_takes_it_out_of_the_index() -> None:
+    store = FakeIndexStore()
+    store.upsert_file(_a_file("f1", size_bytes=1024, state=FileState.TEXT_INDEXED))
+    store.upsert_pages([Page(id="f1:1", file_id="f1", page_no=1)])
+    client = _client(FakeIndexingJobs(), store=store)
+
+    response = client.delete("/index/files/f1", headers=AUTH)
+
+    assert response.status_code == 204
+    assert store.get_file("f1") is None
+
+
+def test_forgetting_a_file_that_is_not_there_is_still_204() -> None:
+    """Gone is the goal, and the row the user clicked may already have been rescanned away."""
+    client = _client(FakeIndexingJobs())
+
+    assert client.delete("/index/files/nothing", headers=AUTH).status_code == 204
+
+
+def test_forgetting_a_file_needs_the_token() -> None:
+    assert _client(FakeIndexingJobs()).delete("/index/files/f1").status_code == 401

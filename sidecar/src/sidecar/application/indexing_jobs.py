@@ -18,10 +18,17 @@ from sidecar.application.embed_pages import EmbedPages
 from sidecar.application.index_folder import IndexFolder
 from sidecar.application.store_ports import FolderStore, IndexStore, VectorStore
 from sidecar.domain.entities import Folder
-from sidecar.domain.errors import IndexBusyError
-from sidecar.domain.progress import EmbedProgress, IndexProgress
+from sidecar.domain.errors import FolderUnreadableError, IndexBusyError
+from sidecar.domain.progress import EmbedProgress, FolderFailure, IndexProgress
 
 logger = logging.getLogger(__name__)
+
+# macOS decides this, not the app: the folders it guards are the ones people
+# index first, and the dialog is never shown twice.
+_PERMISSION_DENIED = (
+    "macOS is not letting this app read that folder. "
+    "Open System Settings, Privacy and Security, Full Disk Access, and turn it on for this app."
+)
 
 
 class IndexingJobs:
@@ -167,9 +174,11 @@ class IndexingJobs:
     def _crawl(self, folder: Folder, base: IndexProgress) -> IndexProgress:
         """Crawl one folder and return the totals it leaves for the next one.
 
-        A folder that raises is logged and left behind: one unreadable folder
+        A folder that raises is recorded and left behind: one unreadable folder
         must not cost the user the folders queued after it, and the counts it
-        did reach stay in the total.
+        did reach stay in the total. The failure travels in the snapshot, so
+        the index screen can say which folder and what to do, rather than
+        showing a crawl that found nothing for no visible reason.
         """
         totals = replace(base, folder_id=folder.id)
 
@@ -181,8 +190,12 @@ class IndexingJobs:
 
         try:
             self._index_folder.run(folder.id, folder.path, on_progress)
-        except Exception:
+        except FolderUnreadableError as denied:
+            logger.warning("cannot read %s: %s", folder.path, denied.message)
+            totals = _with_failure(totals, FolderFailure(str(folder.path), _PERMISSION_DENIED))
+        except Exception as failure:
             logger.exception("indexing %s failed", folder.path)
+            totals = _with_failure(totals, FolderFailure(str(folder.path), str(failure)))
         return replace(totals, current_path="")
 
     def _publish(self, snapshot: IndexProgress) -> None:
@@ -209,4 +222,9 @@ def _accumulate(base: IndexProgress, folder_id: str, step: IndexProgress) -> Ind
         files_skipped=base.files_skipped + step.files_skipped,
         pages_indexed=base.pages_indexed + step.pages_indexed,
         current_path=step.current_path,
+        failures=base.failures,
     )
+
+
+def _with_failure(totals: IndexProgress, failure: FolderFailure) -> IndexProgress:
+    return replace(totals, failures=(*totals.failures, failure))

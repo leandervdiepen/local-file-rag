@@ -11,7 +11,9 @@ from sidecar.application.search import COLD_PAGE_CAP, STAGE_ONE_CANDIDATE_LIMIT,
 from sidecar.domain.entities import FileKind, FileState, IndexedFile, Page
 from sidecar.domain.progress import EmbedProgress
 from sidecar.domain.search import PageHit
+from tests.fakes.clock import FakeClock
 from tests.fakes.cold_pages import FakeColdPages
+from tests.fakes.folder_store import FakeFolderStore
 from tests.fakes.index_store import FakeIndexStore
 from tests.fakes.page_embedder import FakePageEmbedder
 from tests.fakes.vector_store import FakeVectorStore
@@ -205,3 +207,55 @@ def test_stage_two_stops_when_the_caller_has_hung_up() -> None:
 
     assert results == []
     assert 0 < len(embedder.embedded_page_ids) < 12, "it stopped part way, not before starting and not at the end"
+
+
+def a_search_over_folders(
+    store: FakeIndexStore, folders: FakeFolderStore, looks: dict[str, list[str]] | None = None
+) -> tuple[Search, FakeVectorStore, FakeColdPages]:
+    embedder = FakePageEmbedder(looks)
+    vectors = FakeVectorStore()
+    cold = FakeColdPages(embedder, vectors)
+    return Search(store, vectors, embedder, cold, folders), vectors, cold
+
+
+def test_a_folder_the_user_turned_off_stops_returning_results() -> None:
+    """The whole point of the toggle. A switch that changes nothing visible did nothing."""
+    store = FakeIndexStore()
+    add_file(store, ["quarterly egress"], "keep", "keep/report.pdf")
+    add_file(store, ["quarterly egress"], "hidden", "hidden/report.pdf")
+    folders = FakeFolderStore(FakeClock(NOW))
+    folders.add(Path("/corpus/keep"))
+    excluded = folders.add(Path("/corpus/hidden"))
+    folders.set_enabled(excluded.id, False)
+    search, _, _ = a_search_over_folders(store, folders)
+
+    assert [hit.file_id for hit in search.stage_one("egress")] == ["keep"]
+
+
+def test_turning_a_folder_back_on_returns_its_results_with_no_rescan() -> None:
+    store = FakeIndexStore()
+    add_file(store, ["quarterly egress"], "f1", "hidden/report.pdf")
+    folders = FakeFolderStore(FakeClock(NOW))
+    folder = folders.add(Path("/corpus/hidden"))
+    search, _, _ = a_search_over_folders(store, folders)
+
+    folders.set_enabled(folder.id, False)
+    assert search.stage_one("egress") == []
+
+    folders.set_enabled(folder.id, True)
+    assert [hit.file_id for hit in search.stage_one("egress")] == ["f1"]
+
+
+def test_the_vector_search_does_not_bring_back_a_page_the_toggle_excluded() -> None:
+    """Stage 2 widens from the whole store, which knows nothing about folders."""
+    store = FakeIndexStore()
+    add_file(store, ["nothing alike"], "hidden", "hidden/deck.pdf")
+    folders = FakeFolderStore(FakeClock(NOW))
+    excluded = folders.add(Path("/corpus/hidden"))
+    search, vectors, cold = a_search_over_folders(store, folders, looks={"hidden:1": ["funnel", "chart"]})
+    cold.run(["hidden:1"])
+    assert vectors.count() == 1
+
+    folders.set_enabled(excluded.id, False)
+
+    assert search.stage_two("funnel chart", []) == []

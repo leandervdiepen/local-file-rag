@@ -1,7 +1,9 @@
-"""Day 5 acceptance: drop a PDF into a watched folder and find it within five seconds.
+"""The day 5 acceptance, run against a live sidecar.
 
-Runs the real sidecar as a subprocess against a real temporary folder, so the
-watcher, the debounce, the crawl and the FTS index are all the shipped ones.
+Three claims, all from `docs/PLAN.md`: a PDF dropped into a watched folder is
+searchable within five seconds, a folder the user excludes stops returning
+results, and the stats match what `ls` counts. Everything here is the shipped
+path: the real watcher, the real debounce, the real model, the real tables.
 """
 
 from __future__ import annotations
@@ -113,14 +115,48 @@ def main() -> int:
             return 1
 
         found = target in search_names(port, target.removesuffix(".pdf"))
-        verdict = "PASS" if found and indexed_at <= DEADLINE_S else "FAIL"
-        print(f"{verdict}: {target} indexed {indexed_at:.2f}s after it was dropped, search finds it: {found}")
-        return 0 if verdict == "PASS" else 1
+        dropped_in = indexed_at <= DEADLINE_S and found
+        print(
+            f"{_verdict(dropped_in)}: {target} indexed {indexed_at:.2f}s after it was dropped "
+            f"against a {DEADLINE_S:.0f}s budget, search finds it: {found}"
+        )
+
+        excluded = _excluding_a_folder_hides_it(port, watched, target)
+        counted = _stats_match_ls(port, watched)
+        return 0 if dropped_in and excluded and counted else 1
     finally:
         process.terminate()
         process.wait(timeout=10)
         shutil.rmtree(watched, ignore_errors=True)
         shutil.rmtree(db, ignore_errors=True)
+
+
+def _excluding_a_folder_hides_it(port: int, watched: Path, target: str) -> bool:
+    """Turn the folder off, and what it holds must stop coming back."""
+    folder = call(port, "GET", "/folders")["folders"][0]
+    call(port, "PATCH", f"/folders/{folder['id']}", {"enabled": False})
+    while_off = search_names(port, target.removesuffix(".pdf"))
+
+    call(port, "PATCH", f"/folders/{folder['id']}", {"enabled": True})
+    while_on = search_names(port, target.removesuffix(".pdf"))
+
+    hidden = while_off == []
+    back = target in while_on
+    print(f"{_verdict(hidden and back)}: excluded folder returns {len(while_off)} results, back on returns {len(while_on)}")
+    return hidden and back
+
+
+def _stats_match_ls(port: int, watched: Path) -> bool:
+    """The count on the index screen against the count in the folder."""
+    on_disk = sum(1 for entry in watched.rglob("*") if entry.is_file())
+    stats = call(port, "GET", "/index/stats")
+    scanned = stats["files_scanned"]
+    print(f"{_verdict(scanned == on_disk)}: {scanned} files scanned against {on_disk} files on disk")
+    return bool(scanned == on_disk)
+
+
+def _verdict(passed: bool) -> str:
+    return "PASS" if passed else "FAIL"
 
 
 if __name__ == "__main__":

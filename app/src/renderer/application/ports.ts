@@ -49,6 +49,8 @@ export interface FoldersPort {
   list: () => Promise<IndexedFolder[]>
   add: (path: string) => Promise<IndexedFolder>
   remove: (id: string) => Promise<void>
+  /** Turn a folder on or off. Its files stay indexed while it is off. */
+  setEnabled: (id: string, enabled: boolean) => Promise<IndexedFolder>
 }
 
 export interface FilePage {
@@ -61,6 +63,8 @@ export interface IndexPort {
   stats: () => Promise<IndexStats>
   /** One page of files in a state, `cursor` of null starting at the beginning. */
   files: (state: 'text_indexed' | 'skipped', cursor: string | null) => Promise<FilePage>
+  /** Take one file out of the index. Leaves the file on disk. */
+  forget: (fileId: string) => Promise<void>
   /** Streams crawl progress. Resolves when the job ends, so no job is an immediate resolve. */
   watchProgress: (onProgress: (progress: IndexProgress) => void, signal: AbortSignal) => Promise<void>
 }

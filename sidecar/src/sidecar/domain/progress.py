@@ -11,6 +11,20 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
+class FolderFailure:
+    """A folder the crawl could not read, and what to do about it.
+
+    Carried through progress rather than only logged. A crawl that quietly
+    indexes nothing is the failure a user cannot diagnose: to them the app is
+    simply broken, and the one thing that would fix it is a permission dialog
+    they were never shown.
+    """
+
+    path: str
+    reason: str
+
+
+@dataclass(frozen=True)
 class IndexProgress:
     """A snapshot of one indexing job. Every field is a count of something real."""
 
@@ -21,6 +35,7 @@ class IndexProgress:
     pages_indexed: int = 0
     pages_embedded: int = 0
     current_path: str = ""
+    failures: tuple[FolderFailure, ...] = ()
     done: bool = False
 
 

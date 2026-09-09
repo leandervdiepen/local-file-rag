@@ -8,6 +8,7 @@ from typing import Any
 
 from flask import Blueprint, Response, jsonify, request
 
+from sidecar.application.forget_file import ForgetFile
 from sidecar.application.indexing_jobs import IndexingJobs
 from sidecar.application.list_index_files import ListIndexFiles
 from sidecar.application.read_index_stats import ReadIndexStats
@@ -28,7 +29,12 @@ _LIVE_HEADERS = {"Cache-Control": "no-store", "X-Accel-Buffering": "no"}
 _INVALID_STATE_MESSAGE = "That is not a file state. Ask for text_indexed or skipped."
 
 
-def build_index_blueprint(jobs: IndexingJobs, read_stats: ReadIndexStats, list_files: ListIndexFiles) -> Blueprint:
+def build_index_blueprint(
+    jobs: IndexingJobs,
+    read_stats: ReadIndexStats,
+    list_files: ListIndexFiles,
+    forget_file: ForgetFile,
+) -> Blueprint:
     """Build the /index blueprint bound to one job runner and one stats use case."""
     bp = Blueprint("index", __name__)
 
@@ -61,6 +67,11 @@ def build_index_blueprint(jobs: IndexingJobs, read_stats: ReadIndexStats, list_f
         )
         response.headers["Cache-Control"] = "no-store"
         return response
+
+    @bp.delete("/index/files/<file_id>")
+    def forget(file_id: str) -> Response:
+        forget_file.run(file_id)
+        return Response(status=204)
 
     @bp.get("/index/progress")
     def progress() -> Response:
