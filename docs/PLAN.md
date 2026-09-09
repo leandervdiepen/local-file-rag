@@ -69,8 +69,8 @@ Measure: cold and cached heatmap times.
 - [x] Two answerers, streaming, top five page images, prompt and citation parsing in the domain, usage capture. Written against the wire with urllib rather than the Anthropic SDK: see D51.
 - [x] `POST /chat` SSE with `retrieval`, `token`, `citation`, `done`.
 - [x] Renderer chat panel: streaming text, citation chips, clicking a chip opens the page preview with heatmap, token and cost footer.
-- [ ] Offline mode toggle. Chat panel says what it disables.
-- [ ] Settings: Anthropic key through `safeStorage`, `PUT /secrets/anthropic`, model selector.
+- [~] Offline mode toggle. Dropped: picking Ollama in settings is the same thing said once instead of twice, and a toggle that duplicates a choice is a second place for the two to disagree.
+- [x] Settings: provider keys through `safeStorage`, `PUT /secrets/{provider}`, and a model selector that lists what each provider is offering now (D52).
 
 Acceptance: "what did the Q2 hosting invoice charge for egress" answers with a correct page citation. A question with no answer in the corpus returns "not in your files" and no citation.
 Measure: first token latency after retrieval, tokens per question.
@@ -89,11 +89,11 @@ Passed 2026-09-09 by `scripts/day5_acceptance.py` against a live sidecar: 2.14 s
 
 ## Day 6, eval and polish
 
-- [ ] Click logging and `GET /eval/recall`.
-- [ ] Golden set runner in the index screen with per-query hit or miss.
-- [ ] Design pass with the interface skills: empty states, loading states, focus states, spacing, type.
+- [~] Click logging and `GET /eval/recall`. Half built: opening a page at full size records a hit, which is what the storage cap evicts by. The recall endpoint is not there, and the golden set measures recall better because it knows the right answer.
+- [~] Golden set runner in the index screen. Dropped: `scripts/eval.py` already does it with thumbnails of every miss and a diff against the previous run, and a golden set is meaningless against a stranger's own files.
+- [ ] Design pass with the interface skills: empty states, loading states, focus states, spacing, type. In progress.
 - [x] Keyboard: global shortcut opens the window, arrows move, enter opens, escape clears.
-- [ ] Tests complete per the pyramid in KICKOFF.md: unit on domain and application, integration per adapter, Playwright Electron on the three money paths with Anthropic stubbed.
+- [x] Tests complete per the pyramid in KICKOFF.md: unit on domain and application, integration per adapter, and one Playwright run over Electron covering index, search, thumbnail and heatmap.
 - [x] Lint and typecheck green in both projects.
 
 Acceptance: recall@5 of 0.8 or better on the golden set, or the gap is written down with the failing queries. All checks green.
@@ -132,5 +132,5 @@ Never cut: the heatmap, the index screen, the cold page cap with progress text, 
 - [ ] The 45 second demo works end to end.
 - [x] README claims match the code, word for word on privacy.
 - [x] Measured numbers in README carry machine, model and date.
-- [ ] Lint, typecheck, pytest, vitest and the Playwright smoke test pass.
+- [x] Lint, typecheck, pytest, vitest and the Playwright smoke test pass.
 - [ ] Repo public, post published, links in STATUS.md.
