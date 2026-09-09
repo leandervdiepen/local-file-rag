@@ -66,9 +66,9 @@ Measure: cold and cached heatmap times.
 
 ## Day 4, chat
 
-- [ ] `answer.py`: Anthropic SDK, streaming, top five page images as base64 blocks, system prompt from ARCHITECTURE.md, citation parsing, usage capture.
-- [ ] `POST /chat` SSE with `retrieval`, `token`, `citation`, `done`.
-- [ ] Renderer chat panel: streaming text, citation chips, clicking a chip opens the page preview with heatmap, token and cost footer.
+- [x] Two answerers, streaming, top five page images, prompt and citation parsing in the domain, usage capture. Written against the wire with urllib rather than the Anthropic SDK: see D51.
+- [x] `POST /chat` SSE with `retrieval`, `token`, `citation`, `done`.
+- [x] Renderer chat panel: streaming text, citation chips, clicking a chip opens the page preview with heatmap, token and cost footer.
 - [ ] Offline mode toggle. Chat panel says what it disables.
 - [ ] Settings: Anthropic key through `safeStorage`, `PUT /secrets/anthropic`, model selector.
 

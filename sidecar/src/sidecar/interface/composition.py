@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from flask import Flask
 
+from sidecar.application.answer_question import AnswerQuestion
 from sidecar.application.embed_pages import EmbedPages
 from sidecar.application.explain_page import ExplainPage
 from sidecar.application.health import ReportHealth
@@ -19,6 +21,7 @@ from sidecar.application.render_page import RenderPage
 from sidecar.application.run_golden_set import RunGoldenSet
 from sidecar.application.search import Search
 from sidecar.domain.entities import FileKind
+from sidecar.domain.providers import PROVIDERS, ProviderId
 from sidecar.infrastructure.colqwen_embedder import ColQwenEmbedder
 from sidecar.infrastructure.filesystem_health import FilesystemHealthProbe
 from sidecar.infrastructure.fs_crawler import FilesystemCrawler
@@ -27,11 +30,13 @@ from sidecar.infrastructure.image_pages import ImagePageSource
 from sidecar.infrastructure.lancedb_folders import LanceDBFolders
 from sidecar.infrastructure.lancedb_store import LanceDBStore
 from sidecar.infrastructure.lancedb_vectors import LanceDBVectors
+from sidecar.infrastructure.openai_answerer import OpenAIAnswerer
 from sidecar.infrastructure.pdfium_pages import PdfiumPageSource
 from sidecar.infrastructure.system_clock import SystemClock
 from sidecar.infrastructure.text_pages import TextFilePageSource
 from sidecar.infrastructure.vision_ocr import AppleVisionTextReader
 from sidecar.interface.auth import register_auth
+from sidecar.interface.chat_routes import build_chat_blueprint
 from sidecar.interface.errors import register_error_handlers
 from sidecar.interface.eval_routes import build_eval_blueprint
 from sidecar.interface.folder_routes import build_folder_blueprint
@@ -88,6 +93,19 @@ def build_app(token: str, db_path: Path) -> Flask:
     render_page = RenderPage(store, sources)
     app.register_blueprint(build_page_blueprint(render_page))
     app.register_blueprint(build_heatmap_blueprint(ExplainPage(render_page, embedder)))
+    app.register_blueprint(build_chat_blueprint(search, AnswerQuestion(render_page, _answerer())))
     app.register_blueprint(build_eval_blueprint(RunGoldenSet(search, vectors)))
 
     return app
+
+
+def _answerer() -> OpenAIAnswerer:
+    """The provider answers go to.
+
+    One provider for now, chosen by D38 because it is free and needs no key,
+    so the app answers before the user has configured anything. The settings
+    screen replaces this with a choice, and every option except Anthropic
+    speaks this same wire (D36).
+    """
+    provider = next(p for p in PROVIDERS if p.id is ProviderId.OPENROUTER)
+    return OpenAIAnswerer(base_url=provider.base_url, api_key=os.environ.get(provider.env_var))
