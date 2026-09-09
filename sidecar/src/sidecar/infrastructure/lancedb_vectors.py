@@ -37,6 +37,7 @@ class LanceDBVectors:
     """Page vectors, and the only search that looks at every page rather than a candidate set."""
 
     def __init__(self, db_path: Path, index_threshold_rows: int = DEFAULT_INDEX_THRESHOLD_ROWS) -> None:
+        self._db_path = db_path
         self._db = lancedb.connect(str(db_path))
         self._index_threshold_rows = index_threshold_rows
 
@@ -74,6 +75,19 @@ class LanceDBVectors:
     def count(self) -> int:
         table = self._existing_table()
         return 0 if table is None else table.count_rows()
+
+    def bytes_on_disk(self) -> int:
+        """What the `page_vectors` table costs on disk, versions and index included.
+
+        Measured rather than estimated from row counts. LanceDB keeps old
+        versions of a table until it is compacted, so the estimate and the
+        disk disagree by however much history is lying around, and the cap is
+        a promise about the disk.
+        """
+        table_dir = self._db_path / f"{schema.PAGE_VECTORS_TABLE}.lance"
+        if not table_dir.exists():
+            return 0
+        return sum(entry.stat().st_size for entry in table_dir.rglob("*") if entry.is_file())
 
     def _rows_for(self, page_ids: Sequence[str], columns: list[str] | None = None) -> list[dict[str, Any]]:
         table = self._existing_table()

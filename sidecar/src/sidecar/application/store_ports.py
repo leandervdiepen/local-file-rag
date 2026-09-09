@@ -7,10 +7,12 @@ implementing an adapter reads this file and nothing else.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
 from sidecar.domain.entities import FileState, Folder, IndexedFile, Page
+from sidecar.domain.eviction import PageHeat
 from sidecar.domain.search import IndexStats, PageHit
 from sidecar.domain.vectors import PageVectors, QueryVectors
 
@@ -79,6 +81,34 @@ class IndexStore(Protocol):
 
         Exists so a job can walk what is in the index without a search. Skipped
         files are not here: they have no pages and nothing to do with them.
+        """
+        ...
+
+    def record_hits(self, page_ids: Sequence[str], at: datetime) -> None:
+        """Count one use of each of these pages, and mark their files used at `at`.
+
+        Silent for ids that are not there, and a no-op for an empty list. This
+        is the only thing that writes `last_hit_at`, `hit_count` and a file's
+        `last_used`, which are what the storage cap evicts by and what idle
+        pre-embedding picks up first.
+        """
+        ...
+
+    def page_heat(self) -> list[PageHeat]:
+        """How much use every page has seen, in no particular order.
+
+        Every page, not only the ones with vectors: which of them cost storage
+        is the vector store's question, and joining the two here would make
+        this port depend on the answer.
+        """
+        ...
+
+    def recently_used_files(self, limit: int) -> list[IndexedFile]:
+        """The `limit` indexed files used most recently, most recent first.
+
+        A file that has never been used is still returned once the used ones
+        run out, oldest modification last, because a fresh index has no use
+        history and pre-embedding still has to start somewhere.
         """
         ...
 
@@ -176,6 +206,15 @@ class VectorStore(Protocol):
         when the store holds fewer pages, and an empty list from an empty
         store. The score is the adapter's similarity and is only comparable
         with other scores from this method, never with MaxSim.
+        """
+        ...
+
+    def bytes_on_disk(self) -> int:
+        """What the stored vectors cost, in bytes. Zero for a store with none.
+
+        The number the storage cap is measured against. It is the store's own
+        footprint rather than an estimate from row counts, because the cap is
+        a promise about the user's disk and an estimate is not one.
         """
         ...
 

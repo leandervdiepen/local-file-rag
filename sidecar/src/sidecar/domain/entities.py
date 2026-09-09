@@ -82,19 +82,16 @@ class Page:
     file_id: str
     page_no: int
     text: str = ""
-    embedded_at: datetime | None = None
     last_hit_at: datetime | None = None
     hit_count: int = 0
+    """`last_hit_at` and `hit_count` are what the storage cap evicts by. A page
+    is hit when the user opens it, never when a search merely returned it."""
 
     def __post_init__(self) -> None:
         if self.page_no < 1:
             raise ValidationError(f"page_no is 1-based, got {self.page_no}.")
         if self.hit_count < 0:
             raise ValidationError(f"hit_count cannot be negative, got {self.hit_count}.")
-
-    @property
-    def is_embedded(self) -> bool:
-        return self.embedded_at is not None
 
 
 @dataclass(frozen=True)

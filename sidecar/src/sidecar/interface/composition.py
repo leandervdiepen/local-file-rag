@@ -20,6 +20,7 @@ from sidecar.application.list_index_files import ListIndexFiles
 from sidecar.application.manage_folders import ManageFolders
 from sidecar.application.ports import PageSource
 from sidecar.application.read_index_stats import ReadIndexStats
+from sidecar.application.record_page_hit import RecordPageHit
 from sidecar.application.render_page import RenderPage
 from sidecar.application.run_golden_set import RunGoldenSet
 from sidecar.application.search import Search
@@ -102,7 +103,7 @@ def build_app(token: str, db_path: Path) -> Flask:
     app.register_blueprint(build_index_blueprint(jobs, ReadIndexStats(store, vectors), ListIndexFiles(store)))
     app.register_blueprint(build_search_blueprint(search))
     render_page = RenderPage(store, sources)
-    app.register_blueprint(build_page_blueprint(render_page))
+    app.register_blueprint(build_page_blueprint(render_page, RecordPageHit(store, clock)))
     app.register_blueprint(build_heatmap_blueprint(ExplainPage(render_page, embedder)))
     app.register_blueprint(build_chat_blueprint(search, AnswerQuestion(render_page, _answerer())))
     app.register_blueprint(build_eval_blueprint(RunGoldenSet(search, vectors)))

@@ -11,7 +11,7 @@ from PIL import Image
 
 from sidecar.application.ports import PageSource
 from sidecar.application.render_page import FULL_LONG_SIDE_PX, THUMB_LONG_SIDE_PX, PageImageSize, RenderPage
-from sidecar.domain.entities import FileKind, FileState, IndexedFile
+from sidecar.domain.entities import FileKind, FileState, IndexedFile, Page
 from sidecar.domain.errors import NotFoundError, ValidationError
 from sidecar.domain.identity import file_id, page_id
 from tests.fakes.index_store import FakeIndexStore
@@ -71,11 +71,21 @@ def a_render_page(
     served_kinds: tuple[FileKind, ...] = (FileKind.PDF,),
 ) -> tuple[RenderPage, dict[FileKind, CountingPageSource]]:
     """One indexed file of `file_kind`, plus one source per kind in `served_kinds`."""
+    render, sources, _ = a_render_page_over_a_store(file_kind, served_kinds)
+    return render, sources
+
+
+def a_render_page_over_a_store(
+    file_kind: FileKind = FileKind.PDF,
+    served_kinds: tuple[FileKind, ...] = (FileKind.PDF,),
+) -> tuple[RenderPage, dict[FileKind, CountingPageSource], FakeIndexStore]:
+    """The same, and the store behind it, for a caller that asserts on what a render recorded."""
     store = FakeIndexStore()
     store.upsert_file(an_indexed_file(REPORT, file_kind))
+    store.upsert_pages([Page(id=page_id(file_id(REPORT), n), file_id=file_id(REPORT), page_no=n) for n in (1, 2, 3)])
     sources = {kind: CountingPageSource({REPORT: 3}) for kind in served_kinds}
     ports: dict[FileKind, PageSource] = dict(sources)
-    return RenderPage(store=store, sources=ports), sources
+    return RenderPage(store=store, sources=ports), sources, store
 
 
 def page_two() -> str:

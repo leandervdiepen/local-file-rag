@@ -67,6 +67,9 @@ def test_negative_hit_count_is_refused() -> None:
         Page(id="p1", file_id="f1", page_no=1, hit_count=-1)
 
 
-def test_a_page_is_embedded_once_it_has_a_timestamp() -> None:
-    assert not Page(id="p1", file_id="f1", page_no=1).is_embedded
-    assert Page(id="p1", file_id="f1", page_no=1, embedded_at=NOW).is_embedded
+def test_a_fresh_page_has_seen_no_use() -> None:
+    """The storage cap evicts by these two, so an unset pair has to mean untouched."""
+    page = Page(id="p1", file_id="f1", page_no=1)
+
+    assert page.last_hit_at is None
+    assert page.hit_count == 0

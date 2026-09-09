@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from flask import Blueprint, Response, request
 
+from sidecar.application.record_page_hit import RecordPageHit
 from sidecar.application.render_page import PageImageSize, RenderPage
 from sidecar.interface.errors import error_response
 
@@ -31,8 +32,13 @@ def _cacheable(response: Response, etag: str) -> Response:
     return response
 
 
-def build_page_blueprint(render: RenderPage) -> Blueprint:
-    """Build the page image blueprint bound to one RenderPage use case."""
+def build_page_blueprint(render: RenderPage, record_hit: RecordPageHit) -> Blueprint:
+    """Build the page image blueprint bound to one RenderPage use case.
+
+    A full size image is the user opening the page, so it counts as a hit. A
+    thumbnail is not: the result grid fetches one for every result, and
+    counting those would say the whole result set was wanted equally.
+    """
     bp = Blueprint("pages", __name__)
 
     @bp.get("/pages/<page_id>/image")
@@ -48,6 +54,10 @@ def build_page_blueprint(render: RenderPage) -> Blueprint:
             )
 
         etag = _etag(render.content_hash_for(page_id), size)
+        if size is PageImageSize.FULL:
+            # Before the 304, because a page the browser already holds was
+            # still opened, and the cap must not evict it for being cached.
+            record_hit.run([page_id])
         if request.if_none_match.contains(etag):
             return _cacheable(Response(status=304), etag)
 

@@ -56,7 +56,7 @@ def test_fresh_directory_is_usable(tmp_path: Path) -> None:
 def test_upsert_round_trips_every_field(tmp_path: Path) -> None:
     store = LanceDBStore(tmp_path / "db")
     file = a_file(state=FileState.SKIPPED, skip_reason="too_large", truncated_pages=True, last_used=NOW)
-    page = a_page(text="hello", embedded_at=NOW, last_hit_at=NOW, hit_count=3)
+    page = a_page(text="hello", last_hit_at=NOW, hit_count=3)
 
     store.upsert_file(file)
     store.upsert_pages([page])
@@ -181,13 +181,11 @@ def test_stats_counts_match_what_was_inserted(tmp_path: Path) -> None:
     store.upsert_file(a_file(id="f2", state=FileState.SKIPPED, skip_reason="too_large", size_bytes=200))
     store.upsert_file(a_file(id="f3", state=FileState.SKIPPED, skip_reason="too_large", size_bytes=50))
     store.upsert_file(a_file(id="f4", state=FileState.SKIPPED, skip_reason="encrypted", size_bytes=10))
-    store.upsert_pages(
-        [a_page(id="p1", file_id="f1", page_no=1, embedded_at=NOW), a_page(id="p2", file_id="f1", page_no=2)]
-    )
+    store.upsert_pages([a_page(id="p1", file_id="f1", page_no=1), a_page(id="p2", file_id="f1", page_no=2)])
 
     stats = store.stats()
 
     assert (stats.files_scanned, stats.files_text_indexed, stats.files_skipped) == (4, 1, 3)
-    assert (stats.pages_total, stats.pages_embedded) == (2, 1)
+    assert stats.pages_total == 2
     assert stats.bytes_on_disk > 0, "storage is measured from the database directory, not summed from file sizes"
     assert stats.skips_by_reason == (("encrypted", 1), ("too_large", 2))

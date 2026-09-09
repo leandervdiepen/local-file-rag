@@ -70,7 +70,6 @@ PAGES_SCHEMA = pa.schema(
         pa.field("file_id", pa.string()),
         pa.field("page_no", pa.int64()),
         pa.field("text", pa.string()),
-        pa.field("embedded_at", pa.string()),
         pa.field("last_hit_at", pa.string()),
         pa.field("hit_count", pa.int64()),
     ]
@@ -81,7 +80,7 @@ def _to_iso(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
 
-def _from_iso(value: str | None) -> datetime | None:
+def from_iso(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value) if value is not None else None
 
 
@@ -117,7 +116,7 @@ def row_to_file(row: dict[str, Any]) -> IndexedFile:
         state=FileState(row["state"]),
         skip_reason=row["skip_reason"],
         page_count=row["page_count"],
-        last_used=_from_iso(row["last_used"]),
+        last_used=from_iso(row["last_used"]),
         truncated_pages=row["truncated_pages"],
     )
 
@@ -128,7 +127,6 @@ def page_to_row(page: Page) -> dict[str, Any]:
         "file_id": page.file_id,
         "page_no": page.page_no,
         "text": page.text,
-        "embedded_at": _to_iso(page.embedded_at),
         "last_hit_at": _to_iso(page.last_hit_at),
         "hit_count": page.hit_count,
     }
@@ -140,8 +138,7 @@ def row_to_page(row: dict[str, Any]) -> Page:
         file_id=row["file_id"],
         page_no=row["page_no"],
         text=row["text"],
-        embedded_at=_from_iso(row["embedded_at"]),
-        last_hit_at=_from_iso(row["last_hit_at"]),
+        last_hit_at=from_iso(row["last_hit_at"]),
         hit_count=row["hit_count"],
     )
 

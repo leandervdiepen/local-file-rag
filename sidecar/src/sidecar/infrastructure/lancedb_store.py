@@ -10,6 +10,8 @@ would leave a window where `search_pages` breaks.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +20,7 @@ from lancedb import Table
 from lancedb.index import FTS
 
 from sidecar.domain.entities import FileState, IndexedFile, Page
+from sidecar.domain.eviction import PageHeat
 from sidecar.domain.search import IndexStats, PageHit
 from sidecar.infrastructure import lancedb_schema as schema
 from sidecar.infrastructure import lancedb_sql as sql
@@ -85,6 +88,41 @@ class LanceDBStore:
         rows = self._rows_where(schema.FILES_TABLE, f"state = '{FileState.TEXT_INDEXED.value}'")
         return sorted((schema.row_to_file(row) for row in rows), key=lambda file: str(file.path))
 
+    def record_hits(self, page_ids: Sequence[str], at: datetime) -> None:
+        pages_table = self._existing_table(schema.PAGES_TABLE)
+        if pages_table is None or not page_ids:
+            return
+        rows = pages_table.search().where(f"id in ({sql.in_list(page_ids)})").to_list()
+        if not rows:
+            return
+        hit = [schema.row_to_page(row) for row in rows]
+        self.upsert_pages([replace(page, last_hit_at=at, hit_count=page.hit_count + 1) for page in hit])
+        self._mark_files_used({page.file_id for page in hit}, at)
+
+    def _mark_files_used(self, file_ids: set[str], at: datetime) -> None:
+        files_table = self._existing_table(schema.FILES_TABLE)
+        if files_table is None:
+            return
+        rows = files_table.search().where(f"id in ({sql.in_list(file_ids)})").to_list()
+        for row in rows:
+            self.upsert_file(replace(schema.row_to_file(row), last_used=at))
+
+    def page_heat(self) -> list[PageHeat]:
+        rows = self._all_rows(schema.PAGES_TABLE, columns=["id", "last_hit_at", "hit_count"])
+        return [
+            PageHeat(
+                page_id=str(row["id"]),
+                last_hit_at=schema.from_iso(row["last_hit_at"]),
+                hit_count=int(row["hit_count"]),
+            )
+            for row in rows
+        ]
+
+    def recently_used_files(self, limit: int) -> list[IndexedFile]:
+        files = self.indexed_files()
+        files.sort(key=lambda file: (file.last_used is not None, file.last_used or file.mtime), reverse=True)
+        return files[:limit]
+
     def search_pages(self, query: str, limit: int) -> list[PageHit]:
         stripped = query.strip()
         if not stripped:
@@ -113,29 +151,36 @@ class LanceDBStore:
             for row in reasons:
                 reason_counts[row["skip_reason"]] = reason_counts.get(row["skip_reason"], 0) + 1
             skips_by_reason = tuple(sorted(reason_counts.items()))
-        pages_total = pages_embedded = 0
         pages_table = self._existing_table(schema.PAGES_TABLE)
-        if pages_table is not None:
-            pages_total = pages_table.count_rows()
-            pages_embedded = pages_table.count_rows("embedded_at IS NOT NULL")
+        pages_total = 0 if pages_table is None else pages_table.count_rows()
         return IndexStats(
             files_scanned=files_scanned,
             files_text_indexed=files_text_indexed,
             files_skipped=files_skipped,
             pages_total=pages_total,
-            pages_embedded=pages_embedded,
+            # The vector store is the authority on what is embedded, and
+            # `ReadIndexStats` replaces this with its count.
+            pages_embedded=0,
             bytes_on_disk=_directory_size(self._db_path),
             skips_by_reason=skips_by_reason,
         )
 
     def _rows_where(self, name: str, predicate: str, columns: list[str] | None = None) -> list[dict[str, Any]]:
+        return self._rows(name, columns, predicate)
+
+    def _all_rows(self, name: str, columns: list[str] | None = None) -> list[dict[str, Any]]:
+        return self._rows(name, columns, predicate=None)
+
+    def _rows(self, name: str, columns: list[str] | None, predicate: str | None) -> list[dict[str, Any]]:
         table = self._existing_table(name)
         if table is None:
             return []
         search = table.search()
         if columns is not None:
             search = search.select(columns)
-        rows: list[dict[str, Any]] = search.where(predicate).to_list()
+        if predicate is not None:
+            search = search.where(predicate)
+        rows: list[dict[str, Any]] = search.to_list()
         return rows
 
     def _table_for_write(self, name: str, table_schema: Any) -> Table:

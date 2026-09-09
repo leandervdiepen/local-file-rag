@@ -13,8 +13,11 @@ same expectations they would bring to the real store.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
+from datetime import datetime
 
 from sidecar.domain.entities import FileState, IndexedFile, Page
+from sidecar.domain.eviction import PageHeat
 from sidecar.domain.search import IndexStats, PageHit
 
 
@@ -57,6 +60,24 @@ class FakeIndexStore:
     def indexed_files(self) -> list[IndexedFile]:
         indexed = (f for f in self._files.values() if f.state is FileState.TEXT_INDEXED)
         return sorted(indexed, key=lambda file: str(file.path))
+
+    def record_hits(self, page_ids: Sequence[str], at: datetime) -> None:
+        for page_id in page_ids:
+            page = self._pages.get(page_id)
+            if page is None:
+                continue
+            self._pages[page_id] = replace(page, last_hit_at=at, hit_count=page.hit_count + 1)
+            file = self._files.get(page.file_id)
+            if file is not None:
+                self._files[file.id] = replace(file, last_used=at)
+
+    def page_heat(self) -> list[PageHeat]:
+        return [PageHeat(page.id, page.last_hit_at, page.hit_count) for page in self._pages.values()]
+
+    def recently_used_files(self, limit: int) -> list[IndexedFile]:
+        files = self.indexed_files()
+        files.sort(key=lambda file: (file.last_used is not None, file.last_used or file.mtime), reverse=True)
+        return files[:limit]
 
     def search_pages(self, query: str, limit: int) -> list[PageHit]:
         target = query.strip().lower()

@@ -31,3 +31,7 @@ class FakeVectorStore:
 
     def count(self) -> int:
         return len(self._vectors)
+
+    def bytes_on_disk(self) -> int:
+        """What these vectors would cost stored. The array's own size, no overhead invented."""
+        return sum(item.vectors.nbytes for item in self._vectors.values())

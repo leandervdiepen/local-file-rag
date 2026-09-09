@@ -2,18 +2,31 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from flask import Flask
 from flask.testing import FlaskClient
 
+from sidecar.application.record_page_hit import RecordPageHit
 from sidecar.application.render_page import FULL_LONG_SIDE_PX, THUMB_LONG_SIDE_PX
 from sidecar.domain.entities import FileKind
 from sidecar.domain.identity import file_id, page_id
 from sidecar.interface.auth import register_auth
 from sidecar.interface.errors import register_error_handlers
 from sidecar.interface.page_routes import build_page_blueprint
-from tests.application.test_render_page import CONTENT_HASH, MISSING, REPORT, CountingPageSource, a_png, a_render_page
+from tests.application.test_render_page import (
+    CONTENT_HASH,
+    MISSING,
+    REPORT,
+    CountingPageSource,
+    a_png,
+    a_render_page_over_a_store,
+)
+from tests.fakes.clock import FakeClock
+from tests.fakes.index_store import FakeIndexStore
 
 TOKEN = "test-token-123"
+HIT_AT = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 PAGE = page_id(file_id(REPORT), 2)
 IMAGE_URL = f"/pages/{PAGE}/image"
@@ -23,14 +36,22 @@ def a_client(
     file_kind: FileKind = FileKind.PDF,
     served_kinds: tuple[FileKind, ...] = (FileKind.PDF,),
 ) -> tuple[FlaskClient, dict[FileKind, CountingPageSource]]:
-    render, sources = a_render_page(file_kind, served_kinds)
+    client, sources, _ = a_client_over_a_store(file_kind, served_kinds)
+    return client, sources
+
+
+def a_client_over_a_store(
+    file_kind: FileKind = FileKind.PDF,
+    served_kinds: tuple[FileKind, ...] = (FileKind.PDF,),
+) -> tuple[FlaskClient, dict[FileKind, CountingPageSource], FakeIndexStore]:
+    render, sources, store = a_render_page_over_a_store(file_kind, served_kinds)
 
     app = Flask(__name__)
     register_error_handlers(app)
     register_auth(app, TOKEN)
-    app.register_blueprint(build_page_blueprint(render))
+    app.register_blueprint(build_page_blueprint(render, RecordPageHit(store, FakeClock(HIT_AT))))
 
-    return app.test_client(), sources
+    return app.test_client(), sources, store
 
 
 def test_a_thumb_comes_back_as_png_under_an_etag_the_client_may_keep_forever() -> None:
@@ -146,3 +167,35 @@ def test_the_route_needs_the_token_like_every_other() -> None:
     response = client.get(IMAGE_URL)
 
     assert response.status_code == 401
+
+
+def hits_on(store: FakeIndexStore, page: str) -> int:
+    return next(item.hit_count for item in store.page_heat() if item.page_id == page)
+
+
+def test_opening_a_page_at_full_size_counts_as_using_it() -> None:
+    """What the storage cap evicts by. Nothing else in the app writes it."""
+    client, _, store = a_client_over_a_store()
+
+    client.get(f"{IMAGE_URL}?size=full", headers=AUTH)
+
+    assert hits_on(store, PAGE) == 1
+
+
+def test_a_thumbnail_is_not_using_a_page() -> None:
+    """The result grid fetches one per result, so counting them says nothing was preferred."""
+    client, _, store = a_client_over_a_store()
+
+    client.get(f"{IMAGE_URL}?size=thumb", headers=AUTH)
+
+    assert hits_on(store, PAGE) == 0
+
+
+def test_a_page_the_browser_already_holds_was_still_opened() -> None:
+    client, _, store = a_client_over_a_store()
+    etag = client.get(f"{IMAGE_URL}?size=full", headers=AUTH).headers["ETag"]
+
+    second = client.get(f"{IMAGE_URL}?size=full", headers={**AUTH, "If-None-Match": etag})
+
+    assert second.status_code == 304
+    assert hits_on(store, PAGE) == 2
