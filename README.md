@@ -18,7 +18,7 @@ Ask a question and the answer cites the pages it came from.
 
 ![The heatmap overlay on a screenshot of a Stripe webhook error. The token picker is set to one word, and the combined map behind it is diffuse, which the numbers below say plainly](docs/images/preview.png)
 
-[Forty five seconds of it working](docs/demo.mp4): the query, the rerank, the page, and the overlay.
+[Forty four seconds of it working](docs/demo.mp4): the query, the rerank, the page, and the overlay.
 
 ## Where your files go
 
@@ -41,20 +41,26 @@ Nothing then leaves this Mac after the model download.
 
 ## Measured
 
-M1 Max, 64 GB, macOS 26.5.1, torch 2.14.0, `vidore/colqwen2-v1.0-merged` in float16, 2026-09-09.
+M1 Max, 64 GB, macOS 26.5.1, torch 2.14.0, `vidore/colqwen2-v1.0-merged` in float16, 2026-09-09 and 2026-09-10.
 Every number here came from a run against `~/demo-corpus`, 275 files crawled into 130 indexed and 218 pages.
 
 | | |
 | --- | --- |
 | Crawl and text index | 14.6 s, 18.8 files/s |
 | Text search | 28 to 44 ms |
-| Page embed | 1.19 s per page |
+| Page embed, warm | 1.22 s per page |
+| Query encode | 51 ms |
+| Rerank, 300 pages | 11 ms |
 | Heatmap, cold | 1441 ms |
 | Heatmap, cached | 44 ms |
 | First answer token | 15.0 to 18.5 s on the free router |
 | Index on disk | 21 MB for 218 pages, 12.3 MB of it vectors |
 | Memory with the model loaded | 1.7 GB |
 | A dropped file becomes searchable in | 2.1 s |
+| A search whose 30 candidates are all unread | 36.7 s |
+
+That last row is the one the design is built around.
+Reading thirty pages the model has never seen costs half a minute, which is why the cap is thirty, why stage 1 answers first, and why the idle pass reads pages before you ask for them.
 
 ### Retrieval quality
 
