@@ -1,0 +1,9 @@
+{
+  "fps": 30,
+  "frames": {
+    "search": 469,
+    "visual": 515,
+    "ask": 1135,
+    "index": 244
+  }
+}

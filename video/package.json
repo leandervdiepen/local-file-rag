@@ -1,0 +1,26 @@
+{
+  "name": "local-file-rag-launch-video",
+  "private": true,
+  "version": "0.1.0",
+  "description": "The launch video, composed in Remotion from real app footage.",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/entry.ts",
+    "render": "remotion render src/entry.ts Launch ../docs/launch.mp4 --codec h264 --crf 24 --overwrite",
+    "poster": "remotion still src/entry.ts Launch ../docs/images/launch-poster.jpg --frame 165 --image-format jpeg --jpeg-quality 90 --overwrite",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.523",
+    "@remotion/fonts": "4.0.523",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.523"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "typescript": "5.9.3"
+  }
+}
