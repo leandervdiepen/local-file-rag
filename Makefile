@@ -47,7 +47,9 @@ dev: ## Run the app against a dev sidecar
 	$(PNPM) run dev
 
 build: ## Package the sidecar and produce the arm64 DMG
-	$(UV) run pyinstaller --clean --noconfirm $(SIDECAR)/sidecar.spec
+	# The spec path is relative to the sidecar directory, which is where UV
+	# already puts us. Prefixing it again looked right and never resolved.
+	$(UV) run pyinstaller --clean --noconfirm sidecar.spec
 	$(PNPM) run build
 
 # The corpus generator carries its own dependencies inline, so it runs outside

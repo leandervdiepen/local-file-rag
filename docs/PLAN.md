@@ -129,7 +129,7 @@ Never cut: the heatmap, the index screen, the cold page cap with progress text, 
 ## Definition of shipped
 
 - [ ] DMG runs on a clean machine.
-- [ ] The 45 second demo works end to end.
+- [x] The 45 second demo works end to end. Recorded from the running app, and the same path verified again in the packaged build.
 - [x] README claims match the code, word for word on privacy.
 - [x] Measured numbers in README carry machine, model and date.
 - [x] Lint, typecheck, pytest, vitest and the Playwright smoke test pass.

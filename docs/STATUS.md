@@ -226,6 +226,17 @@ M1 Max, 64 GB, macOS 26.5.1, PyInstaller 6.11, electron-builder 26.15.3, Electro
 | App bundle | 1.6 GB | sidecar included as `extraResources` |
 | DMG | 515 MB | arm64, unsigned per D18 |
 
+Rebuilt 2026-09-10 with the app icon and the redesigned interface. The packaged
+app was driven again afterwards: its page is a `file://` page, it reaches its
+own sidecar, it decrypts the provider key `safeStorage` holds and hands it over,
+it returns 31 pages for the hero query in 55 ms with six thumbnails and none
+broken, and the whole run logs no renderer error.
+
+`make build` never worked as written. It passed the spec path prefixed with the
+directory it was already running in, so PyInstaller looked for
+`sidecar/sidecar.spec` from inside `sidecar/`. Every bundle before this was
+built by hand from that directory, which is how the target stayed broken.
+
 The packaged sidecar was run on its own before the app was built, because a
 bundle that starts and cannot work is the failure that only shows up in a
 demo. It prints its `READY` handshake, loads torch and the model, crawls,
