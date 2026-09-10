@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import threading
 from pathlib import Path
 
 import pytest
@@ -79,3 +80,32 @@ def test_documents_and_pages_close_deterministically_across_repeated_calls() -> 
         assert source.page_count(SAMPLE_PDF) == 3
         source.page_text(SAMPLE_PDF, 1)
         source.render(SAMPLE_PDF, 1, long_side_px=50)
+
+
+def test_many_threads_rendering_at_once_does_not_abort() -> None:
+    """pdfium is one global C library and it is not thread safe.
+
+    Without the lock this aborted the whole process inside
+    `CFX_FontMapper::AddInstalledFont`, which took the sidecar down with it.
+    A crash fails the test by killing the worker, so there is nothing to
+    assert beyond every thread coming back with a PNG.
+    """
+    source = PdfiumPageSource()
+    renders: list[bytes] = []
+    failures: list[BaseException] = []
+
+    def render(page_no: int) -> None:
+        try:
+            renders.append(source.render(SAMPLE_PDF, page_no, 320))
+        except BaseException as exc:
+            failures.append(exc)
+
+    threads = [threading.Thread(target=render, args=(page % 3 + 1,)) for page in range(24)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=60)
+
+    assert not failures
+    assert len(renders) == 24
+    assert all(png.startswith(b"\x89PNG") for png in renders)
