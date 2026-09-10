@@ -28,6 +28,7 @@ Three things reach the network, and nothing else does.
 
 The retrieval model downloads once from Hugging Face, 4.43 GB, on the first search or crawl that needs it.
 It lands in the Hugging Face cache at `~/.cache/huggingface`, and deleting that directory is how you get the space back.
+Every later load checks that cache against the hub, which is a request even when nothing is downloaded. `HF_HUB_OFFLINE=1` stops it.
 
 Opening a provider in settings asks that provider what models it has and what they cost, which is why the prices you see are the ones being charged today rather than numbers typed into this repo. It sends your key and nothing else.
 
@@ -37,7 +38,7 @@ Searching, previewing a page and reading the heatmap need no account and no key 
 Answering needs one, because every hosted provider authenticates even where it does not charge, and OpenRouter's free tier is no exception.
 
 Everything else is local.
-Indexing, search, the heatmap, the watcher and the file preview make no network call of their own. Loading the model checks the Hugging Face cache, which reaches the network to revalidate unless `HF_HUB_OFFLINE` is set.
+Indexing, search, the heatmap, the watcher and the file preview make no network call of their own.
 There is no analytics and no crash reporting. `tests/integration/test_shipped_bundle.py` fails if one is ever imported or even added as a dependency.
 
 Run [Ollama](https://ollama.com) with `qwen2.5vl:7b` and pick it in settings, and the answer step stays on the machine too.
