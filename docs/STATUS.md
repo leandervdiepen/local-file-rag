@@ -189,6 +189,24 @@ That last row is the number the whole lazy design exists to bound. A search
 that has to read every one of its thirty cold pages takes half a minute, which
 is why the cap is thirty and why idle pre-embedding runs at all.
 
+### The shipped build, verified
+
+M1 Max, macOS 26.5.1, the 515 MB DMG rebuilt 2026-09-10 after the review fixes.
+
+The packaged app was launched cold and `/health` polled from outside it while
+the first search loaded the model. The model went `absent`, then `loading`,
+then `ready`, and `/health` answered all forty times with a worst case of
+64 ms.
+
+That is the fix worth measuring rather than asserting. `/health` asks the lazy
+model whether it is loaded, and until 2026-09-10 that took the same lock the
+load holds for its whole four gigabytes, so the endpoint reporting the
+download's progress could not answer until the download had finished. The
+progress bar could never have drawn on the machine it was written for.
+
+The same run returned 31 pages for the hero query in 46 ms, with the expected
+screenshot first.
+
 ### Day 6, the first golden run
 
 M1 Max, 64 GB, macOS 26.5.1, `vidore/colqwen2-v1.0-merged` in float16, pool factor 3, 2026-09-09.
