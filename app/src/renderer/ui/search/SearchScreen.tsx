@@ -68,6 +68,17 @@ export function SearchScreen({
   const cited = citedPageId ? (ordered.find((hit) => hit.pageId === citedPageId) ?? null) : null
   const preview = cited ?? (previewing && selected ? selected : null)
 
+  // Brought back by the global shortcut, the caret goes where the user is
+  // already typing, with what is there selected so the next key replaces it.
+  useEffect(() => {
+    const bridge = window.bridge
+    if (!bridge?.onWindowShown) return
+    return bridge.onWindowShown(() => {
+      input.current?.focus()
+      input.current?.select()
+    })
+  }, [])
+
   // The product is a search box, so a keystroke anywhere on the window belongs
   // to it. Modifier combinations are left alone: those are shortcuts, not text.
   useEffect(() => {

@@ -11,11 +11,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
-
 from sidecar.interface.composition import build_app
-
-pytestmark = pytest.mark.integration
 
 ARCHITECTURE = Path(__file__).resolve().parents[3] / "docs" / "ARCHITECTURE.md"
 

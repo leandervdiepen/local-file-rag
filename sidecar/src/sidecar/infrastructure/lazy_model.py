@@ -60,8 +60,19 @@ class LazyModel[T]:
                 self._arm_idle_timer()
 
     def is_loaded(self) -> bool:
-        with self._lock:
-            return self._held is not None
+        """Whether the object is held right now, answered without waiting for anything.
+
+        Deliberately outside the lock. `use` holds it for the whole of a load,
+        which on first run is a four gigabyte download, and this is what
+        `/health` asks. Taking the lock made the endpoint that reports the
+        download's progress block until the download finished, so the progress
+        bar it feeds could never draw. Measured 2026-09-10.
+
+        Reading one attribute is atomic under the GIL, and the answer is a
+        snapshot either way: it can be stale the instant it is returned, and
+        every caller already treats it that way.
+        """
+        return self._held is not None
 
     def unload(self) -> None:
         """Release now. Idempotent, and safe to call from the idle timer or a caller."""

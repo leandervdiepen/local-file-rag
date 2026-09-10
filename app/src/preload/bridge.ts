@@ -23,6 +23,12 @@ const bridge: Bridge = {
   setProviderKey: (provider, key) => ipcRenderer.invoke(IPC_CHANNELS.setProviderKey, provider, key),
   providersWithKeys: () => ipcRenderer.invoke(IPC_CHANNELS.providersWithKeys),
   restartSidecar: () => ipcRenderer.invoke(IPC_CHANNELS.restartSidecar),
+  onWindowShown: (listener) => {
+    const handler = (): void => listener()
+    ipcRenderer.on(IPC_CHANNELS.windowShown, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.windowShown, handler)
+  },
+
   onSidecarState: (listener) => {
     // The sidecar can reach ready before this listener attaches, and main
     // only pushes on change, so a plain subscription can miss it. Attach the

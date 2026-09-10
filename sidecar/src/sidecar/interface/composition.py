@@ -5,6 +5,7 @@ from __future__ import annotations
 import atexit
 import logging
 import os
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
@@ -174,11 +175,14 @@ def _build_answerer(provider: Provider, api_key: str | None) -> Answerer:
 def _remember_development_keys(keys: ProviderKeys) -> None:
     """Pick up keys from the environment, for a developer running from source.
 
-    The shipped app never reaches this: it is launched by Electron with no
-    provider variables set, and its keys arrive over the API from
-    `safeStorage` instead (D41). This is what makes `make dev` work without a
-    settings screen round trip on every launch.
+    Only when running from source. A packaged sidecar inherits Electron's
+    environment, so a developer variable that happened to be set in the shell
+    that launched the app would key the shipped build behind the user's back,
+    with nothing in settings showing where it came from. Keys reach the
+    shipped app over the local API from `safeStorage` instead (D41).
     """
+    if getattr(sys, "frozen", False):
+        return
     for provider in PROVIDERS:
         from_environment = os.environ.get(provider.env_var)
         if from_environment:

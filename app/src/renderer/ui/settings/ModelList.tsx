@@ -9,6 +9,8 @@ interface ModelListProps {
   chosenId: string | null
   onChoose: (modelId: string) => void
   price: (model: AnswerModel) => string
+  /** True when the provider could not be reached, so this stays quiet and lets the error speak. */
+  failed: boolean
 }
 
 // A provider with hundreds of models is unreadable as a list and fine as a
@@ -16,7 +18,17 @@ interface ModelListProps {
 const SHOWN = 40
 
 /** What one provider is offering, filtered because OpenRouter alone offers 262. */
-export function ModelList({ models, total, loading, filter, onFilter, chosenId, onChoose, price }: ModelListProps) {
+export function ModelList({
+  models,
+  total,
+  loading,
+  filter,
+  onFilter,
+  chosenId,
+  onChoose,
+  price,
+  failed,
+}: ModelListProps) {
   if (loading) {
     return (
       <p role="status" className="text-xs text-ink-muted">
@@ -24,7 +36,9 @@ export function ModelList({ models, total, loading, filter, onFilter, chosenId, 
       </p>
     )
   }
-  if (total === 0) return <p className="text-xs text-ink-muted">No models available right now.</p>
+  // Nothing to say here when the fetch failed: the error above already says
+  // what happened, and two messages read as two problems.
+  if (total === 0) return failed ? null : <p className="text-xs text-ink-muted">This provider is offering nothing.</p>
 
   const shown = models.slice(0, SHOWN)
 

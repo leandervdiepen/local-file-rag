@@ -1,6 +1,6 @@
 """Giving stored pages the vectors that stage 2 ranks them by.
 
-Pages are embedded lazily, when a search first asks for them, so this runs
+Pages are embedded by a crawl and, for anything it missed, when a search first asks for them, so this runs
 inside a search with a person watching. The work is batched so the model and
 the store are paid per batch rather than per page, and progress is reported
 per page so the wait stays legible.

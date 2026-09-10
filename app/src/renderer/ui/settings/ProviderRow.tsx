@@ -57,10 +57,23 @@ export function ProviderRow({ provider, chosen, open, saving, blocker, onOpen, o
             spellCheck={false}
             className="w-72 rounded-control bg-surface px-3 py-1.5 font-mono text-sm text-ink shadow-control focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <Button type="submit" disabled={saving || !key.trim()}>
-            {provider.hasKey ? 'Replace key' : 'Save key'}
+          <Button type="submit" className="px-3 py-1.5 text-xs" disabled={saving || !key.trim()}>
+            {provider.hasKey ? 'Replace' : 'Save'}
           </Button>
-        </form>
+          {provider.hasKey && (
+            <Button
+              type="button"
+              className="px-3 py-1.5 text-xs"
+              disabled={saving}
+              onClick={() => {
+                setKey('')
+                onSaveKey('')
+              }}
+            >
+              Remove
+            </Button>
+          )}
+      </form>
       )}
     </div>
   )

@@ -44,7 +44,7 @@ The product is the proof.
 | Shows why a page matched | no | citations only | no | patch heatmap on the page |
 | Answers questions | no | yes | no | yes, streamed, page cited |
 | Index visible and editable | no | no | folder filters | counts, exclusions, per-file state, skip reasons |
-| Indexing cost model | eager | eager | eager, incremental | lazy two-stage, embed on demand |
+| Indexing cost model | eager | eager | eager, incremental | two-stage retrieval, with a storage cap instead of a cap on what is embedded |
 | Retrieval eval built in | no | no | no | recall@k from clicks plus a golden set |
 
 ## Principles
@@ -55,7 +55,7 @@ The product is the proof.
 2. Show the work.
    Every result can explain itself.
    The index can be inspected and corrected.
-3. Embed lazily.
+3. Bound what the expensive signal costs.
    Cheap signals cover everything.
    Expensive vectors exist only for pages a query touched or a user recently opened.
 4. Measure inside the product.
@@ -88,13 +88,13 @@ Each one is testable.
 | FR-6 | Stage 2 embeds candidate pages with ColQwen2 on demand, caches the vectors, and reranks by MaxSim. At most 30 uncached pages per query, with live progress text. |
 | FR-7 | Every query runs a multivector search over the embedded pages and merges the result into the text candidates. This originally fired only when stage 1 returned fewer than five pages; measuring it on day 2 showed a weak text match is not a missing one, and the fallback never fired for the queries it existed to serve (D49). |
 | FR-8 | Clicking a result shows the page with a patch heatmap. The user can view the combined map or one query token at a time and move a threshold slider. |
-| FR-9 | Chat takes a question, retrieves pages, sends the top three to five page images to Claude, streams the answer, and renders citations as file plus page. Clicking a citation opens that page with its heatmap. |
+| FR-9 | Chat takes a question, retrieves pages, sends the top five page images to the provider the user picked, streams the answer, and renders citations as file plus page. Clicking a citation opens that page with its heatmap. Shipped pointing at OpenRouter, with Ollama as the option that keeps it on the machine. |
 | FR-10 | Every result offers open in default app, reveal in Finder, and copy path. |
 | FR-11 | The index screen shows files scanned, text indexed, pages embedded, storage used, per-folder toggles, an exclusion list, skipped files with reasons, a rescan button and a forget-file action. |
 | FR-12 | When idle on AC power the sidecar embeds pages of the 200 most recently used files. |
-| FR-13 | Every result click is logged with query, page and rank. The index screen shows recall@1, 5 and 10 over the last 100 queries and can run the golden set. |
+| FR-13 | Opening a page at full size is recorded, which is what the storage cap evicts by. Not built: click logging with a query id, a recall endpoint, and a golden set runner inside the index screen. `scripts/eval.py` measures recall against a set that knows the right answer, which a stranger's own files never do. |
 | FR-14 | Offline mode disables chat and says so in the chat panel. |
-| FR-15 | Settings hold the Anthropic key in encrypted storage, the answer model, folders, idle embedding, and a storage cap. |
+| FR-15 | Settings hold provider keys in encrypted storage and the answer model, chosen from what each provider is offering now. Folders live on the index screen. Idle embedding and the storage cap have no setting: they are a CLI flag and a constant, and neither has earned a control yet. |
 | FR-16 | The app ships as an Apple Silicon DMG with the sidecar bundled. First run downloads model weights with progress. Search works without an API key. |
 
 ## Not in v1

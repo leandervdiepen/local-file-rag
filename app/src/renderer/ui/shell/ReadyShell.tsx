@@ -49,7 +49,7 @@ export function ReadyShell({ baseUrl, token, nativeActions, secrets }: ReadyShel
     indexPort,
   )
   const modelReadiness = useModelReadiness(healthPort)
-  const { chosen } = useSettings(modelsPort, secrets)
+  const settings = useSettings(modelsPort, secrets)
   const [showingIndex, setShowingIndex] = useState(false)
   const [showingSettings, setShowingSettings] = useState(false)
 
@@ -64,7 +64,7 @@ export function ReadyShell({ baseUrl, token, nativeActions, secrets }: ReadyShel
   }
 
   if (showingSettings) {
-    return <SettingsScreen models={modelsPort} secrets={secrets} onClose={() => setShowingSettings(false)} />
+    return <SettingsScreen settings={settings} onClose={() => setShowingSettings(false)} />
   }
 
   if (showingIndex) {
@@ -88,7 +88,7 @@ export function ReadyShell({ baseUrl, token, nativeActions, secrets }: ReadyShel
       pageImages={pageImages}
       heatmaps={heatmaps}
       chat={chat}
-      answerWith={chosen}
+      answerWith={settings.chosen}
       nativeActions={nativeActions}
       progress={progress}
       modelReadiness={modelReadiness}

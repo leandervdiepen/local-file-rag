@@ -15,7 +15,7 @@ Renderer (React) ──fetch / EventSource──▶ sidecar
 ```
 
 Handshake: main spawns `sidecar --port 0 --token <random>`.
-The sidecar prints `READY <port>` on stdout once `/health` answers.
+The sidecar prints `READY <port>` on stdout once the socket is bound and listening, before the server is created. A client that connects the instant it reads that line is queued by the kernel rather than refused.
 Main hands the base URL and token to the renderer through the preload bridge.
 On quit main sends SIGTERM and waits up to five seconds for the sidecar to flush.
 
@@ -38,7 +38,7 @@ Streaming routes use server-sent events.
 | `GET /pages/{id}/heatmap?q=` | JSON grid: rows, cols, tokens, per-token maps, combined map |
 | `POST /chat` | body carries `question`, `provider` and `model_id`; SSE `retrieval`, `token`, `citation`, then one `done` with usage or one `error` |
 | `GET /providers` | every place answers can come from, and whether each has a key |
-| `GET /providers/{id}/models` | what that provider is offering now, asked of the provider (D52) |
+| `GET /providers/{id}/models` | what that provider is offering now, asked of the provider (D53) |
 | `GET /secrets`, `PUT /secrets/{provider}`, `DELETE /secrets/{provider}` | which providers have a key, and setting one. Held in memory only, never returned |
 | `POST /eval/golden/run` | body carries the golden set and the corpus root; SSE `progress`, one `query` per row with ranks and timings, `done` with aggregates per split (D46) |
 
@@ -79,7 +79,7 @@ The processor resizes to the 768 patch budget from there.
 
 ## Query pipeline
 
-1. Stage 1: FTS with BM25 over `files.text` and `pages.text`, filename boost, recency boost, up to 300 candidate pages. Emit `candidates`.
+1. Stage 1: FTS with BM25 over `files.text` and `pages.text`, plus a filename boost, up to 300 candidate pages. Emit `candidates`. There is no recency boost: what a file was last opened for is used by the storage cap and by idle pre-embedding, not by ranking.
 1a. Add up to 30 pages from a multivector search over `page_vectors`, merged into the candidate set. Every search does this, not only a thin one: see D49.
 2. Candidates without vectors: embed up to 30, ordered by stage 1 score. Emit `progress` per page.
 3. MaxSim over the candidate set in numpy: for each query vector take the max dot product over page vectors and sum. Query vectors are about 25 by 128, so 300 pages score in well under a second.
@@ -102,7 +102,7 @@ Take the top five pages after rerank and render each at 1600 px on the long side
 Send them as base64 image blocks followed by the question.
 System prompt: answer only from the pages, cite as `[n]` where n is the page index, say plainly when the pages do not contain the answer.
 Both answerers speak their wire format over `urllib` rather than through a vendor SDK (D51), which is what keeps the PyInstaller bundle from carrying two client libraries for one streaming POST.
-Which provider and model answer is the user's choice, read from their settings, and what each provider offers is asked of the provider (D52).
+Which provider and model answer is the user's choice, read from their settings, and what each provider offers is asked of the provider (D53).
 Map `[n]` back to page ids and emit `citation` events.
 Show input and output tokens with a cost estimate in the chat footer.
 
@@ -111,7 +111,7 @@ Show input and output tokens with a cost estimate in the chat footer.
 `pnpm build` runs electron-vite.
 `uv run pyinstaller sidecar.spec` produces a onedir bundle in `resources/sidecar`.
 electron-builder copies it through `extraResources` and produces an arm64 DMG.
-Model weights download on first run into the Hugging Face cache at `~/.cache/huggingface`, and `/health` reports the bytes as they land. Only the index database lives in Application Support.
+Model weights download on first run into the Hugging Face cache at `~/.cache/huggingface`, and `/health` reports the bytes as they land. Application Support holds the index database and, once a user saves one, the provider keys that `safeStorage` encrypted.
 Ad-hoc signing for development.
 Notarization only if a developer account exists, see the open questions in PRD.md.
 

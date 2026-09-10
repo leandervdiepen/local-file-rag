@@ -77,6 +77,16 @@ def _events(search: Search, answer: AnswerQuestion, question: str, provider_id: 
             yield _encode(event, model_id)
     except AnswerUnavailableError as unavailable:
         yield encode_event("error", {"code": unavailable.code, "message": unavailable.message})
+    except Exception:
+        # `http-api.md` says every stream ends in exactly one terminal event.
+        # Anything that is not an `AnswerUnavailableError` used to escape the
+        # generator, ending the response with no terminal event at all, and
+        # the panel sat on a spinner with nothing coming.
+        logger.exception("answering %r failed", question)
+        yield encode_event(
+            "error",
+            {"code": "answer_failed", "message": "The answer stopped part way. Ask again, or pick another model."},
+        )
 
 
 def _encode(event: AnswerEvent, model_id: str) -> str:

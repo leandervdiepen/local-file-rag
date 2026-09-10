@@ -1,5 +1,5 @@
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { homedir } from 'node:os'
 import path from 'node:path'
@@ -14,6 +14,7 @@ import path from 'node:path'
  */
 
 const CORPUS = path.join(homedir(), 'demo-corpus')
+const SEED = path.join(CORPUS, 'reports', 'invoices', 'hosting-q2-2026.pdf')
 const QUERY = 'egress'
 
 let app: ElectronApplication
@@ -22,10 +23,13 @@ let folder: string
 let userData: string
 
 test.beforeAll(async () => {
+  if (!existsSync(SEED)) {
+    test.skip(true, `${SEED} is not here. Run \`make corpus\` first.`)
+  }
   folder = mkdtempSync(path.join(tmpdir(), 'e2e-corpus-'))
   userData = mkdtempSync(path.join(tmpdir(), 'e2e-userdata-'))
   mkdirSync(folder, { recursive: true })
-  cpSync(path.join(CORPUS, 'reports', 'invoices', 'hosting-q2-2026.pdf'), path.join(folder, 'hosting-q2-2026.pdf'))
+  cpSync(SEED, path.join(folder, 'hosting-q2-2026.pdf'))
 
   // Some shells export this, and it makes Electron run as plain node, where
   // `require('electron')` returns a path string and `app` is undefined.
@@ -75,7 +79,17 @@ test('indexes a folder, finds a page in it, and shows why it matched', async () 
   await box.press('ArrowDown')
   await box.press(' ')
 
-  await expect(page.locator('canvas')).toBeVisible({ timeout: 120_000 })
+  const overlay = page.locator('canvas')
+  await expect(overlay).toBeVisible({ timeout: 120_000 })
+  // A canvas that drew nothing is also visible, so check it has pixels in it.
+  const painted = await overlay.evaluate((canvas: HTMLCanvasElement) => {
+    const pixels = canvas.getContext('2d')?.getImageData(0, 0, canvas.width, canvas.height).data
+    if (!pixels) return 0
+    let opaque = 0
+    for (let at = 3; at < pixels.length; at += 4) if (pixels[at] > 0) opaque += 1
+    return opaque
+  })
+  expect(painted).toBeGreaterThan(0)
 })
 
 async function sidecarBaseUrl(): Promise<string> {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_MODEL_ID, DEFAULT_PROVIDER_ID } from '../domain/models-default'
 import type { AnswerModel, AnswerProvider } from '../domain/models'
 import type { ModelsPort, SecretsPort } from './ports'
@@ -56,8 +56,14 @@ export function useSettings(modelsPort: ModelsPort, secrets: SecretsPort): UseSe
     }
   }, [modelsPort])
 
+  // Which provider the newest request was for. A slow provider that answers
+  // after the user has opened a different one would otherwise put its models
+  // under the other one's row, where they can be chosen.
+  const wanted = useRef('')
+
   const show = useCallback(
     (providerId: string) => {
+      wanted.current = providerId
       setShowing(providerId)
       setModels([])
       setError(null)
@@ -65,9 +71,15 @@ export function useSettings(modelsPort: ModelsPort, secrets: SecretsPort): UseSe
       setLoadingModels(true)
       modelsPort
         .modelsFor(providerId)
-        .then(setModels)
-        .catch((cause: unknown) => setError(messageFrom(cause)))
-        .finally(() => setLoadingModels(false))
+        .then((found) => {
+          if (wanted.current === providerId) setModels(found)
+        })
+        .catch((cause: unknown) => {
+          if (wanted.current === providerId) setError(messageFrom(cause))
+        })
+        .finally(() => {
+          if (wanted.current === providerId) setLoadingModels(false)
+        })
     },
     [modelsPort],
   )

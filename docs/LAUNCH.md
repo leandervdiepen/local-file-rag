@@ -27,7 +27,7 @@ No narration in the first cut, captions carry it.
 
 Hook: the query that no filename search can answer, and the page lighting up.
 The bet: retrieval on page images, not OCR text, and why that finds charts.
-The hard part: lazy two-stage indexing, so a 40,000 file disk needs a few thousand embedded pages, not all of them.
+The hard part: two-stage retrieval, and what measuring did to the plan. The index started lazy, embedding only pages a search reached, and the acceptance query failed on it, because a page no query had surfaced could never be ranked by what it looks like (D49). A crawl embeds everything now and the storage cap evicts what nobody opens.
 The proof: measured numbers table.
 The privacy line, stated exactly as below.
 Repo link.
@@ -35,7 +35,7 @@ Repo link.
 ## Claims the README and post may make
 
 - The index and every embedding stay on this machine.
-- The only network calls are the first-run model download and the answer step. The answer step sends the matched pages to Anthropic. Offline mode turns it off.
+- Three things reach the network: the first run model download, asking a provider what models it offers when settings is opened, and the answer step, which sends the matched pages to the provider the user picked. Choosing Ollama keeps the last of those on the machine.
 - No analytics.
 - Every number is measured, with machine, model and date next to it.
 

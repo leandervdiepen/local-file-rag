@@ -9,7 +9,7 @@ import { createSidecarProcess, SidecarProcess } from './sidecar-process'
 import { createNativeActions, pickFolder } from './native-actions'
 import { createIndexedFolders } from './indexed-folders'
 import { setProviderKey, providersWithKeys } from './secrets'
-import { sendStoredKeys } from './send-keys'
+import { forgetProviderKey, sendStoredKeys } from './send-keys'
 import { IPC_CHANNELS } from '../preload/ipc-channels'
 import type { SidecarStateEvent } from '../preload/bridge-types'
 
@@ -65,9 +65,13 @@ function registerIpcHandlers(getWindow: () => BrowserWindow | null, token: strin
   })
   ipcMain.handle(IPC_CHANNELS.setProviderKey, async (_event, provider: string, key: string) => {
     await setProviderKey(provider, key)
-    // Straight on to the sidecar, so the next question uses it without a restart.
+    // Straight on to the sidecar, so the next question uses it without a
+    // restart. An emptied field has to be sent too, as a delete: the sidecar
+    // holds keys in memory and would otherwise keep using the removed one.
     const baseUrl = readyBaseUrl()
-    if (baseUrl) await sendStoredKeys(baseUrl, token)
+    if (!baseUrl) return
+    if (key.trim()) await sendStoredKeys(baseUrl, token)
+    else await forgetProviderKey(baseUrl, token, provider)
   })
   ipcMain.handle(IPC_CHANNELS.providersWithKeys, () => providersWithKeys())
   ipcMain.handle(IPC_CHANNELS.restartSidecar, () => sidecarProcess?.restart())

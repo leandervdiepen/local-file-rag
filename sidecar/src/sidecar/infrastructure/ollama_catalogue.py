@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from sidecar.domain.catalogue import OfferedModel
 from sidecar.domain.errors import AnswerUnavailableError
 from sidecar.domain.providers import Provider
-from sidecar.infrastructure.wire_json import get_json
+from sidecar.infrastructure.wire_json import get_json, post_json
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +50,13 @@ def _sees_images(root: str, name: str) -> bool | None:
 
     A per model round trip, which is affordable because it is a local socket
     and the list is however many models one person has pulled.
+
+    POST, not GET. `/api/show` answers only to POST, and asking with GET got a
+    405 for every model, so every one came back with an unknown modality and
+    D37's filter never removed a text-only model from the list.
     """
     try:
-        shown = get_json(f"{root}/api/show?model={name}", {})
+        shown = post_json(f"{root}/api/show", {}, {"model": name})
     except AnswerUnavailableError:
         logger.info("ollama would not describe %s, offering it without a modality", name)
         return None

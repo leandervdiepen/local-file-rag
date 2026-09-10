@@ -29,7 +29,7 @@ It exposes named functions. It never exposes `ipcRenderer`, a channel name, or a
 window.bridge = {
   sidecar: { baseUrl, token },
   openPath(path), revealInFinder(path), copyPath(path),
-  pickFolder(), setAnthropicKey(key), hasAnthropicKey(),
+  pickFolder(), setProviderKey(provider, key), providersWithKeys(),
   restartSidecar(), onSidecarState(cb),
 }
 ```
@@ -76,6 +76,6 @@ It never crosses the preload bridge in the readable direction. The renderer can 
 
 ## Files
 
-`main/` holds one file per concern: `window.ts`, `sidecar-process.ts`, `native-actions.ts`, `secrets.ts`, `menu.ts`.
+`main/` holds one file per concern: `window.ts`, `sidecar-process.ts`, `native-actions.ts`, `secrets.ts`, `global-shortcut.ts`.
 No file in `main/` imports from `renderer/`.
 The only shared code is the bridge type and pure helpers, which live where both can reach them without either owning the other.

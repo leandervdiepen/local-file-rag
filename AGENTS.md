@@ -42,7 +42,7 @@ Dependencies point inward only. Both packages have the same four layers.
 | `make setup` | install both packages |
 | `make check` | lint, typecheck, unit tests, architecture tests, both packages |
 | `make check-int` | integration tests, adapters against their real dependencies |
-| `make e2e` | Playwright over Electron, the three money paths |
+| `make e2e` | Playwright over Electron: index a folder, search it, open a page, see the heatmap |
 | `make dev` | run the app against a dev sidecar |
 | `make corpus` | generate the demo corpus into `~/demo-corpus` |
 | `make bench` | measure retrieval and write the numbers |

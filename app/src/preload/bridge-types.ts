@@ -43,6 +43,8 @@ export interface Bridge {
   pickFolder: () => Promise<string | null>
   setProviderKey: (provider: string, key: string) => Promise<void>
   providersWithKeys: () => Promise<string[]>
+  /** The window was brought to the front by the global shortcut. */
+  onWindowShown: (listener: () => void) => () => void
   onSidecarState: (listener: (state: SidecarStateEvent) => void) => () => void
   restartSidecar: () => Promise<void>
 }

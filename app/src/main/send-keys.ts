@@ -26,3 +26,22 @@ export async function sendStoredKeys(baseUrl: string, token: string): Promise<nu
   }
   return sent
 }
+
+/**
+ * Tell the sidecar to forget a provider's key, now rather than at restart.
+ *
+ * Deleting the file is not enough. The sidecar holds keys in memory, and
+ * `sendStoredKeys` only ever sends the ones that exist, so a removed key went
+ * on being used until the process ended.
+ */
+export async function forgetProviderKey(baseUrl: string, token: string, provider: string): Promise<void> {
+  try {
+    await fetch(`${baseUrl}/secrets/${encodeURIComponent(provider)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  } catch {
+    // The sidecar is down or restarting, and one that restarts is handed only
+    // the keys still on disk, which no longer include this one.
+  }
+}

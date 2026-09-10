@@ -24,16 +24,20 @@ Ask a question and the answer cites the pages it came from.
 
 The index, the page images and every embedding stay on this machine.
 
-Two things reach the network.
+Three things reach the network, and nothing else does.
+
 The retrieval model downloads once from Hugging Face, 4.43 GB, on the first search or crawl that needs it.
 It lands in the Hugging Face cache at `~/.cache/huggingface`, and deleting that directory is how you get the space back.
+
+Opening a provider in settings asks that provider what models it has and what they cost, which is why the prices you see are the ones being charged today rather than numbers typed into this repo. It sends your key and nothing else.
+
 Asking a question sends the five matched page images to the provider you picked.
 
 Searching, previewing a page and reading the heatmap need no account and no key at all.
 Answering needs one, because every hosted provider authenticates even where it does not charge, and OpenRouter's free tier is no exception.
 
 Everything else is local.
-Once the model is on disk, indexing, search, the heatmap, the watcher and the file preview make no network call at all.
+Indexing, search, the heatmap, the watcher and the file preview make no network call of their own. Loading the model checks the Hugging Face cache, which reaches the network to revalidate unless `HF_HUB_OFFLINE` is set.
 There is no analytics and no crash reporting. `tests/integration/test_shipped_bundle.py` fails if one is ever imported or even added as a dependency.
 
 Run [Ollama](https://ollama.com) with `qwen2.5vl:7b` and pick it in settings, and the answer step stays on the machine too.
@@ -48,7 +52,7 @@ Every number here came from a run against `~/demo-corpus`, 275 files crawled int
 | --- | --- |
 | Crawl and text index | 14.6 s, 18.8 files/s |
 | Text search | 28 to 44 ms |
-| Page embed, warm | 1.22 s per page |
+| Page embed, warm | 1.22 s a page on the bench, 4.1 to 4.9 s on real corpus pages |
 | Query encode | 51 ms |
 | Rerank, 300 pages | 11 ms |
 | Heatmap, cold | 1441 ms |
@@ -56,7 +60,7 @@ Every number here came from a run against `~/demo-corpus`, 275 files crawled int
 | First answer token | 15.0 to 18.5 s on the free router |
 | Index on disk | 21 MB for 218 pages, 12.3 MB of it vectors |
 | Memory with the model loaded | 1.7 GB |
-| A dropped file becomes searchable in | 2.1 s |
+| A dropped file becomes searchable in | 2.03 to 2.34 s over four runs |
 | A search whose 30 candidates are all unread | 36.7 s |
 
 That last row is the one the design is built around.
@@ -88,7 +92,7 @@ Fixing that means changing how the two channels are fused, measured against the 
 
 Apple Silicon only.
 
-Download the DMG from [releases](../../releases), drag the app across, then remove the quarantine flag:
+Build it with `make build`, or download the DMG from [releases](../../releases) once one is published. Drag the app across, then remove the quarantine flag:
 
 ```sh
 xattr -dr com.apple.quarantine "/Applications/Local file search.app"
@@ -133,8 +137,10 @@ Search runs in two stages.
 Stage 1 is BM25 over the text and filenames, which returns in milliseconds and is what you see while you type.
 Stage 2 reranks those candidates by MaxSim over the page vectors, and merges in the pages the vector store finds directly, because a weak text match is not a missing one.
 
-Pages are embedded lazily.
-A 40,000 file disk gets a text index of all of it and vectors for the pages that searches actually reach, plus whatever idle time on AC power can get through in the background.
+A crawl embeds every page it indexes, and it does so because measuring said to.
+The design started lazy, with vectors only for pages a search reached, and the day 2 acceptance query failed on it: a page that no query had ever surfaced had no vectors, so the vision search could never rank it however well the model would have scored it (D49).
+What stayed lazy is the search path, which still reads up to thirty unseen pages when a query needs them, and the idle pass that reads ahead on AC power.
+What bounds the cost now is the storage cap, which evicts the vectors of pages nobody has opened.
 
 `docs/DECISIONS.md` records every locked decision with the reason.
 `docs/STATUS.md` carries every measurement with the machine, model and date it came from.

@@ -5,9 +5,9 @@ This file is how to decide the things the PRD does not name, so the answer does 
 
 ## The four principles, as tiebreakers
 
-1. **Local by default.** The index and every embedding stay on the machine. The answer step is the only network call, it is labeled, and offline mode disables it.
+1. **Local by default.** The index, the page images and every embedding stay on the machine. Three things reach the network and each is named in the README: the one time model download, asking a provider what it offers when settings is opened, and the answer step. Picking a provider that runs on this Mac removes the last of those, which is what an offline toggle would have done with one control instead of two.
 2. **Show the work.** Every result can explain itself. The index can be inspected and corrected.
-3. **Embed lazily.** Cheap signals cover everything. Expensive vectors exist only for pages a query touched or a user recently opened.
+3. **Cheap signals cover everything, expensive ones are bounded.** Text and filenames index the whole disk in seconds. Vectors are written for every indexed page, because a page without them cannot be ranked by what it looks like (D49), and the storage cap evicts the ones nobody opens.
 4. **Measure inside the product.** The app reports its own recall.
 
 When two options look equally good, the one that serves a higher principle wins.

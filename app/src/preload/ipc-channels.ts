@@ -9,6 +9,7 @@ export const IPC_CHANNELS = {
   setProviderKey: 'secrets:set-provider-key',
   providersWithKeys: 'secrets:providers-with-keys',
   restartSidecar: 'sidecar:restart',
+  windowShown: 'window:shown',
   sidecarState: 'sidecar:state',
   getSidecarState: 'sidecar:get-state',
 } as const

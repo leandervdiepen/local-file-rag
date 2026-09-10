@@ -7,6 +7,7 @@ existed and the guarantee was true by accident. This is the proof.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -27,7 +28,12 @@ def python_files() -> list[Path]:
 
 @pytest.mark.parametrize("package", NEVER_SHIPPED)
 def test_the_sidecar_never_imports_a_tool_that_phones_home(package: str) -> None:
-    importing = [path for path in python_files() if f"import {package}" in path.read_text()]
+    """Both import forms. Checking only `import x` misses `from x import y`, which is the one people write."""
+    importing = [
+        path
+        for path in python_files()
+        if re.search(rf"^\s*(?:import {package}\b|from {package}[.\s])", path.read_text(), re.M)
+    ]
 
     assert not importing, f"{package} is imported by {[str(p) for p in importing]}"
 

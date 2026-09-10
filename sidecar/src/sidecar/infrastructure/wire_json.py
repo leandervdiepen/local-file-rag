@@ -21,7 +21,21 @@ DEFAULT_TIMEOUT_S = 20.0
 
 def get_json(url: str, headers: dict[str, str], timeout_s: float = DEFAULT_TIMEOUT_S) -> Any:
     """GET and parse, raising `AnswerUnavailableError` with an actionable message on any failure."""
-    request = urllib.request.Request(url, headers=headers, method="GET")
+    return _json(urllib.request.Request(url, headers=headers, method="GET"), url, timeout_s)
+
+
+def post_json(url: str, headers: dict[str, str], body: Any, timeout_s: float = DEFAULT_TIMEOUT_S) -> Any:
+    """POST and parse. Ollama describes a model only over POST, so listing needs both verbs."""
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json", **headers},
+        method="POST",
+    )
+    return _json(request, url, timeout_s)
+
+
+def _json(request: urllib.request.Request, url: str, timeout_s: float) -> Any:
     try:
         with urllib.request.urlopen(request, timeout=timeout_s) as response:
             return json.loads(response.read())

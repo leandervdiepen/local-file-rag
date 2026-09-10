@@ -70,7 +70,7 @@ Measure: cold and cached heatmap times.
 - [x] `POST /chat` SSE with `retrieval`, `token`, `citation`, `done`.
 - [x] Renderer chat panel: streaming text, citation chips, clicking a chip opens the page preview with heatmap, token and cost footer.
 - [~] Offline mode toggle. Dropped: picking Ollama in settings is the same thing said once instead of twice, and a toggle that duplicates a choice is a second place for the two to disagree.
-- [x] Settings: provider keys through `safeStorage`, `PUT /secrets/{provider}`, and a model selector that lists what each provider is offering now (D52).
+- [x] Settings: provider keys through `safeStorage`, `PUT /secrets/{provider}`, and a model selector that lists what each provider is offering now (D53).
 
 Acceptance: "what did the Q2 hosting invoice charge for egress" answers with a correct page citation. A question with no answer in the corpus returns "not in your files" and no citation.
 Measure: first token latency after retrieval, tokens per question.

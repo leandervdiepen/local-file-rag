@@ -51,14 +51,14 @@ Fixtures are small and committed. A fixture PDF is three pages, not three hundre
 
 The fewest tests, at day gates and before shipping.
 
-Playwright driving the real Electron app on three money paths:
+One Playwright run driving the real Electron app, covering the path everything else depends on:
+index a folder, search it, see a result whose thumbnail has pixels in it, open the page, and see a heatmap canvas that actually painted.
 
-1. Index a folder, search, see a result with a thumbnail.
-2. Click a result, see the heatmap on the page.
-3. Ask a question, see a streamed answer with a citation, with the Anthropic client pointed at a local stub through the base URL setting.
+It asserts no sentence. Copy is the most churned thing in the app, and a test that pins it fails on every rewrite while catching nothing.
+It runs against its own temporary index, because `--user-data-dir` moves what Electron owns and the sidecar keeps its own database.
 
-That stub is a real fixture, not a mock: a tiny HTTP server that speaks the Anthropic streaming wire format.
-It lets the whole chat path run in CI, offline, for free, and it is the only way this test stays fast enough to keep.
+Chat is not in it. Covering it needs a stub that speaks a provider's streaming wire format, and the provider is now the user's choice, so there is no single wire to stub.
+The chat path is covered by unit tests over a real in-memory answerer and by integration tests against a local stub in `tests/integration/test_openai_answerer.py`.
 
 End-to-end tests never run in the inner loop. They are slow and flaky by nature, so they guard gates, not edits.
 

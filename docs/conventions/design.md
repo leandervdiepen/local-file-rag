@@ -85,7 +85,7 @@ A hand that leaves the keyboard has lost.
 | enter | open the selected result in its default app |
 | shift enter | ask the query as a question of the pages it found |
 | space | toggle the page preview for the selected result, unless the query is empty |
-| escape | clear the query, then close the preview, then close the window |
+| escape | close the preview if one is open, otherwise clear the query. Nothing closes the window: on macOS that is command W, and an escape that quits loses an index in progress |
 
 Focus is always visible.
 The focus ring is the accent, two pixels, offset from the element so it never touches the content.

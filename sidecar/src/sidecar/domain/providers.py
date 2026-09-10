@@ -3,7 +3,7 @@
 Which models each provider has is asked of the provider at runtime, and lives
 in `domain/catalogue.py`. This file used to hold a hardcoded model list with
 hardcoded prices, and by the time anyone read it one of those prices
-understated a rate by three times (D52). A place changes about once a year; a
+understated a rate by three times (D53). A place changes about once a year; a
 price list changes weekly.
 """
 
@@ -63,7 +63,7 @@ DEFAULT_PROVIDER_ID = "openrouter"
 
 # The router that picks among whatever is free today, so a first question works
 # as soon as a key is in. Which models exist beyond this one is asked of the
-# provider rather than listed here (D52).
+# provider rather than listed here (D53).
 DEFAULT_MODEL_ID = "openrouter/free"
 
 

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ModelsPort, SecretsPort } from '../../application/ports'
-import { useSettings } from '../../application/useSettings'
+import type { UseSettings } from '../../application/useSettings'
 import { blocker, matching, pricePerQuestion, readyFirst, type AnswerProvider } from '../../domain/models'
 import { OverlayScreen } from '../shared/OverlayScreen'
 import { Section } from '../shared/Section'
@@ -8,8 +7,14 @@ import { ModelList } from './ModelList'
 import { ProviderRow } from './ProviderRow'
 
 interface SettingsScreenProps {
-  models: ModelsPort
-  secrets: SecretsPort
+  /**
+   * Owned by the shell, not by this screen.
+   *
+   * Each `useSettings` keeps its own copy of the chosen model, so a second
+   * one here meant choosing a model changed what this screen showed and
+   * nothing about what the next question asked.
+   */
+  settings: UseSettings
   onClose: () => void
 }
 
@@ -24,8 +29,7 @@ interface SettingsScreenProps {
  * asked for once it has the key it needs. Asking without one would put a
  * network error under a row whose only problem is a missing key.
  */
-export function SettingsScreen({ models, secrets, onClose }: SettingsScreenProps) {
-  const settings = useSettings(models, secrets)
+export function SettingsScreen({ settings, onClose }: SettingsScreenProps) {
   const [expanded, setExpanded] = useState('')
   const [filter, setFilter] = useState('')
 
@@ -70,6 +74,7 @@ export function SettingsScreen({ models, secrets, onClose }: SettingsScreenProps
                       chosenId={settings.chosen.provider === provider.id ? settings.chosen.model : null}
                       onChoose={(modelId) => settings.choose(provider.id, modelId)}
                       price={pricePerQuestion}
+                  failed={settings.error !== null}
                     />
                   </div>
                 )}

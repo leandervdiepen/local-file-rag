@@ -1,4 +1,5 @@
 import { globalShortcut, type BrowserWindow } from 'electron'
+import { IPC_CHANNELS } from '../preload/ipc-channels'
 
 /**
  * Command Shift Space, because Command Space is Spotlight and this app is the
@@ -12,6 +13,8 @@ export interface ToggleTarget {
   show: () => void
   focus: () => void
   hide: () => void
+  /** Tell the renderer it is back, so it can put the caret where the user expects. */
+  announceShown?: () => void
 }
 
 /**
@@ -29,6 +32,9 @@ export function toggle(window: ToggleTarget): void {
   }
   window.show()
   window.focus()
+  // A window that comes back with nothing focused makes the user click before
+  // they can type, which is the whole thing this shortcut exists to avoid.
+  window.announceShown?.()
 }
 
 /**
@@ -42,7 +48,15 @@ export function toggle(window: ToggleTarget): void {
 export function registerOpenShortcut(getWindow: () => BrowserWindow | null): boolean {
   return globalShortcut.register(OPEN_SHORTCUT, () => {
     const window = getWindow()
-    if (window) toggle(window)
+    if (!window) return
+    toggle({
+      isVisible: () => window.isVisible(),
+      isFocused: () => window.isFocused(),
+      show: () => window.show(),
+      focus: () => window.focus(),
+      hide: () => window.hide(),
+      announceShown: () => window.webContents.send(IPC_CHANNELS.windowShown),
+    })
   })
 }
 
