@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Local file search</title>
+    <meta
+      name="description"
+      content="A macOS app that searches your PDFs, screenshots and notes by what the page looks like. Everything stays on your Mac."
+    />
+    <link rel="icon" href="assets/icon.png" />
+    <link rel="apple-touch-icon" href="assets/icon.png" />
+    <link rel="preload" href="assets/fonts/inter-variable-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="styles.css" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Local file search" />
+    <meta
+      property="og:description"
+      content="Type what you remember seeing. It finds the page, even when those words are not written on it."
+    />
+    <meta property="og:image" content="assets/search.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- The settle only exists once the script that undoes it is running. -->
+    <script>
+      document.documentElement.classList.add('js')
+    </script>
+  </head>
+
+  <body>
+    <main>
+      <div class="hero">
+        <div>
+          <img class="mark" src="assets/icon.png" alt="" width="60" height="60" />
+          <h1>Search your files by what they look like.</h1>
+          <p class="lede">
+            Type what you remember seeing. It finds the PDF page or the screenshot, even when those words are not
+            written on it.
+          </p>
+          <div class="actions">
+            <a
+              class="button button-primary"
+              href="https://github.com/leandervdiepen/local-file-rag/releases/latest/download/Local-file-search-arm64.dmg"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M17.05 12.54c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.83-.81-3.01-.79-1.55.02-2.98.9-3.77 2.29-1.61 2.79-.41 6.92 1.15 9.18.77 1.11 1.68 2.35 2.87 2.31 1.15-.05 1.59-.74 2.98-.74 1.39 0 1.78.74 3 .72 1.24-.02 2.02-1.13 2.78-2.24.88-1.29 1.24-2.54 1.26-2.6-.03-.01-2.41-.93-2.42-3.7zM14.79 5.4c.63-.77 1.06-1.83.94-2.9-.91.04-2.02.61-2.67 1.37-.58.68-1.09 1.77-.95 2.81 1.02.08 2.05-.51 2.68-1.28z"
+                />
+              </svg>
+              Download for Apple silicon
+            </a>
+            <a class="button button-quiet" href="https://github.com/leandervdiepen/local-file-rag">
+              <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2 0-.3-.5-1.5.2-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.2 4.9 18.2 5.2 18.2 5.2c.7 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1.1.9 2.3v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3Z"
+                />
+              </svg>
+              Source
+            </a>
+          </div>
+          <p class="meta">515 MB. Apple silicon. Free and MIT licensed.</p>
+        </div>
+
+        <figure>
+          <img class="frame" src="assets/search.png" alt="" width="960" height="638" fetchpriority="high" />
+        </figure>
+      </div>
+
+      <section class="reveal">
+        <h2>What it does</h2>
+        <div class="body">
+          <p class="lead-in">
+            It turns every PDF page, screenshot, image and note into a picture, and a vision model reads the pictures.
+          </p>
+          <p>
+            That is why a chart with no caption is findable. The words on the page help, but they are not the whole
+            story.
+          </p>
+          <p>
+            Results appear while you type. Open a page and it highlights the parts that matched your words. Ask a
+            question and the answer links to the pages it used.
+          </p>
+        </div>
+      </section>
+
+      <section class="reveal">
+        <h2>Your files</h2>
+        <div class="body">
+          <p class="lead-in">Nothing about them leaves the Mac.</p>
+          <p>
+            The index, the page pictures and the embeddings all live in one folder on your disk. The app downloads its
+            model once, 4.43 GB from Hugging Face, and searching never needs the internet again.
+          </p>
+          <p>
+            Answering questions is the one part that can call out, and only to the provider you pick. Run
+            <a href="https://ollama.com">Ollama</a> instead and even that stays here. No analytics, no crash
+            reporting.
+          </p>
+        </div>
+      </section>
+
+      <section class="reveal">
+        <h2>Speed</h2>
+        <div class="full">
+          <dl class="stats">
+            <div class="stat"><dt>Search</dt><dd>28 to 44 ms</dd></div>
+            <div class="stat"><dt>A new file is searchable in</dt><dd>2 s</dd></div>
+            <div class="stat"><dt>Index for 218 pages</dt><dd>21 MB</dd></div>
+          </dl>
+          <p class="provenance">M1 Max, 64 GB, macOS 26.5.1, 2026-09-10. Every number came from a real run.</p>
+        </div>
+      </section>
+
+      <section class="reveal">
+        <h2>Honestly</h2>
+        <div class="body">
+          <p class="lead-in">It is good at some queries and bad at others, and the split is worth knowing.</p>
+          <p>
+            Over 30 test queries it finds 21 out of 21 pages that share a word with what you typed, and 4 out of 9
+            pages that share none. That second case is the whole reason the app exists, so it is the part still being
+            worked on.
+          </p>
+        </div>
+      </section>
+
+      <section class="reveal">
+        <h2>Install</h2>
+        <div class="body">
+          <ol>
+            <li>Download the DMG and drag the app into Applications.</li>
+            <li>Run this once, because the app is not signed with an Apple Developer ID.</li>
+          </ol>
+          <div class="command">
+            <code id="quarantine">xattr -dr com.apple.quarantine "/Applications/Local file search.app"</code>
+            <button class="copy" type="button" data-copies="quarantine">Copy</button>
+          </div>
+          <p>Open it, add a folder, and the first search downloads the model. That takes a few minutes, once.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Built in seven days. MIT licensed.</span>
+      <span>
+        <a href="https://github.com/leandervdiepen/local-file-rag">Source</a> &middot;
+        <a href="https://github.com/leandervdiepen/local-file-rag/blob/main/docs/STATUS.md">Measurements</a> &middot;
+        <a href="https://diepen.ai">diepen.ai</a>
+      </span>
+    </footer>
+
+    <script>
+      for (const button of document.querySelectorAll('.copy')) {
+        button.addEventListener('click', async () => {
+          await navigator.clipboard.writeText(document.getElementById(button.dataset.copies).textContent)
+          button.textContent = 'Copied'
+          setTimeout(() => (button.textContent = 'Copy'), 1400)
+        })
+      }
+
+      const watcher = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue
+            entry.target.classList.add('shown')
+            watcher.unobserve(entry.target)
+          }
+        },
+        { rootMargin: '0px 0px -10% 0px' },
+      )
+      for (const section of document.querySelectorAll('.reveal')) watcher.observe(section)
+    </script>
+  </body>
+</html>

@@ -93,7 +93,8 @@ Fixing that means changing how the two channels are fused, measured against the 
 
 Apple Silicon only.
 
-Build it with `make build`, or download the DMG from [releases](../../releases) once one is published. Drag the app across, then remove the quarantine flag:
+Download the DMG from [local-file-search.vercel.app](https://local-file-search.vercel.app), or build it with `make build`.
+Drag the app across, then remove the quarantine flag:
 
 ```sh
 xattr -dr com.apple.quarantine "/Applications/Local file search.app"

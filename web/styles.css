@@ -1,0 +1,534 @@
+/* The palette, type ramp and timings come from app/src/renderer/tokens.css so
+   the page and the app are recognisably the same object. Sizes run larger
+   here, because app chrome is read at a desk and this is read at a glance. */
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('assets/fonts/inter-variable-latin.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url('assets/fonts/jetbrains-mono-variable-latin.woff2') format('woff2-variations');
+}
+
+:root {
+  color-scheme: light dark;
+
+  --sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', monospace;
+
+  --ink: oklch(20% 0.012 60);
+  --ink-muted: oklch(46% 0.014 60);
+  --surface: oklch(99% 0.003 60);
+  --surface-sunken: oklch(97% 0.004 60);
+  --border: oklch(90% 0.006 60);
+  --accent: oklch(52% 0.16 255);
+  --heat: oklch(62% 0.21 25);
+  --image-edge: oklch(0 0 0 / 0.1);
+
+  --shadow-control: 0 0 0 1px oklch(0 0 0 / 0.08), 0 1px 2px oklch(0 0 0 / 0.06);
+  --shadow-frame: 0 2px 4px oklch(0 0 0 / 0.04), 0 12px 32px oklch(0 0 0 / 0.08), 0 40px 80px oklch(0 0 0 / 0.06);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  --page: 64rem;
+  --gutter: 1.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: oklch(94% 0.004 60);
+    --ink-muted: oklch(72% 0.008 60);
+    --surface: oklch(16% 0.006 60);
+    --surface-sunken: oklch(19% 0.006 60);
+    --border: oklch(30% 0.008 60);
+    --accent: oklch(74% 0.14 255);
+    --heat: oklch(70% 0.2 25);
+    --image-edge: oklch(1 0 0 / 0.1);
+    --shadow-control: 0 0 0 1px oklch(1 0 0 / 0.12), 0 1px 2px oklch(0 0 0 / 0.4);
+    --shadow-frame: 0 2px 4px oklch(0 0 0 / 0.3), 0 12px 32px oklch(0 0 0 / 0.45), 0 40px 80px oklch(0 0 0 / 0.5);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 1rem;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  overflow-x: hidden;
+}
+
+p {
+  text-wrap: pretty;
+  margin: 0 0 0.875rem;
+}
+
+h1,
+h2 {
+  text-wrap: balance;
+  margin: 0;
+  font-weight: 560;
+  letter-spacing: -0.024em;
+}
+
+a {
+  color: inherit;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.875em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+main {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+/* Hero */
+
+.hero {
+  padding-block: 5rem 3rem;
+  display: grid;
+  gap: 3rem;
+  align-items: center;
+}
+
+@media (min-width: 62rem) {
+  .hero {
+    grid-template-columns: minmax(0, 27rem) minmax(0, 1fr);
+    /* The screenshot runs to the edge of the window rather than stopping at
+       the reading column, which is what leaves a dead right half otherwise. */
+    margin-right: calc(50% - 50vw + var(--gutter));
+  }
+}
+
+.mark {
+  width: 60px;
+  height: 60px;
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
+h1 {
+  font-size: clamp(2.25rem, 4.4vw, 3rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  margin-bottom: 1rem;
+}
+
+.lede {
+  font-size: 1.125rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  margin-bottom: 1.75rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin-bottom: 0.875rem;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 40px;
+  padding: 0 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 520;
+  text-decoration: none;
+  transition-property: scale, opacity, background-color;
+  transition-duration: 160ms;
+  transition-timing-function: var(--ease-out);
+}
+
+.button:active {
+  scale: 0.96;
+}
+
+.button svg {
+  flex: none;
+  fill: currentColor;
+}
+
+.button-primary {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.button-primary:hover {
+  opacity: 0.86;
+}
+
+/* The Apple mark reads heavy and sits high in its box. */
+.button-primary svg {
+  translate: 0 -1px;
+}
+
+.button-quiet {
+  color: var(--ink);
+  box-shadow: var(--shadow-control);
+}
+
+.button-quiet:hover {
+  background: var(--surface-sunken);
+}
+
+.meta {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+/* Figures */
+
+figure {
+  margin: 0;
+  position: relative;
+}
+
+/* The one flourish, in the colour that means "this is why it matched". */
+.hero figure::before {
+  content: '';
+  position: absolute;
+  inset: 12% 8%;
+  background: radial-gradient(closest-side, var(--heat), transparent);
+  opacity: 0.16;
+  filter: blur(56px);
+  z-index: -1;
+}
+
+.frame {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  outline: 1px solid var(--image-edge);
+  outline-offset: -1px;
+  box-shadow: var(--shadow-frame);
+  background: var(--surface-sunken);
+}
+
+figcaption {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  margin-top: 0.75rem;
+  max-width: 34rem;
+}
+
+/* Sections: the heading holds the left rail, the content fills the rest. */
+
+section {
+  padding-block: 3rem;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 0.75rem 2.5rem;
+}
+
+@media (min-width: 48rem) {
+  section {
+    grid-template-columns: 10rem minmax(0, 1fr);
+  }
+}
+
+h2 {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  letter-spacing: -0.01em;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+.body {
+  max-width: 40rem;
+}
+
+.body > :last-child {
+  margin-bottom: 0;
+}
+
+.body p {
+  color: var(--ink-muted);
+}
+
+.body strong {
+  color: var(--ink);
+  font-weight: 540;
+}
+
+.lead-in {
+  font-size: 1.125rem;
+  line-height: 1.5;
+  color: var(--ink) !important;
+  letter-spacing: -0.012em;
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 48rem) {
+  .full {
+    grid-column: 2;
+  }
+
+  /* Screenshots earn the whole width; the label sits above them. */
+  .span {
+    grid-column: 1 / -1;
+    margin-top: 0.5rem;
+  }
+}
+
+/* Stats */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+@media (min-width: 40rem) {
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.stat {
+  background: var(--surface);
+  padding: 0.875rem 1.125rem 1rem;
+}
+
+.stat dt {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.25rem;
+}
+
+.stat dd {
+  margin: 0;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+
+/* Tables */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink-muted);
+}
+
+td:not(:first-child),
+th:not(:first-child) {
+  text-align: right;
+}
+
+td:last-child {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}
+
+.hit-low {
+  color: var(--heat) !important;
+}
+
+.provenance {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  font-family: var(--mono);
+  line-height: 1.6;
+  margin-top: 0.75rem;
+}
+
+/* Commands and steps */
+
+.command {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-control);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.command code {
+  font-size: 0.8125rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  flex: 1;
+  scrollbar-width: none;
+}
+
+.command code::-webkit-scrollbar {
+  display: none;
+}
+
+.copy {
+  flex: none;
+  font: inherit;
+  font-size: 0.75rem;
+  font-family: var(--sans);
+  color: var(--ink-muted);
+  background: none;
+  border: 0;
+  border-radius: 0.3125rem;
+  min-height: 28px;
+  padding-inline: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition-property: color, background-color, scale;
+  transition-duration: 120ms;
+  transition-timing-function: var(--ease-out);
+}
+
+.copy:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.copy:active {
+  scale: 0.96;
+}
+
+ol {
+  color: var(--ink-muted);
+  padding-left: 1.125rem;
+  margin: 0 0 1.125rem;
+}
+
+li {
+  margin-bottom: 0.25rem;
+}
+
+/* Shots */
+
+.shots {
+  display: grid;
+  gap: 1.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+}
+
+/* Footer */
+
+footer {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 1.75rem var(--gutter) 3.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  justify-content: space-between;
+}
+
+footer a {
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 120ms var(--ease-out);
+}
+
+footer a:hover {
+  text-decoration-color: var(--ink-muted);
+}
+
+/* One settle on entry, only while the script that undoes it is running. */
+
+.js .reveal {
+  opacity: 0;
+  transform: translateY(6px);
+  transition-property: opacity, transform;
+  transition-duration: 380ms;
+  transition-timing-function: var(--ease-out);
+}
+
+.js .reveal.shown {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+
+  .js .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Two buttons of different widths stacked read as a mistake, so on a phone
+   they both take the column. */
+@media (max-width: 30rem) {
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .button {
+    justify-content: center;
+  }
+}
