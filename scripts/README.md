@@ -23,7 +23,7 @@ uv run --with playwright playwright install chromium
 ## Options
 
 | Flag | Default | Does |
-|---|---|---|
+| --- | --- | --- |
 | `--out` | `~/demo-corpus` | output directory |
 | `--seed` | `20260907` | same seed, same bytes, every group |
 | `--only` | all groups | regenerate one group: `screenshots`, `reports`, `decks`, `notes`, `junk` |
@@ -36,7 +36,7 @@ whether the gate should index or skip it, and why.
 - `corpus/` - one module per group, plus shared helpers: `rng.py`
   (deterministic randomness, word banks), `charts.py` (matplotlib),
   `manifest.py` (the manifest writer).
-- `golden.jsonl` - 30 queries for recall evaluation. Ten have no matching
+- `golden.jsonl` - 52 queries for recall evaluation. 31 have no matching
   words on the target page, so only image retrieval can win them.
 
 ## Run an eval
@@ -55,7 +55,7 @@ It is 2 when the run could not complete.
 Each run lands in `eval-runs/<UTC timestamp>_<short sha>/`:
 
 | File | Holds |
-|---|---|
+| --- | --- |
 | `run.json` | who ran what: git sha, dirty flag, machine, corpus seed and manifest hash, golden sha, the previous run id, the aggregates, the regressions |
 | `queries/<id>.json` | one file per golden query with its candidates, ranks, hits, timings and, on a miss, the thumbnail paths |
 | `thumbs/` | thumbnails of the expected page and the rank 1 page, misses only |

@@ -10,7 +10,7 @@ from sidecar.application.embedding_ports import PageEmbedder
 from sidecar.application.store_ports import FolderStore, IndexStore, VectorStore
 from sidecar.domain.identity import split_page_id
 from sidecar.domain.progress import EmbedProgress
-from sidecar.domain.rerank import rank_by_maxsim
+from sidecar.domain.rerank import discount_text_matches, rank_by_maxsim
 from sidecar.domain.scoping import is_searchable
 from sidecar.domain.search import PageHit
 from sidecar.domain.vectors import QueryVectors
@@ -97,9 +97,11 @@ class Search:
 
         Filename matches stay pinned at the top in their stage 1 order: a user
         who typed a file's name meant that file. Below them every page with
-        vectors is ordered by MaxSim, and pages the cap left unread keep their
-        stage 1 order at the bottom, still present, because a page stage 1
-        found is never dropped for not having been looked at yet.
+        vectors is ordered by MaxSim, with the pages stage 1 proposed keeping
+        `TEXT_MATCH_DISCOUNT` of theirs, because BM25 already credited them
+        for the words MaxSim reads off the image again. Pages the cap left
+        unread keep their stage 1 order at the bottom, still present, because
+        a page stage 1 found is never dropped for not having been looked at yet.
 
         Every candidate list is widened from the whole vector store first, thin or not (D49).
         Returns an empty list the moment `is_cancelled` says so: the caller
@@ -115,7 +117,8 @@ class Search:
             return []
         query_vectors = self._embedder.embed_query(query)
 
-        ordered = self._widen(query_vectors, self._in_scope(candidates))
+        text_matched = self._in_scope(candidates)
+        ordered = self._widen(query_vectors, text_matched)
         if not ordered:
             return []
 
@@ -123,7 +126,8 @@ class Search:
             return []
 
         stored = self._vectors.get_vectors([hit.page_id for hit in ordered])
-        scores = dict(rank_by_maxsim(query_vectors, [stored[hit.page_id] for hit in ordered if hit.page_id in stored]))
+        by_maxsim = rank_by_maxsim(query_vectors, [stored[hit.page_id] for hit in ordered if hit.page_id in stored])
+        scores = dict(discount_text_matches(by_maxsim, {hit.page_id for hit in text_matched}))
 
         pinned = [hit for hit in ordered if hit.stage == FILENAME_STAGE]
         scored = [

@@ -10,6 +10,7 @@ import pytest
 from sidecar.application.search import COLD_PAGE_CAP, STAGE_ONE_CANDIDATE_LIMIT, Search
 from sidecar.domain.entities import FileKind, FileState, IndexedFile, Page
 from sidecar.domain.progress import EmbedProgress
+from sidecar.domain.rerank import TEXT_MATCH_DISCOUNT
 from sidecar.domain.search import PageHit
 from tests.fakes.clock import FakeClock
 from tests.fakes.cold_pages import FakeColdPages
@@ -184,6 +185,34 @@ def test_stage_two_widens_a_thin_candidate_list_from_the_whole_vector_store() ->
 
     assert [hit.page_id for hit in results] == ["f2:1"]
     assert results[0].stage == "visual"
+
+
+def test_a_page_the_words_already_found_does_not_also_win_on_the_words() -> None:
+    """Stage 1 credited the note for saying 'funnel chart'. MaxSim reads the same two words off its image and
+    ties the slide that only looks like one, and without the discount the tie went to the text."""
+    store = RecordingStore()
+    add_file(store, ["funnel chart"], "note", "notes.md")
+    add_file(store, ["nothing alike"], "deck", "deck.pdf")
+    search, _, _, cold = a_search(store, {"note:1": ["funnel", "chart"], "deck:1": ["funnel", "chart"]})
+    cold.run(["deck:1"])
+
+    results = search.stage_two("funnel chart", search.stage_one("funnel chart"))
+
+    assert [hit.page_id for hit in results] == ["deck:1", "note:1"]
+    assert results[0].score == pytest.approx(2.0)
+    assert results[1].score == pytest.approx(2.0 * TEXT_MATCH_DISCOUNT)
+
+
+def test_a_text_match_that_looks_clearly_better_still_comes_first() -> None:
+    store = RecordingStore()
+    add_file(store, ["funnel chart slide"], "note", "notes.md")
+    add_file(store, ["nothing alike"], "deck", "deck.pdf")
+    search, _, _, cold = a_search(store, {"note:1": ["funnel", "chart", "slide"], "deck:1": ["funnel", "chart"]})
+    cold.run(["deck:1"])
+
+    results = search.stage_two("funnel chart slide", search.stage_one("funnel chart slide"))
+
+    assert [hit.page_id for hit in results] == ["note:1", "deck:1"]
 
 
 def test_a_search_abandoned_before_it_starts_never_touches_the_model() -> None:

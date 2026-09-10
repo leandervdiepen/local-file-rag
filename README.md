@@ -4,7 +4,6 @@ Find the screenshot of the error dialog, by describing the dialog.
 
 A macOS app for Apple Silicon that indexes the files on your disk, retrieves pages by what they look like, shows you which part of the page matched, and answers questions with a citation you can click.
 
-Built in seven days as a portfolio project.
 The retrieval numbers below include the half it does not solve yet.
 
 Retrieval runs on page images through [ColQwen2](https://huggingface.co/vidore/colqwen2-v1.0-merged), not on extracted text.

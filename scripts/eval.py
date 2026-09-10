@@ -162,12 +162,21 @@ def main() -> int:
     run_dir.report_html.write_text(render_report(run, queries, previous.read_run() if previous else None, run_dir.root))
     mark_latest(out, run_dir.run_id)
 
-    overall = aggregates["overall"]
-    hits = "-" if not overall["count"] else f"{round(overall['hit5'] * overall['count'])}/{overall['count']}"
+    splits = aggregates["by_text_free"]
+    # Both splits every time: the aggregate hides the half of the product that has no other way to be answered.
+    hits = (
+        f"{hit5_count(aggregates['overall'])} "
+        f"(text-bearing {hit5_count(splits['false'])}, text-free {hit5_count(splits['true'])})"
+    )
     # The ids, not the count: the gate that reads this line is deciding which query to open next.
     verdict = f"regressed {', '.join(regressed)}" if regressed else "no regressions"
     print(f"hit@5 {hits}, {verdict}, report at {run_dir.report_html}", file=sys.stderr)
     return 1 if regressed else 0
+
+
+def hit5_count(split: dict[str, Any]) -> str:
+    """hit@5 as a count out of the split's size, `-` for a split with no queries."""
+    return "-" if not split["count"] else f"{round(split['hit5'] * split['count'])}/{split['count']}"
 
 
 if __name__ == "__main__":
