@@ -157,8 +157,16 @@ def test_a_refusal_says_what_happened_and_what_fixes_it(provider: str, status: i
     assert expected in str(refused.value)
 
 
-def test_a_provider_that_is_not_there_is_reported_rather_than_raised_raw() -> None:
-    unreachable = OpenAIAnswerer("http://127.0.0.1:1", timeout_s=2.0)
+def test_a_local_server_that_is_not_running_says_to_start_it() -> None:
+    """Telling someone to check their connection when Ollama is not running is the wrong advice."""
+    nothing_there = OpenAIAnswerer("http://127.0.0.1:1", timeout_s=2.0)
+
+    with pytest.raises(AnswerUnavailableError, match="Start the local server"):
+        list(nothing_there.stream(a_request()))
+
+
+def test_a_hosted_provider_that_cannot_be_reached_points_at_the_connection() -> None:
+    nothing_there = OpenAIAnswerer("http://does-not-resolve.invalid/v1", timeout_s=2.0)
 
     with pytest.raises(AnswerUnavailableError, match="could not be reached"):
-        list(unreachable.stream(a_request()))
+        list(nothing_there.stream(a_request()))

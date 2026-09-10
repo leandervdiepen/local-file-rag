@@ -15,21 +15,9 @@ from collections.abc import Iterator
 from typing import Any
 
 from sidecar.domain.errors import AnswerUnavailableError
+from sidecar.infrastructure.wire_errors import TIMED_OUT, explain, unreachable
 
 DEFAULT_TIMEOUT_S = 120.0
-
-# Written for the person reading the chat panel: what happened, and the one
-# thing that changes it. Following docs/conventions/copy.md, none of these
-# blames the user and none of them says "unexpected".
-_BY_STATUS = {
-    401: "That key was refused. Check it in Settings.",
-    403: "That key is not allowed to use this model. Pick another model in Settings.",
-    404: "That model does not exist at this provider. Pick another one in Settings.",
-    429: "The provider is rate limiting this key. Wait a moment and ask again.",
-}
-_SERVER_FAULT = "The provider is having trouble. Wait a moment and ask again."
-_UNREACHABLE = "The provider could not be reached. Check your connection, or switch to a local model in Settings."
-_TIMED_OUT = "The provider took too long to answer. Ask again, or switch to a local model in Settings."
 
 
 def post_event_stream(
@@ -57,11 +45,11 @@ def post_event_stream(
     try:
         response = urllib.request.urlopen(request, timeout=timeout_s)
     except urllib.error.HTTPError as failure:
-        raise AnswerUnavailableError(_explain(failure)) from failure
+        raise AnswerUnavailableError(explain(failure)) from failure
     except TimeoutError as failure:
-        raise AnswerUnavailableError(_TIMED_OUT) from failure
+        raise AnswerUnavailableError(TIMED_OUT) from failure
     except urllib.error.URLError as failure:
-        raise AnswerUnavailableError(_UNREACHABLE) from failure
+        raise AnswerUnavailableError(unreachable(url)) from failure
 
     try:
         for raw in response:
@@ -70,26 +58,3 @@ def post_event_stream(
                 yield line[5:].lstrip()
     finally:
         response.close()
-
-
-def _explain(failure: urllib.error.HTTPError) -> str:
-    """The provider's own words when it gave any, otherwise what the status means."""
-    known = _BY_STATUS.get(failure.code)
-    if known is not None:
-        return known
-    detail = _provider_message(failure)
-    if failure.code >= 500:
-        return _SERVER_FAULT if detail is None else f"{_SERVER_FAULT} It said: {detail}"
-    return f"The provider refused the request. It said: {detail}" if detail else _SERVER_FAULT
-
-
-def _provider_message(failure: urllib.error.HTTPError) -> str | None:
-    try:
-        body = json.loads(failure.read())
-    except (ValueError, OSError):
-        return None
-    error = body.get("error") if isinstance(body, dict) else None
-    if isinstance(error, dict):
-        message = error.get("message")
-        return str(message) if message else None
-    return str(error) if error else None

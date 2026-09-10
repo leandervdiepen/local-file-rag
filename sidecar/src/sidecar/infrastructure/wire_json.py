@@ -1,7 +1,9 @@
 """One GET that returns JSON, with the failures written for a person.
 
 Shared by the catalogue adapters. `wire_stream.py` does the same job for the
-streaming POST the answerers make; this is the non-streaming half.
+streaming POST the answerers make, and both turn a failure into a sentence
+through `wire_errors.py`, because a 401 means the same thing whichever call
+found it.
 """
 
 from __future__ import annotations
@@ -12,17 +14,9 @@ import urllib.request
 from typing import Any
 
 from sidecar.domain.errors import AnswerUnavailableError
+from sidecar.infrastructure.wire_errors import explain, unreachable
 
 DEFAULT_TIMEOUT_S = 20.0
-
-_BY_STATUS = {
-    401: "That key was refused, so its models cannot be listed.",
-    403: "That key is not allowed to list models.",
-    404: "This provider has no model list at that address.",
-    429: "The provider is rate limiting this key. Wait a moment and try again.",
-}
-_UNREACHABLE = "The provider could not be reached."
-_LOCAL_UNREACHABLE = "Nothing is answering there. Start the local server and try again."
 
 
 def get_json(url: str, headers: dict[str, str], timeout_s: float = DEFAULT_TIMEOUT_S) -> Any:
@@ -32,9 +26,8 @@ def get_json(url: str, headers: dict[str, str], timeout_s: float = DEFAULT_TIMEO
         with urllib.request.urlopen(request, timeout=timeout_s) as response:
             return json.loads(response.read())
     except urllib.error.HTTPError as failure:
-        raise AnswerUnavailableError(_BY_STATUS.get(failure.code, _UNREACHABLE)) from failure
+        raise AnswerUnavailableError(explain(failure)) from failure
     except (TimeoutError, urllib.error.URLError) as failure:
-        local = "127.0.0.1" in url or "localhost" in url
-        raise AnswerUnavailableError(_LOCAL_UNREACHABLE if local else _UNREACHABLE) from failure
+        raise AnswerUnavailableError(unreachable(url)) from failure
     except ValueError as failure:
         raise AnswerUnavailableError("The provider answered with something that is not a model list.") from failure
