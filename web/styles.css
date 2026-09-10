@@ -532,3 +532,84 @@ footer a:hover {
     justify-content: center;
   }
 }
+
+/* The feature row: four claims, each with an icon, directly under the hero. */
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+  gap: 1.75rem 2.25rem;
+}
+
+.feature svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin-bottom: 0.75rem;
+  color: var(--ink-muted);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.feature h3 {
+  font-size: 0.9375rem;
+  font-weight: 540;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.25rem;
+}
+
+.feature p {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+/* Accuracy, as two bars. The split is the point, so the eye should get it
+   before the sentence does. */
+
+.bars {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.bar-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.bar-label span:last-child {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  color: var(--ink);
+  flex: none;
+}
+
+.bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ink);
+}
+
+.bar-weak .bar-fill {
+  background: var(--heat);
+}
+
+.bar-weak .bar-label span:last-child {
+  color: var(--heat);
+}

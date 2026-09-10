@@ -35,8 +35,7 @@
           <img class="mark" src="assets/icon.png" alt="" width="60" height="60" />
           <h1>Search your files by what they look like.</h1>
           <p class="lede">
-            Type what you remember seeing. It finds the PDF page or the screenshot, even when those words are not
-            written on it.
+Type what you remember seeing. It finds the page even if those words are not on it.
           </p>
           <div class="actions">
             <a
@@ -59,7 +58,7 @@
               Source
             </a>
           </div>
-          <p class="meta">515 MB. Apple silicon. Free and MIT licensed.</p>
+          <p class="meta">Free. Apple silicon. 515 MB.</p>
         </div>
 
         <figure>
@@ -68,35 +67,38 @@
       </div>
 
       <section class="reveal">
-        <h2>What it does</h2>
-        <div class="body">
-          <p class="lead-in">
-            It turns every PDF page, screenshot, image and note into a picture, and a vision model reads the pictures.
-          </p>
-          <p>
-            That is why a chart with no caption is findable. The words on the page help, but they are not the whole
-            story.
-          </p>
-          <p>
-            Results appear while you type. Open a page and it highlights the parts that matched your words. Ask a
-            question and the answer links to the pages it used.
-          </p>
-        </div>
-      </section>
-
-      <section class="reveal">
-        <h2>Your files</h2>
-        <div class="body">
-          <p class="lead-in">Nothing about them leaves the Mac.</p>
-          <p>
-            The index, the page pictures and the embeddings all live in one folder on your disk. The app downloads its
-            model once, 4.43 GB from Hugging Face, and searching never needs the internet again.
-          </p>
-          <p>
-            Answering questions is the one part that can call out, and only to the provider you pick. Run
-            <a href="https://ollama.com">Ollama</a> instead and even that stays here. No analytics, no crash
-            reporting.
-          </p>
+        <div class="features span">
+          <div class="feature">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="12" rx="2" />
+              <path d="M2 20h20" />
+            </svg>
+            <h3>Everything stays local</h3>
+            <p>The index, the page images and the embeddings live in one folder on your disk.</p>
+          </div>
+          <div class="feature">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3 19 6v5c0 4.5-2.9 8-7 10-4.1-2-7-5.5-7-10V6z" />
+              <path d="m9.5 12 1.8 1.8 3.4-3.6" />
+            </svg>
+            <h3>No account needed</h3>
+            <p>Search never sends anything to a server. No analytics, no crash reporting.</p>
+          </div>
+          <div class="feature">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <h3>Vision search</h3>
+            <p>It looks at each page as an image, so charts and screenshots are searchable.</p>
+          </div>
+          <div class="feature">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13 2 4 13h7l-1 9 9-11h-7z" />
+            </svg>
+            <h3>Local AI answers</h3>
+            <p>Use Ollama to answer questions without sending pages to a provider.</p>
+          </div>
         </div>
       </section>
 
@@ -108,18 +110,33 @@
             <div class="stat"><dt>A new file is searchable in</dt><dd>2 s</dd></div>
             <div class="stat"><dt>Index for 218 pages</dt><dd>21 MB</dd></div>
           </dl>
-          <p class="provenance">M1 Max, 64 GB, macOS 26.5.1, 2026-09-10. Every number came from a real run.</p>
+          <p class="provenance">M1 Max, macOS 26.5.1, 2026-09-10.</p>
         </div>
       </section>
 
       <section class="reveal">
-        <h2>Honestly</h2>
+        <h2>Accuracy</h2>
         <div class="body">
-          <p class="lead-in">It is good at some queries and bad at others, and the split is worth knowing.</p>
+          <p class="lead-in">It works better on some searches than others.</p>
+          <div class="bars">
+            <div class="bar">
+              <div class="bar-label">
+                <span>The page shares a word with your search</span>
+                <span>21 of 21</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" style="width: 100%"></div></div>
+            </div>
+            <div class="bar bar-weak">
+              <div class="bar-label">
+                <span>The page shares no words at all</span>
+                <span>4 of 9</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" style="width: 44%"></div></div>
+            </div>
+          </div>
           <p>
-            Over 30 test queries it finds 21 out of 21 pages that share a word with what you typed, and 4 out of 9
-            pages that share none. That second case is the whole reason the app exists, so it is the part still being
-            worked on.
+            The second case is what the app is for, and it is what still needs work. Both numbers are the page
+            turning up in the top five, across 30 test searches.
           </p>
         </div>
       </section>
@@ -129,19 +146,19 @@
         <div class="body">
           <ol>
             <li>Download the DMG and drag the app into Applications.</li>
-            <li>Run this once, because the app is not signed with an Apple Developer ID.</li>
+            <li>Run this once. The app is not signed with an Apple Developer ID.</li>
           </ol>
           <div class="command">
             <code id="quarantine">xattr -dr com.apple.quarantine "/Applications/Local file search.app"</code>
             <button class="copy" type="button" data-copies="quarantine">Copy</button>
           </div>
-          <p>Open it, add a folder, and the first search downloads the model. That takes a few minutes, once.</p>
+          <p>Open it and add a folder. The first search downloads the 4.43 GB model. This happens once.</p>
         </div>
       </section>
     </main>
 
     <footer>
-      <span>Built in seven days. MIT licensed.</span>
+      <span>MIT licensed.</span>
       <span>
         <a href="https://github.com/leandervdiepen/local-file-rag">Source</a> &middot;
         <a href="https://github.com/leandervdiepen/local-file-rag/blob/main/docs/STATUS.md">Measurements</a> &middot;
