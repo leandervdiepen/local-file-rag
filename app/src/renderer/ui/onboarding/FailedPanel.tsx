@@ -9,7 +9,7 @@ interface FailedPanelProps {
 export function FailedPanel({ reason, onRestart }: FailedPanelProps) {
   return (
     <Screen>
-      <p className="text-lg text-ink">The local engine could not start.</p>
+      <h1 className="text-lg font-medium text-ink">The local engine could not start</h1>
       <p className="mt-2 text-sm text-status-error">{reason}</p>
       <div className="mt-8">
         <Button onClick={onRestart}>Restart engine</Button>

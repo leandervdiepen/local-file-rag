@@ -16,18 +16,19 @@ export function ModelBanner({ readiness }: ModelBannerProps) {
   if (!message) return null
 
   return (
-    <div className="border-b border-border py-3" aria-live="polite">
+    <div role="status" className="border-b border-border py-3">
       <p className="text-sm text-ink">{message}</p>
       {readiness.fraction !== null && (
         <div
           className="mt-2 h-1 w-full overflow-hidden rounded-full bg-border"
           role="progressbar"
+          aria-label="Search model download"
           aria-valuenow={Math.round(readiness.fraction * 100)}
           aria-valuemin={0}
           aria-valuemax={100}
         >
           <div
-            className="h-full bg-accent transition-[width] duration-300"
+            className="h-full rounded-full bg-accent transition-[width] duration-200"
             style={{ width: `${readiness.fraction * 100}%` }}
           />
         </div>

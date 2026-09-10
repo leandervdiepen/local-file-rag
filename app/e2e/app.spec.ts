@@ -27,10 +27,14 @@ test.beforeAll(async () => {
   mkdirSync(folder, { recursive: true })
   cpSync(path.join(CORPUS, 'reports', 'invoices', 'hosting-q2-2026.pdf'), path.join(folder, 'hosting-q2-2026.pdf'))
 
-  // Claude Code's shell exports this, and it makes Electron run as plain node,
-  // where `require('electron')` returns a path string and `app` is undefined.
+  // Some shells export this, and it makes Electron run as plain node, where
+  // `require('electron')` returns a path string and `app` is undefined.
   const env = { ...process.env }
   delete env['ELECTRON_RUN_AS_NODE']
+  // `--user-data-dir` moves what Electron owns and the sidecar keeps its own
+  // database, so without this the test indexed its temporary folder into the
+  // developer's real index and left the folder registered there.
+  env['LOCAL_FILE_RAG_DB'] = path.join(userData, 'db')
 
   app = await electron.launch({ args: ['.', `--user-data-dir=${userData}`], env })
   page = await app.firstWindow()

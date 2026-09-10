@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ModelsPort, SecretsPort } from '../../application/ports'
 import { useSettings } from '../../application/useSettings'
 import { blocker, matching, pricePerQuestion, readyFirst, type AnswerProvider } from '../../domain/models'
-import { Button } from '../shared/Button'
+import { OverlayScreen } from '../shared/OverlayScreen'
+import { Section } from '../shared/Section'
 import { ModelList } from './ModelList'
 import { ProviderRow } from './ProviderRow'
 
@@ -18,55 +19,63 @@ interface SettingsScreenProps {
  * The model list is read from the provider rather than written down here, so
  * what is on screen is what that provider has today, at the price it charges
  * today. OpenRouter alone offers 262 of them, which is why the list filters.
+ *
+ * Which row is expanded is decided here, and the provider's models are only
+ * asked for once it has the key it needs. Asking without one would put a
+ * network error under a row whose only problem is a missing key.
  */
 export function SettingsScreen({ models, secrets, onClose }: SettingsScreenProps) {
   const settings = useSettings(models, secrets)
-  // Cleared when a provider opens rather than in an effect on `showing`,
-  // which would write state during a render for no gain.
+  const [expanded, setExpanded] = useState('')
   const [filter, setFilter] = useState('')
 
+  const { providers, showing, show } = settings
+  useEffect(() => {
+    const provider = providers.find((candidate) => candidate.id === expanded)
+    const wanted = provider && blocker(provider) === null ? provider.id : ''
+    if (showing !== wanted) show(wanted)
+  }, [expanded, providers, showing, show])
+
   return (
-    <section className="fixed inset-0 z-10 overflow-auto bg-surface" aria-label="Settings">
-      <div className="mx-auto w-full max-w-3xl px-8 py-12">
-        <header className="flex items-start gap-4">
-          <h1 className="flex-1 text-lg text-ink">Settings</h1>
-          <Button onClick={onClose}>Close</Button>
-        </header>
-
-        <h2 className="mt-10 text-sm text-ink">Answers come from</h2>
-        <p className="mt-1 text-xs text-ink-muted">
-          Search, the page preview and the heatmap run on this Mac whatever you pick here.
-        </p>
-
-        <ul className="mt-4">
-          {readyFirst(settings.providers).map((provider) => (
-            <li key={provider.id} className="border-t border-border first:border-t-0">
-              <ProviderRow
-                provider={provider}
-                chosen={settings.chosen.provider === provider.id}
-                open={settings.showing === provider.id}
-                saving={settings.saving}
-                blocker={blocker(provider)}
-                onOpen={() => {
-                  setFilter('')
-                  settings.show(settings.showing === provider.id ? '' : provider.id)
-                }}
-                onSaveKey={(key) => void settings.saveKey(provider.id, key)}
-              />
-              {settings.showing === provider.id && (
-                <ModelList
-                  models={matching(settings.models, filter)}
-                  total={settings.models.length}
-                  loading={settings.loadingModels}
-                  filter={filter}
-                  onFilter={setFilter}
-                  chosenId={settings.chosen.provider === provider.id ? settings.chosen.model : null}
-                  onChoose={(modelId) => settings.choose(provider.id, modelId)}
-                  price={pricePerQuestion}
+    <OverlayScreen title="Settings" onClose={onClose}>
+      <Section
+        title="Answers come from"
+        hint="Search, the preview and the heatmap run on this Mac whichever you pick. Asking a question sends it, and the pages it draws on, to the provider."
+      >
+        <ul className="mt-4 divide-y divide-border">
+          {readyFirst(providers).map((provider) => {
+            const open = expanded === provider.id
+            return (
+              <li key={provider.id}>
+                <ProviderRow
+                  provider={provider}
+                  chosen={settings.chosen.provider === provider.id}
+                  open={open}
+                  saving={settings.saving}
+                  blocker={blocker(provider)}
+                  onOpen={() => {
+                    setFilter('')
+                    setExpanded(open ? '' : provider.id)
+                  }}
+                  onSaveKey={(key) => void settings.saveKey(provider.id, key)}
                 />
-              )}
-            </li>
-          ))}
+                {open && blocker(provider) === null && (
+                  <div className="pb-4 pl-7">
+                    <ModelList
+                      models={matching(settings.models, filter)}
+                      total={settings.models.length}
+                      loading={settings.loadingModels}
+                      filter={filter}
+                      onFilter={setFilter}
+                      chosenId={settings.chosen.provider === provider.id ? settings.chosen.model : null}
+                      onChoose={(modelId) => settings.choose(provider.id, modelId)}
+                      price={pricePerQuestion}
+                    />
+                  </div>
+                )}
+              </li>
+            )
+          })}
         </ul>
 
         {settings.error && (
@@ -74,12 +83,10 @@ export function SettingsScreen({ models, secrets, onClose }: SettingsScreenProps
             {settings.error}
           </p>
         )}
+      </Section>
 
-        <p className="mt-10 text-xs text-ink-muted">
-          Prices come from the provider each time this screen opens, so they are whatever it is charging now.
-        </p>
-      </div>
-    </section>
+      <p className="mt-8 text-xs text-ink-muted">Prices are read from the provider each time this screen opens.</p>
+    </OverlayScreen>
   )
 }
 

@@ -18,7 +18,7 @@ export function ReadyPanel({ baseUrl, nativeActions }: ReadyPanelProps) {
 
   return (
     <Screen>
-      <p className="text-lg text-ink">The local engine is ready.</p>
+      <h1 className="text-lg font-medium text-ink">The local engine is ready</h1>
       <p className="mt-2 font-mono text-sm text-ink-muted">{baseUrl}</p>
       <p className="mt-8 text-sm text-ink-muted">Add a folder to start indexing.</p>
       <div className="mt-4">

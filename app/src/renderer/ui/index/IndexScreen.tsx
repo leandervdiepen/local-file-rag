@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { IndexPort } from '../../application/ports'
-import { formatBytes } from '../../domain/format'
+import { count, formatBytes } from '../../domain/format'
 import type { FolderFailure, IndexedFolder, IndexStats } from '../../domain/indexing'
-import { skipsByCount, type IndexedFileRow } from '../../domain/skip-reasons'
+import { labelSkip, skipsByCount, type IndexedFileRow } from '../../domain/skip-reasons'
 import { Button } from '../shared/Button'
+import { OverlayScreen } from '../shared/OverlayScreen'
+import { Section } from '../shared/Section'
 import { FolderList } from './FolderList'
 import { FolderProblems } from './FolderProblems'
 import { SkippedFiles } from './SkippedFiles'
@@ -57,53 +59,44 @@ export function IndexScreen({
   }
 
   return (
-    <section className="fixed inset-0 z-10 overflow-auto bg-surface" aria-label="Index">
-      <div className="mx-auto w-full max-w-3xl px-8 py-12">
-        <header className="flex items-start gap-4">
-          <h1 className="flex-1 text-lg text-ink">Your index</h1>
-          <Button onClick={onRescan}>Rescan</Button>
-          <Button onClick={onClose}>Close</Button>
-        </header>
+    <OverlayScreen title="Index" onClose={onClose} actions={<Button onClick={onRescan}>Rescan</Button>}>
+      {stats && (
+        <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+          <Figure label="Files indexed" value={stats.filesTextIndexed.toLocaleString()} />
+          <Figure label="Pages" value={stats.pagesTotal.toLocaleString()} />
+          <Figure label="Pages read by the model" value={stats.pagesEmbedded.toLocaleString()} />
+          <Figure label="On disk" value={formatBytes(stats.bytesOnDisk)} />
+        </dl>
+      )}
 
-        {stats && (
-          <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-4">
-            <Figure label="Files indexed" value={stats.filesTextIndexed.toLocaleString()} />
-            <Figure label="Pages" value={stats.pagesTotal.toLocaleString()} />
-            <Figure label="Pages read by the model" value={stats.pagesEmbedded.toLocaleString()} />
-            <Figure label="Storage" value={formatBytes(stats.bytesOnDisk)} />
-          </dl>
-        )}
-
+      {failures.length > 0 && (
         <div className="mt-8">
           <FolderProblems failures={failures} />
         </div>
+      )}
 
-        <h2 className="mt-12 text-sm text-ink">Folders</h2>
-        <p className="mt-1 text-xs text-ink-muted">
-          A folder that is off keeps its files in the index and stops being watched for changes.
-        </p>
+      <Section title="Folders" hint="A folder that is off stops appearing in results. Its files stay indexed, so turning it back on is instant.">
         <FolderList folders={folders} onToggle={onToggleFolder} onRemove={onRemoveFolder} />
         <div className="mt-3">
           <Button onClick={onAddFolder}>Add folder</Button>
         </div>
+      </Section>
 
-        {stats && (
-          <>
-            <h2 className="mt-12 text-sm text-ink">
-              {stats.filesSkipped.toLocaleString()} files were not indexed
-            </h2>
-            <ul className="mt-3 text-sm text-ink-muted">
-              {skipsByCount(stats.skipsByReason).map(({ reason, count }) => (
-                <li key={reason} className="py-1">
-                  <span className="font-mono tabular-nums">{count.toLocaleString()}</span> {reason.replaceAll('_', ' ')}
-                </li>
-              ))}
-            </ul>
-            <SkippedFiles files={skipped} onForget={forget} />
-          </>
-        )}
-      </div>
-    </section>
+      {stats && stats.filesSkipped === 0 && <p className="mt-10 text-sm text-ink-muted">Every file was indexed.</p>}
+
+      {stats && stats.filesSkipped > 0 && (
+        <Section title={count(stats.filesSkipped, 'skipped file')}>
+          <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-muted">
+            {skipsByCount(stats.skipsByReason).map(({ reason, count: n }) => (
+              <li key={reason}>
+                <span className="font-mono tabular-nums text-ink">{n.toLocaleString()}</span> {labelSkip(reason)}
+              </li>
+            ))}
+          </ul>
+          <SkippedFiles files={skipped} onForget={forget} />
+        </Section>
+      )}
+    </OverlayScreen>
   )
 }
 

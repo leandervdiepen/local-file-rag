@@ -16,13 +16,13 @@ export function FolderProblems({ failures }: FolderProblemsProps) {
   if (failures.length === 0) return null
 
   return (
-    <div className="border-b border-border py-3" role="alert">
+    <ul className="border-b border-border py-3" role="alert">
       {failures.map((failure) => (
-        <p key={failure.path} className="text-sm text-ink">
+        <li key={failure.path} className="text-sm">
           <span className="font-mono text-xs text-status-error">{shortenHomePath(failure.path)}</span>{' '}
           <span className="text-ink-muted">{failure.reason}</span>
-        </p>
+        </li>
       ))}
-    </div>
+    </ul>
   )
 }

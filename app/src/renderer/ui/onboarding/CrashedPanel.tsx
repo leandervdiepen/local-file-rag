@@ -11,9 +11,9 @@ interface CrashedPanelProps {
 export function CrashedPanel({ reason, attempt, maxAttempts, onRestart }: CrashedPanelProps) {
   return (
     <Screen>
-      <p className="text-lg text-ink">The local engine stopped unexpectedly.</p>
+      <h1 className="text-lg font-medium text-ink">The local engine stopped</h1>
       <p className="mt-2 text-sm text-status-error">{reason}</p>
-      <p className="mt-2 text-sm text-ink-muted">
+      <p role="status" className="mt-2 text-sm text-ink-muted">
         Retrying, attempt {attempt} of {maxAttempts}.
       </p>
       <div className="mt-8">

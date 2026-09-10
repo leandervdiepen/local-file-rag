@@ -1,6 +1,6 @@
 import { shortenHomePath } from '../../domain/format'
 import { explainSkip, type IndexedFileRow } from '../../domain/skip-reasons'
-import { Button } from '../shared/Button'
+import { QuietButton } from '../shared/QuietButton'
 
 interface SkippedFilesProps {
   files: IndexedFileRow[]
@@ -18,8 +18,8 @@ export function SkippedFiles({ files, onForget }: SkippedFilesProps) {
   if (files.length === 0) return null
 
   return (
-    <table className="mt-6 w-full text-left text-xs">
-      <thead className="text-ink-muted">
+    <table className="mt-5 w-full text-left text-sm">
+      <thead className="text-xs text-ink-muted">
         <tr>
           <th scope="col" className="py-2 font-normal">
             File
@@ -32,24 +32,23 @@ export function SkippedFiles({ files, onForget }: SkippedFilesProps) {
           </th>
         </tr>
       </thead>
-      <tbody>
-        {files.map((file) => (
-          <tr key={file.id} className="border-t border-border">
-            <td className="max-w-xs truncate py-2 pr-6 font-mono text-ink" title={file.path}>
-              {shortenHomePath(file.path)}
-            </td>
-            <td className="py-2 pr-6 text-ink-muted">{explainSkip(file.skipReason)}</td>
-            <td className="py-2 text-right">
-              <Button
-                className="px-2 py-1 text-xs"
-                aria-label={`Forget ${shortenHomePath(file.path)}`}
-                onClick={() => onForget(file.id)}
-              >
-                Forget
-              </Button>
-            </td>
-          </tr>
-        ))}
+      <tbody className="divide-y divide-border">
+        {files.map((file) => {
+          const shown = shortenHomePath(file.path)
+          return (
+            <tr key={file.id}>
+              <td className="max-w-xs truncate py-2 pr-6 font-mono text-xs text-ink" title={file.path}>
+                {shown}
+              </td>
+              <td className="py-2 pr-6 text-ink-muted">{explainSkip(file.skipReason)}</td>
+              <td className="py-1 text-right">
+                <QuietButton aria-label={`Forget ${shown}`} onClick={() => onForget(file.id)}>
+                  Forget
+                </QuietButton>
+              </td>
+            </tr>
+          )
+        })}
       </tbody>
     </table>
   )

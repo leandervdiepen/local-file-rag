@@ -11,6 +11,14 @@ export interface SidecarCommandInput {
   sidecarProjectPath: string
   port: number
   token: string
+  /**
+   * Where the index lives, when it should not live in the default place.
+   *
+   * Electron's `--user-data-dir` moves what Electron owns and the sidecar
+   * keeps its own database, so without this the end to end test wrote its
+   * temporary folder into the developer's real index and left it there.
+   */
+  dbPath?: string
 }
 
 /**
@@ -20,6 +28,7 @@ export interface SidecarCommandInput {
  */
 export function resolveSidecarCommand(input: SidecarCommandInput): SidecarCommand {
   const handshakeArgs = ['--port', String(input.port), '--token', input.token]
+  if (input.dbPath) handshakeArgs.push('--db', input.dbPath)
 
   if (input.isPackaged) {
     return {

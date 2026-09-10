@@ -19,6 +19,9 @@ function heatColor(): string {
  * The canvas is the size of the grid, one pixel per patch, and CSS stretches
  * it to the page. The browser's own smoothing then does the one-patch blur
  * the design asks for, which is cheaper and steadier than blurring by hand.
+ *
+ * It fades in over 200 ms from its first paint, so the eye sees the page
+ * first and then the reason. Redraws after that are instant.
  */
 export function HeatmapOverlay({ values, threshold }: HeatmapOverlayProps) {
   const canvas = useRef<HTMLCanvasElement>(null)
@@ -50,7 +53,7 @@ export function HeatmapOverlay({ values, threshold }: HeatmapOverlayProps) {
     <canvas
       ref={canvas}
       aria-hidden
-      className="pointer-events-none absolute inset-0 h-full w-full motion-safe:transition-opacity motion-safe:duration-200"
+      className="pointer-events-none absolute inset-0 h-full w-full opacity-100 transition-opacity duration-200 starting:opacity-0"
     />
   )
 }

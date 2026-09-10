@@ -62,6 +62,7 @@ export const SearchBox = forwardRef<HTMLInputElement, SearchBoxProps>(function S
       ref={ref}
       type="text"
       role="combobox"
+      aria-label="Search your files"
       aria-expanded
       aria-controls={listboxId}
       aria-autocomplete="list"
@@ -73,7 +74,7 @@ export const SearchBox = forwardRef<HTMLInputElement, SearchBoxProps>(function S
       placeholder="Search your files"
       onChange={(event) => onQueryChange(event.target.value)}
       onKeyDown={handleKeyDown}
-      className="w-full border-b border-border bg-transparent pb-3 text-2xl text-ink placeholder:text-ink-muted focus:border-accent focus:outline-none"
+      className="w-full border-b border-border bg-transparent pb-3 text-2xl text-ink transition-colors placeholder:text-ink-muted/70 focus:border-accent focus:outline-none"
     />
   )
 })

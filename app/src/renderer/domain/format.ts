@@ -30,3 +30,19 @@ export function formatMillis(ms: number): string {
 export function shortenHomePath(path: string): string {
   return path.replace(/^\/Users\/[^/]+\//, '~/')
 }
+
+export function fileNameOf(path: string): string {
+  const separator = path.lastIndexOf('/')
+  return separator === -1 ? path : path.slice(separator + 1)
+}
+
+/** The folder a file sits in, so a row that already names the file does not name it twice. */
+export function directoryOf(path: string): string {
+  const separator = path.lastIndexOf('/')
+  return separator <= 0 ? '/' : path.slice(0, separator)
+}
+
+/** "1 page", "12 pages": one place decides the plural, so no line ever reads "1 files". */
+export function count(n: number, singular: string, plural = `${singular}s`): string {
+  return `${n.toLocaleString()} ${n === 1 ? singular : plural}`
+}

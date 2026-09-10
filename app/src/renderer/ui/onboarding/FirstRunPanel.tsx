@@ -26,7 +26,7 @@ export function FirstRunPanel({ nativeActions, onAddFolder, error }: FirstRunPan
 
   return (
     <Screen>
-      <p className="text-lg text-ink">Pick a folder to search.</p>
+      <h1 className="text-lg font-medium text-ink">Choose a folder to search</h1>
       <p className="mt-2 text-sm text-ink-muted">
         Everything is read and stored on this Mac. Indexing runs in the background and search works while it does.
       </p>
@@ -35,7 +35,11 @@ export function FirstRunPanel({ nativeActions, onAddFolder, error }: FirstRunPan
           {adding ? 'Adding folder' : 'Choose folder'}
         </Button>
       </div>
-      {error && <p className="mt-4 text-sm text-status-error">{error.message}</p>}
+      {error && (
+        <p role="alert" className="mt-4 text-sm text-status-error">
+          {error.message}
+        </p>
+      )}
     </Screen>
   )
 }

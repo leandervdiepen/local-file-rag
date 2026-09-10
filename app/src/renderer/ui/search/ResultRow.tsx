@@ -21,9 +21,6 @@ const WHY_NO_SNIPPET: Record<string, string> = {
   visual: 'Matched what the page looks like',
 }
 
-const ACTION_CLASS =
-  'rounded-control px-2 py-1 text-xs text-ink-muted hover:bg-border/50 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
-
 export function ResultRow({ hit, selected, pageImages, actions, onSelect }: ResultRowProps) {
   return (
     <li
@@ -32,37 +29,55 @@ export function ResultRow({ hit, selected, pageImages, actions, onSelect }: Resu
       aria-selected={selected}
       onClick={() => onSelect(hit.pageId)}
       onDoubleClick={() => actions.open(hit.path)}
-      className={`flex cursor-default items-start gap-4 rounded-control px-3 py-3 ${selected ? 'bg-accent/10' : ''}`}
+      className={`flex cursor-default items-start gap-3 rounded-control px-3 py-2 ${selected ? 'bg-accent/10' : 'hover:bg-border/30'}`}
     >
       <PageThumbnail pageId={hit.pageId} pageImages={pageImages} />
 
-      <div className="min-w-0 flex-1">
-        <p className="font-mono text-xs text-ink-muted">{hit.kind === 'pdf' ? `Page ${hit.pageNo}` : ''}</p>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-0.5">
+        {hit.kind === 'pdf' && <p className="font-mono text-xs text-ink-muted">Page {hit.pageNo}</p>}
         {hit.snippet ? (
-          <p className="mt-1 line-clamp-2 text-sm text-ink">{hit.snippet}</p>
+          <p className="line-clamp-2 text-sm text-ink">{hit.snippet}</p>
         ) : (
           // A snippet is its own explanation. Only a page with no matching
           // words needs to be told why it is here.
-          <p className="mt-1 text-sm text-ink-muted">{WHY_NO_SNIPPET[hit.stage] ?? ''}</p>
+          <p className="text-sm text-ink-muted">{WHY_NO_SNIPPET[hit.stage] ?? ''}</p>
         )}
       </div>
 
       {selected && (
         // tabIndex -1 keeps the listbox valid and the hand on the keyboard:
         // arrow keys never leave the search input, so these are for the mouse
-        // and the shortcuts in SearchBox are for everyone else.
-        <div className="flex shrink-0 items-center gap-1">
-          <button type="button" tabIndex={-1} className={ACTION_CLASS} onClick={() => actions.open(hit.path)}>
-            Open
-          </button>
-          <button type="button" tabIndex={-1} className={ACTION_CLASS} onClick={() => actions.reveal(hit.path)}>
-            Reveal
-          </button>
-          <button type="button" tabIndex={-1} className={ACTION_CLASS} onClick={() => actions.copyPath(hit.path)}>
-            Copy path
-          </button>
+        // and the shortcuts they show are for everyone else.
+        <div className="flex shrink-0 items-center gap-0.5 self-center">
+          <RowAction label="Open" keys="↩" shortcut="Enter" onClick={() => actions.open(hit.path)} />
+          <RowAction label="Reveal" keys="⌘↩" shortcut="Meta+Enter" onClick={() => actions.reveal(hit.path)} />
+          <RowAction label="Copy path" keys="⇧⌘C" shortcut="Shift+Meta+C" onClick={() => actions.copyPath(hit.path)} />
         </div>
       )}
     </li>
+  )
+}
+
+interface RowActionProps {
+  label: string
+  keys: string
+  shortcut: string
+  onClick: () => void
+}
+
+function RowAction({ label, keys, shortcut, onClick }: RowActionProps) {
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-keyshortcuts={shortcut}
+      onClick={onClick}
+      className="focus-ring flex items-baseline gap-1.5 rounded-control px-2 py-1 text-xs text-ink-muted transition-colors hover:bg-border/40 hover:text-ink"
+    >
+      {label}
+      <kbd aria-hidden className="font-sans text-ink-muted/70">
+        {keys}
+      </kbd>
+    </button>
   )
 }

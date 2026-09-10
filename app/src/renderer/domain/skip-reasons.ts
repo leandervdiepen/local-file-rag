@@ -19,18 +19,33 @@ export interface IndexedFileRow {
  * is not one of those, so no reason here is a verdict on the file.
  */
 const REASONS: Record<string, string> = {
-  excluded_path: 'In a folder this app skips, like node_modules or .git',
-  unsupported_type: 'Not a kind this version reads. PDF, PNG, JPG, TXT and MD are',
-  empty: 'The file has no bytes in it',
-  oversized: 'Larger than 200 MB',
-  image_too_small: 'Shorter than 300 px on its short side, so it is an icon or a sprite',
-  encrypted: 'The PDF needs a password',
-  corrupt: 'The file would not open',
+  excluded_path: 'Inside a folder that is always skipped, like node_modules or .git',
+  unsupported_type: 'This version reads PDF, PNG, JPG, TXT and MD',
+  empty: 'File is 0 bytes',
+  oversized: 'Over the 200 MB limit',
+  image_too_small: 'Image is under 300 px on its short side',
+  encrypted: 'PDF is password protected',
+  corrupt: 'File would not open',
+}
+
+/** The same reasons as a label short enough to sit beside a count. */
+const LABELS: Record<string, string> = {
+  excluded_path: 'in a skipped folder',
+  unsupported_type: 'of a type this version does not read',
+  empty: 'empty',
+  oversized: 'over 200 MB',
+  image_too_small: 'under 300 px',
+  encrypted: 'password protected',
+  corrupt: 'would not open',
 }
 
 export function explainSkip(reason: string | null): string {
   if (!reason) return 'Skipped'
   return REASONS[reason] ?? reason.replaceAll('_', ' ')
+}
+
+export function labelSkip(reason: string): string {
+  return LABELS[reason] ?? reason.replaceAll('_', ' ')
 }
 
 /** Skip reasons ordered by how many files each accounts for, so the biggest cause reads first. */

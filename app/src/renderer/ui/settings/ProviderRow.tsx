@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { AnswerProvider } from '../../domain/models'
 import { Button } from '../shared/Button'
 
@@ -12,52 +12,74 @@ interface ProviderRowProps {
   onSaveKey: (key: string) => void
 }
 
-/** One place answers can come from, with the key it needs and a way into its models. */
+/**
+ * One place answers can come from.
+ *
+ * Closed, the row says what state the provider is in. Open, it shows the key
+ * field if one is needed, and the model list follows underneath.
+ */
 export function ProviderRow({ provider, chosen, open, saving, blocker, onOpen, onSaveKey }: ProviderRowProps) {
   const [key, setKey] = useState('')
+  const keyFieldId = useId()
 
   return (
-    <div className="py-3">
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onOpen}
-          aria-expanded={open}
-          className="flex flex-1 items-baseline gap-2 rounded-control py-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          <span className="text-sm text-ink">{provider.label}</span>
-          {chosen && <span className="text-xs text-accent">in use</span>}
-          {provider.runsLocally && <span className="text-xs text-ink-muted">nothing leaves this Mac</span>}
-        </button>
-        <span className="text-xs text-ink-muted">{open ? 'Hide models' : 'Show models'}</span>
-      </div>
+    <div>
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-expanded={open}
+        className="focus-ring -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-control px-2 py-2.5 text-left transition-colors hover:bg-border/30"
+      >
+        <Chevron open={open} />
+        <span className="min-w-0 flex-1 truncate text-sm text-ink">{provider.label}</span>
+        {chosen && <span className="shrink-0 text-xs text-accent">In use</span>}
+        <span className="shrink-0 text-xs text-ink-muted">{stateOf(provider)}</span>
+      </button>
 
-      {provider.needsKey && (
+      {open && provider.needsKey && (
         <form
-          className="mt-2 flex items-center gap-2"
+          className="flex flex-wrap items-center gap-2 pb-4 pl-7 pt-1"
           onSubmit={(event) => {
             event.preventDefault()
             onSaveKey(key)
             setKey('')
           }}
         >
+          <label htmlFor={keyFieldId} className="w-full text-xs text-ink-muted">
+            {blocker ?? 'A key is saved. Paste a new one to replace it.'}
+          </label>
           <input
+            id={keyFieldId}
             type="password"
             value={key}
             onChange={(event) => setKey(event.target.value)}
-            placeholder={provider.hasKey ? 'Key saved' : `${provider.label} API key`}
-            aria-label={`${provider.label} API key`}
             autoComplete="off"
             spellCheck={false}
-            className="w-72 rounded-control border border-border bg-transparent px-3 py-1.5 font-mono text-xs text-ink placeholder:text-ink-muted focus:border-accent focus:outline-none"
+            className="w-72 rounded-control bg-surface px-3 py-1.5 font-mono text-sm text-ink shadow-control focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <Button type="submit" className="px-3 py-1.5 text-xs" disabled={saving || !key.trim()}>
-            {provider.hasKey ? 'Replace' : 'Save'}
+          <Button type="submit" disabled={saving || !key.trim()}>
+            {provider.hasKey ? 'Replace key' : 'Save key'}
           </Button>
         </form>
       )}
-
-      {blocker && <p className="mt-2 text-xs text-status-error">{blocker}</p>}
     </div>
+  )
+}
+
+function stateOf(provider: AnswerProvider): string {
+  if (provider.runsLocally) return 'Runs on this Mac'
+  if (!provider.needsKey) return ''
+  return provider.hasKey ? 'Key saved' : 'Needs a key'
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 16 16"
+      className={`h-4 w-4 shrink-0 text-ink-muted transition-transform ${open ? 'rotate-90' : ''}`}
+    >
+      <path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }

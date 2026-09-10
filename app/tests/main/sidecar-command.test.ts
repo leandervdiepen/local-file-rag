@@ -30,3 +30,43 @@ describe('resolveSidecarCommand', () => {
     expect(result.args).toEqual(['--port', '0', '--token', 'abc123'])
   })
 })
+
+describe('where the index lives', () => {
+  it('leaves the sidecar to its default when nothing says otherwise', () => {
+    const result = resolveSidecarCommand({
+      isPackaged: false,
+      resourcesPath: '/res',
+      sidecarProjectPath: '/side',
+      port: 0,
+      token: 't',
+    })
+
+    expect(result.args).not.toContain('--db')
+  })
+
+  it('points the sidecar at a given database, which is how a test stays out of the real index', () => {
+    const result = resolveSidecarCommand({
+      isPackaged: false,
+      resourcesPath: '/res',
+      sidecarProjectPath: '/side',
+      port: 0,
+      token: 't',
+      dbPath: '/tmp/somewhere/db',
+    })
+
+    expect(result.args).toEqual(expect.arrayContaining(['--db', '/tmp/somewhere/db']))
+  })
+
+  it('does the same for the packaged binary', () => {
+    const result = resolveSidecarCommand({
+      isPackaged: true,
+      resourcesPath: '/res',
+      sidecarProjectPath: '/side',
+      port: 0,
+      token: 't',
+      dbPath: '/tmp/somewhere/db',
+    })
+
+    expect(result.args).toEqual(expect.arrayContaining(['--db', '/tmp/somewhere/db']))
+  })
+})

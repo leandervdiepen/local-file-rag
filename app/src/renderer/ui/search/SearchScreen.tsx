@@ -16,6 +16,7 @@ import { flattenGroups, groupByFile } from '../../domain/search-results'
 import { ChatPanel } from '../chat/ChatPanel'
 import { PagePreview } from '../preview/PagePreview'
 import { FolderProblems } from '../index/FolderProblems'
+import { QuietButton } from '../shared/QuietButton'
 import { IndexingBanner } from './IndexingBanner'
 import { ModelBanner } from './ModelBanner'
 import { ResultList } from './ResultList'
@@ -95,56 +96,56 @@ export function SearchScreen({
   return (
     <main className="flex min-h-screen">
       <div className="mx-auto w-full max-w-3xl px-8 py-12">
-      <SearchBox
-        ref={input}
-        query={query}
-        listboxId={LISTBOX_ID}
-        activeDescendant={selection.selected}
-        onQueryChange={setQuery}
-        onMove={selection.move}
-        onOpen={onSelected(actions.open)}
-        onReveal={onSelected(actions.reveal)}
-        onCopyPath={onSelected(actions.copyPath)}
-        onTogglePreview={() => setPreviewing((open) => !open && selected !== null)}
-        onAsk={() => {
-          setAsking(true)
-          answer.ask(query, answerWith.provider, answerWith.model)
-        }}
-      />
-
-      <ModelBanner readiness={modelReadiness} />
-      {progress && !progress.done && <IndexingBanner progress={progress} />}
-      {progress && <FolderProblems failures={progress.failures} />}
-      <div className="flex items-baseline justify-between gap-4">
-        <SearchStatus state={state} stats={stats} resultCount={ordered.length} />
-        <div className="flex shrink-0 items-baseline gap-1">
-          <QuietButton onClick={onShowIndex}>What is indexed</QuietButton>
-          <QuietButton onClick={onShowSettings}>Settings</QuietButton>
-        </div>
-      </div>
-
-      <ResultList
-        id={LISTBOX_ID}
-        groups={groups}
-        selectedPageId={selection.selected}
-        pageImages={pageImages}
-        actions={actions}
-        onSelect={selection.select}
-      />
-
-      {preview && (
-        <PagePreview
-          hit={preview}
+        <SearchBox
+          ref={input}
           query={query}
-          pageImages={pageImages}
-          heatmaps={heatmaps}
-          onClose={() => {
-            setPreviewing(false)
-            setCitedPageId(null)
-            input.current?.focus()
+          listboxId={LISTBOX_ID}
+          activeDescendant={selection.selected}
+          onQueryChange={setQuery}
+          onMove={selection.move}
+          onOpen={onSelected(actions.open)}
+          onReveal={onSelected(actions.reveal)}
+          onCopyPath={onSelected(actions.copyPath)}
+          onTogglePreview={() => setPreviewing((open) => !open && selected !== null)}
+          onAsk={() => {
+            setAsking(true)
+            answer.ask(query, answerWith.provider, answerWith.model)
           }}
         />
-      )}
+
+        <ModelBanner readiness={modelReadiness} />
+        {progress && !progress.done && <IndexingBanner progress={progress} />}
+        {progress && <FolderProblems failures={progress.failures} />}
+        <div className="flex items-baseline justify-between gap-4">
+          <SearchStatus state={state} stats={stats} resultCount={ordered.length} />
+          <div className="-mr-2 flex shrink-0 items-baseline gap-1">
+            <QuietButton onClick={onShowIndex}>Index</QuietButton>
+            <QuietButton onClick={onShowSettings}>Settings</QuietButton>
+          </div>
+        </div>
+
+        <ResultList
+          id={LISTBOX_ID}
+          groups={groups}
+          selectedPageId={selection.selected}
+          pageImages={pageImages}
+          actions={actions}
+          onSelect={selection.select}
+        />
+
+        {preview && (
+          <PagePreview
+            hit={preview}
+            query={query}
+            pageImages={pageImages}
+            heatmaps={heatmaps}
+            onClose={() => {
+              setPreviewing(false)
+              setCitedPageId(null)
+              input.current?.focus()
+            }}
+          />
+        )}
       </div>
 
       {asking && (
@@ -159,18 +160,5 @@ export function SearchScreen({
         />
       )}
     </main>
-  )
-}
-
-/** A control that is present without competing with the results for attention. */
-function QuietButton({ onClick, children }: { onClick: () => void; children: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-control px-2 py-1 text-xs text-ink-muted hover:bg-border/50 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-    >
-      {children}
-    </button>
   )
 }

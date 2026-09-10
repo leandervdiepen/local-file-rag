@@ -28,6 +28,9 @@ function startSidecar(token: string): SidecarProcess {
     sidecarProjectPath,
     port: 0,
     token,
+    // Set by the end to end test so it indexes a temporary folder into a
+    // temporary database instead of into whatever this machine already has.
+    dbPath: process.env['LOCAL_FILE_RAG_DB'],
   })
 
   const process_ = createSidecarProcess({
