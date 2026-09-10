@@ -91,7 +91,7 @@ Passed 2026-09-09 by `scripts/day5_acceptance.py` against a live sidecar: 2.14 s
 
 - [~] Click logging and `GET /eval/recall`. Half built: opening a page at full size records a hit, which is what the storage cap evicts by. The recall endpoint is not there, and the golden set measures recall better because it knows the right answer.
 - [~] Golden set runner in the index screen. Dropped: `scripts/eval.py` already does it with thumbnails of every miss and a diff against the previous run, and a golden set is meaningless against a stranger's own files.
-- [ ] Design pass with the interface skills: empty states, loading states, focus states, spacing, type. In progress.
+- [x] Design pass with the interface skills: empty states, loading states, focus states, spacing, type.
 - [x] Keyboard: global shortcut opens the window, arrows move, enter opens, escape clears.
 - [x] Tests complete per the pyramid in KICKOFF.md: unit on domain and application, integration per adapter, and one Playwright run over Electron covering index, search, thumbnail and heatmap.
 - [x] Lint and typecheck green in both projects.
@@ -104,7 +104,7 @@ Acceptance: recall@5 of 0.8 or better on the golden set, or the gap is written d
 - [x] electron-builder arm64 DMG. Installing on a clean user account is still open, and needs a second account on this Mac.
 - [x] First-run model download with progress.
 - [x] README: install, what stays local, what leaves the machine and when, the measured numbers, the architecture diagram, license.
-- [ ] Record the video from LAUNCH.md. Take the screenshots.
+- [x] Record the video from LAUNCH.md. Take the screenshots. `docs/demo.mp4`, 44 s, driven through the real app by `scripts/record_demo.py`.
 - [ ] Publish the repo. Post.
 
 Acceptance: a fresh Mac runs the 45 second demo from the DMG without a terminal.

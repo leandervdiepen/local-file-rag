@@ -16,7 +16,9 @@ Type, and results come back in about 40 ms from the text index while the vision 
 Open a page and the overlay shows which patches answered your query, one query token at a time or combined.
 Ask a question and the answer cites the pages it came from.
 
-![The overlay on a hosting invoice. The data egress row is lit, and so is a band of empty margin: the combined map is diffuse, which the numbers below say plainly](docs/images/preview.png)
+![The heatmap overlay on a screenshot of a Stripe webhook error. The token picker is set to one word, and the combined map behind it is diffuse, which the numbers below say plainly](docs/images/preview.png)
+
+[Forty five seconds of it working](docs/demo.mp4): the query, the rerank, the page, and the overlay.
 
 ## Where your files go
 
