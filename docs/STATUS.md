@@ -170,6 +170,25 @@ Two things the run found and fixed.
 The free model can spend its whole budget reasoning and stream no content at all, which showed as an empty panel: a user cannot tell a refusal from a failure, so an answer with no answer in it is now reported as unavailable with a message naming what to do.
 Lifting the `[1]` out of the prose left sentences like "the invoice on page  says", so the marker stays where it was written and the chip beneath repeats the number.
 
+### Retrieval speed and size
+
+M1 Max, 64 GB, macOS 26.5.1, `vidore/colqwen2-v1.0-merged` in float16, pool factor 3, 2026-09-10.
+`scripts/bench.py --pages 20` against `~/demo-corpus`.
+
+| Metric | Value | Note |
+| --- | --- | --- |
+| Model load | 13.1 s | Cold, from the Hugging Face cache |
+| Seconds per page, warm | 1.22 s | 0.82 pages a second |
+| Rows per page after pooling | 219 | |
+| KB per page | 54.8 KB | 55.8 MB per thousand pages |
+| Query encode | 50.8 ms | |
+| Rerank, 300 pages | 11.1 ms | MaxSim in float32 over float16 storage |
+| The 30 page cold cap, worst case | 36.7 s | What a search costs when none of its candidates have been read |
+
+That last row is the number the whole lazy design exists to bound. A search
+that has to read every one of its thirty cold pages takes half a minute, which
+is why the cap is thirty and why idle pre-embedding runs at all.
+
 ### Day 6, the first golden run
 
 M1 Max, 64 GB, macOS 26.5.1, `vidore/colqwen2-v1.0-merged` in float16, pool factor 3, 2026-09-09.

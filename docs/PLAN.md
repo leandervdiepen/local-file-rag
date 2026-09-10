@@ -45,7 +45,7 @@ Measure: files per second crawled, OCR milliseconds per image, index size on dis
 - [x] `page_vectors` writes and reads. Create the cosine index once row count passes 2,000.
 - [x] `rerank.py`: MaxSim in numpy over a candidate set.
 - [x] Multivector search merged into the candidate set on every search, not only a thin one. D49 withdrew the fewer-than-five rule with the measurement that killed it.
-- [ ] `scripts/bench.py`: pages per second, KB per page, rerank time for 300 pages. Recall moved to the golden set runner by D46, which reports it per query split rather than as one number.
+- [x] `scripts/bench.py`: pages per second, KB per page, rerank time for 300 pages. Recall moved to the golden set runner by D46, which reports it per query split rather than as one number.
 
 Acceptance: "slide with the funnel chart" returns the right slide although no page text matches.
 Measure: everything the bench script prints. Put it in STATUS.md with machine and date.
