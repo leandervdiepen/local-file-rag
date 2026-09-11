@@ -366,6 +366,14 @@ True now, and each one costs more the later it is paid.
 
 ## Log
 
+### 2026-09-11, landing page
+
+The install command no longer overflows the phone viewport.
+Copy stays on screen, stats and features no longer leave a widow column, and
+touch targets are 44 px below 48 rem.
+
+Verified at 320, 390, 768 and 1280, light and dark.
+
 ### 2026-09-11, launch assets
 
 v0.1.0 published. The landing download button now resolves.

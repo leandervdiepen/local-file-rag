@@ -34,12 +34,13 @@
   --image-edge: oklch(0 0 0 / 0.1);
 
   --shadow-control: 0 0 0 1px oklch(0 0 0 / 0.08), 0 1px 2px oklch(0 0 0 / 0.06);
+  --shadow-control-hover: 0 0 0 1px oklch(0 0 0 / 0.12), 0 1px 2px oklch(0 0 0 / 0.08);
   --shadow-frame: 0 2px 4px oklch(0 0 0 / 0.04), 0 12px 32px oklch(0 0 0 / 0.08), 0 40px 80px oklch(0 0 0 / 0.06);
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 
   --page: 64rem;
-  --gutter: 1.75rem;
+  --gutter: clamp(1.125rem, 4.5vw, 1.75rem);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -53,6 +54,7 @@
     --heat: oklch(70% 0.2 25);
     --image-edge: oklch(1 0 0 / 0.1);
     --shadow-control: 0 0 0 1px oklch(1 0 0 / 0.12), 0 1px 2px oklch(0 0 0 / 0.4);
+    --shadow-control-hover: 0 0 0 1px oklch(1 0 0 / 0.18), 0 1px 2px oklch(0 0 0 / 0.5);
     --shadow-frame: 0 2px 4px oklch(0 0 0 / 0.3), 0 12px 32px oklch(0 0 0 / 0.45), 0 40px 80px oklch(0 0 0 / 0.5);
   }
 }
@@ -65,7 +67,9 @@
 
 html {
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: clip;
 }
 
 body {
@@ -76,16 +80,21 @@ body {
   font-size: 1rem;
   line-height: 1.55;
   font-variant-numeric: tabular-nums;
-  overflow-x: hidden;
+}
+
+p,
+li,
+figcaption {
+  text-wrap: pretty;
 }
 
 p {
-  text-wrap: pretty;
   margin: 0 0 0.875rem;
 }
 
 h1,
-h2 {
+h2,
+h3 {
   text-wrap: balance;
   margin: 0;
   font-weight: 560;
@@ -104,42 +113,60 @@ code {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 3px;
 }
 
 main {
   max-width: var(--page);
   margin: 0 auto;
-  padding: 0 var(--gutter);
+  padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
+}
+
+main > *,
+section > *,
+.hero > *,
+.body,
+.full,
+.command {
+  min-width: 0;
 }
 
 /* Hero */
 
 .hero {
-  padding-block: 5rem 3rem;
+  padding-block: calc(3.25rem + env(safe-area-inset-top)) 2.5rem;
   display: grid;
-  gap: 3rem;
+  gap: 2.25rem;
   align-items: center;
 }
 
 @media (min-width: 62rem) {
   .hero {
+    padding-block: calc(5rem + env(safe-area-inset-top)) 3rem;
+    gap: 3rem;
     grid-template-columns: minmax(0, 27rem) minmax(0, 1fr);
     /* The screenshot runs to the edge of the window rather than stopping at
        the reading column, which is what leaves a dead right half otherwise. */
-    margin-right: calc(50% - 50vw + var(--gutter));
+    margin-inline-end: calc(50% - 50vw + max(var(--gutter), env(safe-area-inset-right)));
   }
 }
 
 .mark {
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   display: block;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (min-width: 48rem) {
+  .mark {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 1.5rem;
+  }
 }
 
 h1 {
-  font-size: clamp(2.25rem, 4.4vw, 3rem);
+  font-size: clamp(2.25rem, 1.6rem + 2.6vw, 3rem);
   line-height: 1.04;
   letter-spacing: -0.035em;
   margin-bottom: 1rem;
@@ -153,23 +180,34 @@ h1 {
 }
 
 .actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.625rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
   margin-bottom: 0.875rem;
+}
+
+@media (min-width: 30rem) {
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
 }
 
 .button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  min-height: 40px;
-  padding: 0 1rem;
+  min-height: 44px;
+  /* Icon sits on the start edge, so that side is 2px tighter. */
+  padding-inline: 0.875rem 1rem;
   border-radius: 0.5rem;
   font-size: 0.9375rem;
   font-weight: 520;
   text-decoration: none;
-  transition-property: scale, opacity, background-color;
+  touch-action: manipulation;
+  transition-property: scale, opacity, background-color, box-shadow;
   transition-duration: 160ms;
   transition-timing-function: var(--ease-out);
 }
@@ -188,10 +226,6 @@ h1 {
   color: var(--surface);
 }
 
-.button-primary:hover {
-  opacity: 0.86;
-}
-
 /* The Apple mark reads heavy and sits high in its box. */
 .button-primary svg {
   translate: 0 -1px;
@@ -202,14 +236,25 @@ h1 {
   box-shadow: var(--shadow-control);
 }
 
-.button-quiet:hover {
-  background: var(--surface-sunken);
-}
-
 .meta {
   font-size: 0.8125rem;
   color: var(--ink-muted);
   margin: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button {
+    min-height: 40px;
+  }
+
+  .button-primary:hover {
+    opacity: 0.86;
+  }
+
+  .button-quiet:hover {
+    background: var(--surface-sunken);
+    box-shadow: var(--shadow-control-hover);
+  }
 }
 
 /* Figures */
@@ -234,15 +279,20 @@ figure {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 12px;
-  outline: 1px solid var(--image-edge);
-  outline-offset: -1px;
-  box-shadow: var(--shadow-frame);
+  border-radius: 0;
   background: var(--surface-sunken);
 }
 
 .demo {
   position: relative;
+  width: 100vw;
+  max-width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
+.demo .frame {
+  outline: 1px solid var(--image-edge);
+  outline-offset: -1px;
 }
 
 .demo video {
@@ -250,20 +300,67 @@ figure {
   object-fit: contain;
 }
 
+@media (min-width: 36rem) {
+  .demo {
+    width: auto;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .frame {
+    border-radius: 12px;
+    box-shadow: var(--shadow-frame);
+  }
+}
+
 .video-toggle {
   position: absolute;
   top: 0.75rem;
-  right: 0.75rem;
+  inset-inline-end: 0.75rem;
+  display: grid;
+  place-items: center;
+  min-width: 4.75rem;
   /* The film is always dark, so the chip stays light in both schemes. */
   background: oklch(99% 0.003 60);
   color: oklch(20% 0.012 60);
   box-shadow: 0 0 0 1px oklch(0 0 0 / 0.08), 0 1px 2px oklch(0 0 0 / 0.06);
-  min-height: 32px;
+  min-height: 44px;
+  padding-inline: 0.75rem;
+  border: 0;
+  border-radius: 0.5rem;
+  font: inherit;
+  font-size: 0.75rem;
+  font-family: var(--sans);
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
   z-index: 1;
+  transition-property: background-color, scale;
+  transition-duration: 120ms;
+  transition-timing-function: var(--ease-out);
 }
 
-.video-toggle:hover {
-  background: oklch(97% 0.004 60);
+.video-toggle:active {
+  scale: 0.96;
+}
+
+.video-toggle span {
+  grid-area: 1 / 1;
+}
+
+.video-toggle[data-state='paused'] [data-playing],
+.video-toggle[data-state='playing'] [data-paused] {
+  visibility: hidden;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .video-toggle {
+    min-height: 32px;
+  }
+
+  .video-toggle:hover {
+    background: oklch(97% 0.004 60);
+  }
 }
 
 figcaption {
@@ -277,7 +374,7 @@ figcaption {
 /* Sections: the heading holds the left rail, the content fills the rest. */
 
 section {
-  padding-block: 3rem;
+  padding-block: 2.5rem;
   border-top: 1px solid var(--border);
   display: grid;
   gap: 0.75rem 2.5rem;
@@ -285,6 +382,7 @@ section {
 
 @media (min-width: 48rem) {
   section {
+    padding-block: 3rem;
     grid-template-columns: 10rem minmax(0, 1fr);
   }
 }
@@ -341,76 +439,66 @@ h2 {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding-block: 0.875rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.stats .stat:first-child {
+  border-top: 1px solid var(--border);
+}
+
+.stat dt {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+.stat dd {
+  margin: 0;
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+  text-align: end;
 }
 
 @media (min-width: 40rem) {
   .stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
   }
-}
 
-.stat {
-  background: var(--surface);
-  padding: 0.875rem 1.125rem 1rem;
-}
+  .stats .stat:first-child {
+    border-top: 0;
+  }
 
-.stat dt {
-  font-size: 0.75rem;
-  color: var(--ink-muted);
-  margin-bottom: 0.25rem;
-}
+  .stat {
+    display: block;
+    background: var(--surface);
+    padding: 0.875rem 1.125rem 1rem;
+    border-bottom: 0;
+  }
 
-.stat dd {
-  margin: 0;
-  font-size: 1.25rem;
-  letter-spacing: -0.02em;
-  font-weight: 500;
-}
+  .stat dt {
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+  }
 
-/* Tables */
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9375rem;
-}
-
-th {
-  text-align: left;
-  font-weight: 500;
-  color: var(--ink-muted);
-  font-size: 0.6875rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-td {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border);
-  color: var(--ink-muted);
-}
-
-td:not(:first-child),
-th:not(:first-child) {
-  text-align: right;
-}
-
-td:last-child {
-  color: var(--ink);
-  font-family: var(--mono);
-  font-size: 0.8125rem;
-}
-
-.hit-low {
-  color: var(--heat) !important;
+  .stat dd {
+    font-size: 1.25rem;
+    text-align: start;
+  }
 }
 
 .provenance {
@@ -424,26 +512,54 @@ td:last-child {
 /* Commands and steps */
 
 .command {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
   background: var(--surface-sunken);
   box-shadow: var(--shadow-control);
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  border-radius: 16px;
+  padding: 0.625rem;
   margin-bottom: 0.875rem;
 }
 
 .command code {
   font-size: 0.8125rem;
-  overflow-x: auto;
-  white-space: nowrap;
-  flex: 1;
-  scrollbar-width: none;
+  line-height: 1.5;
+  padding-inline: 0.25rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: all;
 }
 
-.command code::-webkit-scrollbar {
-  display: none;
+.command .copy {
+  justify-self: end;
+  min-width: 4.5rem;
+  min-height: 44px;
+  border-radius: 6px;
+}
+
+@media (min-width: 40rem) {
+  .command {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    border-radius: 12px;
+    padding: 6px;
+  }
+
+  .command code {
+    overflow-x: auto;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    scrollbar-width: none;
+  }
+
+  .command code::-webkit-scrollbar {
+    display: none;
+  }
+
+  .command .copy {
+    min-height: 36px;
+  }
 }
 
 .copy {
@@ -459,23 +575,26 @@ td:last-child {
   padding-inline: 0.5rem;
   cursor: pointer;
   user-select: none;
+  touch-action: manipulation;
   transition-property: color, background-color, scale;
   transition-duration: 120ms;
   transition-timing-function: var(--ease-out);
-}
-
-.copy:hover {
-  color: var(--ink);
-  background: var(--surface);
 }
 
 .copy:active {
   scale: 0.96;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .copy:hover {
+    color: var(--ink);
+    background: var(--surface);
+  }
+}
+
 ol {
   color: var(--ink-muted);
-  padding-left: 1.125rem;
+  padding-inline-start: 1.125rem;
   margin: 0 0 1.125rem;
 }
 
@@ -483,78 +602,67 @@ li {
   margin-bottom: 0.25rem;
 }
 
-/* Shots */
-
-.shots {
-  display: grid;
-  gap: 1.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
-}
-
 /* Footer */
 
 footer {
   max-width: var(--page);
   margin: 0 auto;
-  padding: 1.75rem var(--gutter) 3.5rem;
+  padding-block: 1.75rem calc(2.5rem + env(safe-area-inset-bottom));
+  padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
   border-top: 1px solid var(--border);
   font-size: 0.8125rem;
   color: var(--ink-muted);
   display: flex;
+  flex-direction: column;
+  gap: 0.25rem 1.5rem;
+}
+
+footer span:last-child {
+  display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  justify-content: space-between;
+  gap: 0.25rem 0;
+  align-items: center;
 }
 
 footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 0.35rem;
+  margin-inline: -0.35rem;
   text-decoration-color: var(--border);
   text-underline-offset: 3px;
-  transition: text-decoration-color 120ms var(--ease-out);
-}
-
-footer a:hover {
-  text-decoration-color: var(--ink-muted);
-}
-
-/* One settle on entry, only while the script that undoes it is running. */
-
-.js .reveal {
-  opacity: 0;
-  transform: translateY(6px);
-  transition-property: opacity, transform;
-  transition-duration: 380ms;
+  transition-property: text-decoration-color;
+  transition-duration: 120ms;
   transition-timing-function: var(--ease-out);
 }
 
-.js .reveal.shown {
-  opacity: 1;
-  transform: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition-duration: 0s !important;
-    animation-duration: 0s !important;
+@media (min-width: 40rem) {
+  footer {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
   }
 
-  .js .reveal {
-    opacity: 1;
-    transform: none;
+  footer a {
+    min-height: 0;
   }
 }
 
-/* Two buttons of different widths stacked read as a mistake, so on a phone
-   they both take the column. */
-@media (max-width: 30rem) {
-  .actions {
-    display: grid;
-    grid-template-columns: 1fr;
+@media (hover: hover) and (pointer: fine) {
+  footer a:hover {
+    text-decoration-color: var(--ink-muted);
   }
+}
 
-  .button {
-    justify-content: center;
+@media (max-width: 47.99rem) {
+  .button,
+  .command .copy,
+  .video-toggle,
+  footer a {
+    min-height: 44px;
   }
 }
 
@@ -562,8 +670,21 @@ footer a:hover {
 
 .features {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
-  gap: 1.75rem 2.25rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+@media (min-width: 32rem) {
+  .features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.75rem 2.25rem;
+  }
+}
+
+@media (min-width: 62rem) {
+  .features {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .feature svg {
@@ -574,7 +695,7 @@ footer a:hover {
   color: var(--ink-muted);
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.5;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -606,9 +727,13 @@ footer a:hover {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 1rem;
+  gap: 0.75rem;
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
+}
+
+.bar-label span:first-child {
+  min-width: 0;
 }
 
 .bar-label span:last-child {
@@ -629,6 +754,7 @@ footer a:hover {
   height: 100%;
   border-radius: 3px;
   background: var(--ink);
+  transform-origin: 0 50%;
 }
 
 .bar-weak .bar-fill {
@@ -637,4 +763,86 @@ footer a:hover {
 
 .bar-weak .bar-label span:last-child {
   color: var(--heat);
+}
+
+/* One settle on entry, only while the script that undoes it is running. */
+
+.js .reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  transition-property: opacity, transform;
+  transition-duration: 280ms;
+  transition-timing-function: var(--ease-out);
+}
+
+.js .reveal.shown {
+  opacity: 1;
+  transform: none;
+}
+
+.js .reveal:has(.features) {
+  opacity: 1;
+  transform: none;
+}
+
+.js .feature {
+  opacity: 0;
+  transform: translateY(8px);
+  transition-property: opacity, transform;
+  transition-duration: 280ms;
+  transition-timing-function: var(--ease-out);
+}
+
+.js .shown .feature {
+  opacity: 1;
+  transform: none;
+}
+
+.js .shown .feature:nth-child(1) {
+  transition-delay: 0ms;
+}
+
+.js .shown .feature:nth-child(2) {
+  transition-delay: 50ms;
+}
+
+.js .shown .feature:nth-child(3) {
+  transition-delay: 100ms;
+}
+
+.js .shown .feature:nth-child(4) {
+  transition-delay: 150ms;
+}
+
+.js .bar-fill {
+  transform: scaleX(0.08);
+  transition-property: transform;
+  transition-duration: 500ms;
+  transition-timing-function: var(--ease-out);
+}
+
+.js .shown .bar-fill {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+
+  .js .reveal,
+  .js .feature,
+  .js .bar-fill {
+    opacity: 1;
+    transform: none;
+  }
+
+  .button:active,
+  .copy:active,
+  .video-toggle:active {
+    scale: 1;
+  }
 }

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Local file search</title>
     <meta
       name="description"
@@ -39,7 +39,7 @@
   <body>
     <main>
       <div class="hero">
-        <div>
+        <div class="hero-copy">
           <img class="mark" src="assets/icon.png" alt="" width="60" height="60" />
           <h1>Search your files by what they look like.</h1>
           <p class="lede">
@@ -85,7 +85,16 @@
           >
             <source src="assets/launch.mp4" type="video/mp4" />
           </video>
-          <button class="copy video-toggle" type="button" data-toggles="demo">Play</button>
+          <button
+            class="video-toggle"
+            type="button"
+            data-toggles="demo"
+            aria-controls="demo"
+            data-state="paused"
+          >
+            <span data-paused>Play</span>
+            <span data-playing>Pause</span>
+          </button>
         </figure>
       </div>
 
@@ -173,7 +182,7 @@
           </ol>
           <div class="command">
             <code id="quarantine">xattr -dr com.apple.quarantine "/Applications/Local file search.app"</code>
-            <button class="copy" type="button" data-copies="quarantine">Copy</button>
+            <button class="copy" type="button" data-copies="quarantine" aria-live="polite">Copy</button>
           </div>
           <p>Open it and add a folder. The first search downloads the 4.43 GB model. This happens once.</p>
         </div>
@@ -192,10 +201,21 @@
 
     <script>
       for (const button of document.querySelectorAll('[data-copies]')) {
+        let copiedTimer
         button.addEventListener('click', async () => {
-          await navigator.clipboard.writeText(document.getElementById(button.dataset.copies).textContent)
-          button.textContent = 'Copied'
-          setTimeout(() => (button.textContent = 'Copy'), 1400)
+          const node = document.getElementById(button.dataset.copies)
+          try {
+            await navigator.clipboard.writeText(node.textContent)
+            button.textContent = 'Copied'
+            clearTimeout(copiedTimer)
+            copiedTimer = setTimeout(() => (button.textContent = 'Copy'), 1400)
+          } catch {
+            const range = document.createRange()
+            range.selectNodeContents(node)
+            const selection = window.getSelection()
+            selection.removeAllRanges()
+            selection.addRange(range)
+          }
         })
       }
 
@@ -204,7 +224,7 @@
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
       const syncToggle = () => {
-        toggle.textContent = demo.paused ? 'Play' : 'Pause'
+        toggle.dataset.state = demo.paused ? 'paused' : 'playing'
       }
 
       toggle.addEventListener('click', () => {
@@ -218,17 +238,21 @@
         demo.play().catch(() => {})
       }
 
-      const watcher = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (!entry.isIntersecting) continue
-            entry.target.classList.add('shown')
-            watcher.unobserve(entry.target)
-          }
-        },
-        { rootMargin: '0px 0px -10% 0px' },
-      )
-      for (const section of document.querySelectorAll('.reveal')) watcher.observe(section)
+      if (!('IntersectionObserver' in window)) {
+        for (const section of document.querySelectorAll('.reveal')) section.classList.add('shown')
+      } else {
+        const watcher = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue
+              entry.target.classList.add('shown')
+              watcher.unobserve(entry.target)
+            }
+          },
+          { rootMargin: '0px 0px -32px 0px', threshold: 0.01 },
+        )
+        for (const section of document.querySelectorAll('.reveal')) watcher.observe(section)
+      }
     </script>
   </body>
 </html>
