@@ -152,6 +152,15 @@ A result list can only be believed by someone who knows what is missing from it,
 
 ![The index screen: counts, the folders being watched with a switch each, and every skipped file with the reason it was skipped](docs/images/index.png)
 
+## Contributing
+
+You do not need write access.
+Fork the repository, branch, and open a pull request against `main`.
+Every change runs `make check` and `make check-int` in CI before it can land.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the architecture rules, and the checks to run.
+Report vulnerabilities through the private process in [SECURITY.md](SECURITY.md), not in a public issue.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

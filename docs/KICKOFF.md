@@ -3,7 +3,7 @@
 Start from the parent folder so the session sees both this folder and the repo it will create:
 
 ```bash
-cd ~/Documents/lndr/diepen/code/diepen
+cd ~/code
 claude --permission-mode auto
 ```
 
@@ -104,7 +104,7 @@ Copy says what happens, never what will not happen.
 
 ## Linear
 
-Team `diepen` in `linear-personal`.
+A Linear team, reached over MCP.
 Create the project `Local file RAG v1` once, with milestones Day 0 through Day 7 and one issue per `PLAN.md` task carrying its acceptance test in the description.
 Move issues to In Progress and Done as you go.
 `PLAN.md` and `STATUS.md` stay your source of truth. Linear is my view.

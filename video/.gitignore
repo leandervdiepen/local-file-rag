@@ -1,2 +1,5 @@
 node_modules
 out
+
+# ffmpeg scratch: the screencast frames a take is assembled from.
+frames

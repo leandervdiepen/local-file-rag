@@ -15,7 +15,7 @@
 {"id": "g15", "query": "meeting notes about grandfathering existing customers on pricing", "expected_file": "notes/meetings/2026-02-11-pricing-sync.md", "expected_page": 1, "text_free": false, "match_channel": "content"}
 {"id": "g16", "query": "spec for the api rate limit", "expected_file": "notes/specs/rate-limit-spec.md", "expected_page": 1, "text_free": false, "match_channel": "content"}
 {"id": "g17", "query": "changelog entry about exports timing out", "expected_file": "notes/changelog/CHANGELOG-beacon.md", "expected_page": 1, "text_free": false, "match_channel": "content"}
-{"id": "g18", "query": "todo about renewing the ssl certificate", "expected_file": "notes/todo/leander-todo.md", "expected_page": 1, "text_free": false, "match_channel": "content"}
+{"id": "g18", "query": "todo about renewing the ssl certificate", "expected_file": "notes/todo/this-week.md", "expected_page": 1, "text_free": false, "match_channel": "content"}
 {"id": "g19", "query": "readme explaining how the ingest service retries failed jobs", "expected_file": "notes/readmes/ingest-service-README.md", "expected_page": 1, "text_free": false, "match_channel": "content"}
 {"id": "g20", "query": "nginx config for max upload size", "expected_file": "notes/config/nginx-snippet.md", "expected_page": 1, "text_free": false, "match_channel": "content"}
 {"id": "g21", "query": "incident review root cause dns cache", "expected_file": "notes/meetings/2026-05-04-incident-review.md", "expected_page": 1, "text_free": false, "match_channel": "content"}

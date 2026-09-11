@@ -1,7 +1,7 @@
 # Status
 
 Updated: 2026-09-09.
-Linear: `Local file RAG v1` on team `diepen`, 57 issues, DPN-224 to DPN-280.
+Issue tracking lives in a private Linear project. This file and `PLAN.md` are the public record.
 
 This file is the measurement log. Every number below carries the machine, the
 model and the date it came from, and nothing here was estimated. What is

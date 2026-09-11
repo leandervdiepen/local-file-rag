@@ -22,7 +22,7 @@ FIXED: list[tuple[str, str, str]] = [
      "## 2026-03-02\n\n"
      "- Fixed a bug where exports over 10k rows timed out.\n"
      "- Minor styling fixes to the settings pane.\n"),
-    ("todo/leander-todo.md",
+    ("todo/this-week.md",
      "# Todo\n\n",
      "- Renew the SSL cert before it expires\n"
      "- Reply to Devon about the staging outage\n"
