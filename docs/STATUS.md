@@ -366,6 +366,10 @@ True now, and each one costs more the later it is paid.
 
 ## Log
 
+### 2026-09-11, launch assets
+
+v0.1.0 published. The landing download button now resolves.
+
 ### 2026-09-07, planning
 
 Explored project ideas, chose this one, researched the stack, wrote PRD, architecture, decisions, plan, launch notes. No code.

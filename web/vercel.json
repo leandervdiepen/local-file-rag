@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/Local-file-search.dmg",
+      "destination": "https://github.com/leandervdiepen/local-file-rag/releases/latest/download/Local-file-search-arm64.dmg",
+      "permanent": false
+    }
+  ]
+}

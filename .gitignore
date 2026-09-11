@@ -20,6 +20,15 @@ release/
 .env.*
 !.env.example
 
+# Launch campaign. The Remotion project, the render, and the post stay on this machine.
+video/
+docs/launch.mp4
+docs/images/launch-poster.jpg
+docs/linkedin-post.txt
+web/assets/launch.mp4
+web/assets/launch-poster.jpg
+web/assets/og.jpg
+
 # Local state that is never source
 spike/.venv/
 spike/out/

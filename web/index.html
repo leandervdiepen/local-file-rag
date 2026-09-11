@@ -6,21 +6,29 @@
     <title>Local file search</title>
     <meta
       name="description"
-      content="A macOS app that searches your PDFs, screenshots and notes by what the page looks like. Everything stays on your Mac."
+      content="A macOS app that searches your PDFs, screenshots and notes by what the page looks like. The index stays on your Mac."
     />
+    <link rel="canonical" href="https://local-file-search.vercel.app/" />
     <link rel="icon" href="assets/icon.png" />
     <link rel="apple-touch-icon" href="assets/icon.png" />
     <link rel="preload" href="assets/fonts/inter-variable-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="styles.css" />
+    <meta name="theme-color" content="#faf9f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1c1b19" media="(prefers-color-scheme: dark)" />
 
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://local-file-search.vercel.app/" />
     <meta property="og:title" content="Local file search" />
     <meta
       property="og:description"
       content="Type what you remember seeing. It finds the page, even when those words are not written on it."
     />
-    <meta property="og:image" content="assets/search.png" />
+    <meta property="og:image" content="https://local-file-search.vercel.app/assets/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A heatmap over a Stripe webhook error. Red marks the patches that matched the query." />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://local-file-search.vercel.app/assets/og.jpg" />
 
     <!-- The settle only exists once the script that undoes it is running. -->
     <script>
@@ -35,12 +43,13 @@
           <img class="mark" src="assets/icon.png" alt="" width="60" height="60" />
           <h1>Search your files by what they look like.</h1>
           <p class="lede">
-Type what you remember seeing. It finds the page even if those words are not on it.
+            Type what you remember seeing. It finds the page even if those words are not on it.
           </p>
           <div class="actions">
             <a
               class="button button-primary"
-              href="https://github.com/leandervdiepen/local-file-rag/releases/latest/download/Local-file-search-arm64.dmg"
+              href="/Local-file-search.dmg"
+              download="Local-file-search.dmg"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -58,11 +67,25 @@ Type what you remember seeing. It finds the page even if those words are not on 
               Source
             </a>
           </div>
-          <p class="meta">Free. Apple silicon. 515 MB.</p>
+          <p class="meta">Free. Apple silicon. 515 MB, then one Terminal command.</p>
         </div>
 
-        <figure>
-          <img class="frame" src="assets/search.png" alt="" width="960" height="638" fetchpriority="high" />
+        <figure class="demo">
+          <video
+            id="demo"
+            class="frame"
+            width="1920"
+            height="1080"
+            poster="assets/launch-poster.jpg"
+            muted
+            loop
+            playsinline
+            preload="metadata"
+            aria-label="A one-minute demo of searching files by what they look like, then seeing which part of the page matched."
+          >
+            <source src="assets/launch.mp4" type="video/mp4" />
+          </video>
+          <button class="copy video-toggle" type="button" data-toggles="demo">Play</button>
         </figure>
       </div>
 
@@ -73,31 +96,31 @@ Type what you remember seeing. It finds the page even if those words are not on 
               <rect x="3" y="4" width="18" height="12" rx="2" />
               <path d="M2 20h20" />
             </svg>
-            <h3>Everything stays local</h3>
-            <p>The index, the page images and the embeddings live in one folder on your disk.</p>
+            <h3>The index lives on this Mac</h3>
+            <p>Page images, embeddings and the search index sit in one folder on your disk.</p>
           </div>
           <div class="feature">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 3 19 6v5c0 4.5-2.9 8-7 10-4.1-2-7-5.5-7-10V6z" />
               <path d="m9.5 12 1.8 1.8 3.4-3.6" />
             </svg>
-            <h3>No account needed</h3>
-            <p>Search never sends anything to a server. No analytics, no crash reporting.</p>
+            <h3>Search stays here</h3>
+            <p>A query never leaves the machine. Asking a question can, and only if you pick a hosted model.</p>
           </div>
           <div class="feature">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            <h3>Vision search</h3>
-            <p>It looks at each page as an image, so charts and screenshots are searchable.</p>
+            <h3>It looks at the page</h3>
+            <p>Charts and screenshots are searchable because each page is stored as an image.</p>
           </div>
           <div class="feature">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M13 2 4 13h7l-1 9 9-11h-7z" />
             </svg>
-            <h3>Local AI answers</h3>
-            <p>Use Ollama to answer questions without sending pages to a provider.</p>
+            <h3>Answers can stay here</h3>
+            <p>Pick Ollama and the five page images never leave this Mac.</p>
           </div>
         </div>
       </section>
@@ -146,7 +169,7 @@ Type what you remember seeing. It finds the page even if those words are not on 
         <div class="body">
           <ol>
             <li>Download the DMG and drag the app into Applications.</li>
-            <li>Run this once. The app is not signed with an Apple Developer ID.</li>
+            <li>Paste this once. macOS blocks unsigned apps until you do.</li>
           </ol>
           <div class="command">
             <code id="quarantine">xattr -dr com.apple.quarantine "/Applications/Local file search.app"</code>
@@ -161,18 +184,38 @@ Type what you remember seeing. It finds the page even if those words are not on 
       <span>MIT licensed.</span>
       <span>
         <a href="https://github.com/leandervdiepen/local-file-rag">Source</a> &middot;
+        <a href="https://github.com/leandervdiepen/local-file-rag/releases/tag/v0.1.0">v0.1.0</a> &middot;
         <a href="https://github.com/leandervdiepen/local-file-rag/blob/main/docs/STATUS.md">Measurements</a> &middot;
         <a href="https://diepen.ai">diepen.ai</a>
       </span>
     </footer>
 
     <script>
-      for (const button of document.querySelectorAll('.copy')) {
+      for (const button of document.querySelectorAll('[data-copies]')) {
         button.addEventListener('click', async () => {
           await navigator.clipboard.writeText(document.getElementById(button.dataset.copies).textContent)
           button.textContent = 'Copied'
           setTimeout(() => (button.textContent = 'Copy'), 1400)
         })
+      }
+
+      const demo = document.getElementById('demo')
+      const toggle = document.querySelector('[data-toggles="demo"]')
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+      const syncToggle = () => {
+        toggle.textContent = demo.paused ? 'Play' : 'Pause'
+      }
+
+      toggle.addEventListener('click', () => {
+        if (demo.paused) demo.play()
+        else demo.pause()
+      })
+      demo.addEventListener('play', syncToggle)
+      demo.addEventListener('pause', syncToggle)
+
+      if (!reduceMotion) {
+        demo.play().catch(() => {})
       }
 
       const watcher = new IntersectionObserver(

@@ -241,6 +241,31 @@ figure {
   background: var(--surface-sunken);
 }
 
+.demo {
+  position: relative;
+}
+
+.demo video {
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+}
+
+.video-toggle {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  /* The film is always dark, so the chip stays light in both schemes. */
+  background: oklch(99% 0.003 60);
+  color: oklch(20% 0.012 60);
+  box-shadow: 0 0 0 1px oklch(0 0 0 / 0.08), 0 1px 2px oklch(0 0 0 / 0.06);
+  min-height: 32px;
+  z-index: 1;
+}
+
+.video-toggle:hover {
+  background: oklch(97% 0.004 60);
+}
+
 figcaption {
   font-size: 0.8125rem;
   line-height: 1.5;
